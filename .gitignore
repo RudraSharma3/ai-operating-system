@@ -1,0 +1,12 @@
+# Secrets and private configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local tooling
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
