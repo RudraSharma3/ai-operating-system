@@ -1,5 +1,11 @@
 @AGENTS.md
 
-## Claude-specific guidance
+# Claude Adapter
 
-Follow the shared rules in `AGENTS.md`. Keep any Claude-only guidance in this section so the shared policy stays portable.
+Read `AGENTS.md` before beginning substantive work. The shared rules there are the canonical instructions for this repository.
+
+## Claude-Specific Guidance
+
+- Follow the universal rules in `AGENTS.md` strictly.
+- When working with Claude Code or Claude IDE integrations, invoke project tools and bash commands directly when requested.
+- Keep tool-specific configuration here; do not duplicate shared operating policies.
