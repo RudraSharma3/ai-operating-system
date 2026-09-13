@@ -1,28 +1,69 @@
 # Project Instructions
 
-## Project purpose
+Read this entire file before starting any task on this project.
 
-<!-- State the user problem and product outcome. -->
+---
 
-## Required reading
+## 1. Project Purpose
 
-- `docs/architecture.md`
-- `docs/task-state.md`
-- Relevant files in `docs/decisions/`
-- `docs/lessons.md` when it applies to the task
+<!-- State the primary user problem, application outcome, and core value proposition. -->
 
-## Commands
+## 2. Required Reading
 
-<!-- List install, run, test, lint, build, and deployment commands. -->
+Before taking action, review:
+- `docs/architecture.md` (System context, components, data flows)
+- `docs/conventions.md` (Code style, git workflows, test patterns)
+- `docs/task-state.md` (Active task progress, goals, blockers)
+- Relevant records in `docs/decisions/` (Accepted architectural choices)
+- `docs/lessons.md` (Verified project lessons)
 
-## Engineering rules
+---
 
-- Make the smallest change that meets the acceptance criteria.
-- Do not alter unrelated behavior.
-- Add or update tests for behavior changes where practical.
-- Record material technical choices as ADRs.
-- Do not add secrets or private data to version control.
+## 3. Environment & Commands
 
-## Learning loop
+<!-- List exact development commands for this repository -->
+- **Install**: `npm install` <!-- update with actual package manager -->
+- **Dev**: `npm run dev`
+- **Test**: `npm test`
+- **Lint / Typecheck**: `npm run lint`
+- **Build**: `npm run build`
 
-Add new mistakes first to `.ai/mistakes-candidates.md`. Promote only verified, reusable lessons to `docs/lessons.md`. Add a rule here only when it applies broadly across this project.
+---
+
+## 4. Engineering Rules
+
+1. Make the smallest surgical change that satisfies the acceptance criteria.
+2. Follow established patterns in `docs/conventions.md` and `docs/architecture.md`.
+3. Never modify unrelated files or alter working behavior without justification.
+4. Always add or update tests for functional changes.
+5. Record material architectural trade-offs as ADRs in `docs/decisions/`.
+6. Never commit secrets, credentials, API keys, or private tokens to version control.
+7. Automatically optimize brief or messy user prompts into full engineering specifications (architecture alignment, edge cases, error handling, security) in `docs/task-state.md` before executing.
+8. Practice Proportional Effort: Use Solo Model execution for routine tasks; reserve Multi-Agent MCP orchestration and Consensus sampling strictly for high-complexity architectural decisions.
+
+---
+
+## 5. Self-Modifying Learning Loop
+
+When the user gives a direct correction or states a recurring preference:
+1. **Append Rule**: Immediately assign the next sequential number and append it to `## 6. Learned Rules` below.
+   - Format: `N. [CATEGORY] Rule description — rationale.`
+   - Allowed Categories: `[STYLE]`, `[CODE]`, `[ARCH]`, `[TOOL]`, `[PROCESS]`, `[DATA]`, `[UX]`, `[SECURITY]`, `[TEST]`, `[OTHER]`.
+2. **Supersede Obsolete Rules**: If a new preference replaces an older rule, mark the older rule with `- SUPERSEDED BY RULE N.` (never silently delete).
+3. **Generalize Secrets**: Never store raw credentials or API keys; generalize into security practices.
+4. **Notify User**: Explicitly state in the response: `🧠 Learned Rule Added to AGENTS.md: N. [CATEGORY] Rule — rationale.`
+
+For unverified internal errors or complex edge cases, log a candidate first in `.ai/mistakes-candidates.md`.
+
+---
+
+## 6. Learned Rules
+
+<!--
+Validated project-specific rules are appended below sequentially.
+Format: N. [CATEGORY] Rule description — rationale.
+-->
+
+1. [PROCESS] Read `docs/task-state.md` and `docs/architecture.md` before writing code — ensures alignment with current project context and architecture.
+2. [SECURITY] Never hardcode secrets or private keys — load credentials through environment variables or configuration managers.
+3. [TEST] Run project test suite and verify changes before declaring task completion — ensures code quality and prevents regressions.

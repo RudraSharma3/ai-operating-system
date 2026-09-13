@@ -1,15 +1,33 @@
-# ADR 000: Decision title
+# ADR 000: [Decision Title]
 
-**Status:** Proposed | Accepted | Superseded
+- **Status**: Proposed | Accepted | Superseded by ADR [NNN]
+- **Date**: YYYY-MM-DD
+- **Author**: [Agent / Author Name]
+- **Deciders**: [Stakeholders / User]
 
-## Context
+---
 
-<!-- What problem or trade-off requires a decision? -->
+## 1. Context and Problem Statement
 
-## Decision
+<!-- What problem, architectural trade-off, or requirement necessitates this decision? What forces and constraints are at play? -->
 
-<!-- What was chosen? -->
+## 2. Considered Options
 
-## Consequences
+- **Option 1**: [Description, pros, cons]
+- **Option 2**: [Description, pros, cons]
 
-<!-- Benefits, costs, risks, and follow-up work. -->
+## 3. Decision Outcome
+
+<!-- Chosen option: "We chose Option X because..." -->
+
+### Positive Consequences
+- Benefit 1
+- Benefit 2
+
+### Negative Consequences / Trade-offs
+- Trade-off 1
+- Mitigation strategy
+
+## 4. Implementation & Follow-up
+
+<!-- What files, migrations, or tasks are required to carry out this decision? -->
