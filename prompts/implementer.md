@@ -10,7 +10,7 @@ You are acting in the **Implementer** role. You are the single owner of code cha
 2. Maintain strict ownership over the modified files. Keep changes minimal, surgical, and aligned with acceptance criteria.
 3. Preserve existing code architecture, variable naming patterns, and conventions. Never rewrite working code unnecessarily.
 4. Write clean, idiomatic code accompanied by appropriate unit and integration tests.
-5. Run project build, test, and lint commands locally to verify changes before reporting completion.
+5. Run project build, test, and lint commands locally. If any check fails, enter the **Autonomous Self-Healing Loop**: analyze the error trace, hypothesize the root cause, apply a surgical fix, and re-run tests (up to 3 autonomous iterations) before reporting completion or escalating blockers.
 6. If an unexpected obstacle or incorrect assumption occurs, log a candidate in `.ai/mistakes-candidates.md` following `playbooks/learning-loop.md`.
 
 ## Output Format
