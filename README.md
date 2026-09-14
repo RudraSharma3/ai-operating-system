@@ -81,6 +81,7 @@ ai-operating-system/
 ├── docs/
 │   ├── AI-OS-COMPLETE-SPECIFICATION.md # Complete technical specification
 │   ├── AI-OS-USER-GUIDE.md             # Complete user guide & manual
+│   ├── graph.md                        # Architecture & operational dependency graph
 │   └── decisions/
 │       └── 001-ai-operating-system-architecture.md # Formal ADR 001
 ├── playbooks/                 # Step-by-step repeatable work procedures
@@ -95,7 +96,9 @@ ai-operating-system/
 │   ├── prompt-refinement.md   # Auto-refinement of messy prompts
 │   ├── multi-agent-orchestration.md # Manager-worker MCP protocol
 │   ├── stochastic-consensus.md # Multi-persona consensus mapping
-│   └── token-optimization.md  # Prompt caching & token reduction architecture
+│   ├── token-optimization.md  # Prompt caching & token reduction architecture
+│   ├── interview.md           # Socratic requirements elicitation
+│   └── release-and-learn.md   # Milestone release & lesson harvesting
 ├── prompts/                   # Multi-agent role prompts
 │   ├── architect.md           # System design & trade-off analysis
 │   ├── implementer.md         # Single-owner code implementation with self-healing
@@ -107,15 +110,17 @@ ai-operating-system/
 ├── scripts/
 │   ├── init-project.ps1       # One-shot project initializer (PowerShell)
 │   ├── init-project.sh        # One-shot project initializer (Bash)
-│   └── sync-rules.ps1         # Federated global rule synchronizer
+│   ├── sync-rules.ps1         # Federated global rule synchronizer
+│   ├── doctor.ps1             # Diagnostic health check (PowerShell)
+│   └── doctor.sh              # Diagnostic health check (Bash)
 ├── registry/
 │   └── projects.md            # Index of downstream projects
 └── templates/
     └── project/               # Project starter kit for new repositories
         ├── .ai/mistakes-candidates.md # Candidate lessons log
         ├── .githooks/pre-commit       # Secret scanning guard
-        ├── .claude/commands/          # Slash command definitions (/feature, /audit, /sync-state)
-        ├── docs/ (architecture, conventions, lessons, task-state, decisions)
+        ├── .claude/commands/          # Slash commands (/feature, /audit, /sync-state, /interview)
+        ├── docs/ (architecture, conventions, graph, lessons, task-state, decisions)
         ├── mcp.json                   # MCP server configuration template
         ├── .gitignore                 # Starter gitignore
         ├── AGENTS.md                  # Canonical project instructions
