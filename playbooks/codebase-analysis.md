@@ -32,7 +32,15 @@ Follow this playbook when entering an unfamiliar, large, or legacy codebase to b
 2. Run test and lint commands to check project health.
 3. Identify missing test areas or brittle test setups.
 
-## 5. Record Findings
+## 5. External Research & Source Triangulation
+
+When researching unfamiliar libraries or APIs, follow the **Source Triangulation Standard**:
+1. **Tier 1 (Official Authority)**: Consult official documentation and API type definitions.
+2. **Tier 2 (Recency Check)**: Check GitHub release notes/changelogs to confirm non-deprecated syntax.
+3. **Tier 3 (Production Gotchas)**: Check GitHub issues and community discussions for known edge cases.
+4. Filter out sources older than 2 years for fast-evolving frameworks.
+
+## 6. Record Findings
 
 1. Synthesize findings into `docs/architecture.md` or a concise task summary.
 2. Highlight constraints, existing conventions, and risks before proposing any code changes.
