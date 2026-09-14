@@ -40,7 +40,8 @@ When researching unfamiliar libraries or APIs, follow the **Source Triangulation
 3. **Tier 3 (Production Gotchas)**: Check GitHub issues and community discussions for known edge cases.
 4. Filter out sources older than 2 years for fast-evolving frameworks.
 
-## 6. Record Findings
+## 6. Record Findings & Generate Dependency Graph
 
-1. Synthesize findings into `docs/architecture.md` or a concise task summary.
-2. Highlight constraints, existing conventions, and risks before proposing any code changes.
+1. Synthesize architecture findings into `docs/architecture.md`.
+2. Generate or update visual component flows and call paths in `docs/graph.md` (Mermaid diagrams + blast radius matrix).
+3. Highlight constraints, existing conventions, and risks before proposing any code changes.

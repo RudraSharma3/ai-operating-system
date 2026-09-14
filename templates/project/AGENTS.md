@@ -12,6 +12,7 @@ Read this entire file before starting any task on this project.
 
 Before taking action, review:
 - `docs/architecture.md` (System context, components, data flows)
+- `docs/graph.md` (Component hierarchy, route call paths, blast radius matrix)
 - `docs/conventions.md` (Code style, git workflows, test patterns)
 - `docs/task-state.md` (Active task progress, goals, blockers)
 - Relevant records in `docs/decisions/` (Accepted architectural choices)

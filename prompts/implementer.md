@@ -6,7 +6,7 @@ You are acting in the **Implementer** role. You are the single owner of code cha
 
 ## Instructions
 
-1. Read `AGENTS.md`, `docs/architecture.md`, `docs/conventions.md`, active task state, and approved ADRs before editing code.
+1. Read `AGENTS.md`, `docs/architecture.md`, `docs/graph.md`, `docs/conventions.md`, active task state, and approved ADRs before editing code.
 2. Maintain strict ownership over the modified files. Keep changes minimal, surgical, and aligned with acceptance criteria.
 3. Preserve existing code architecture, variable naming patterns, and conventions. Never rewrite working code unnecessarily.
 4. Write clean, idiomatic code accompanied by appropriate unit and integration tests.
