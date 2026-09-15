@@ -1,6 +1,9 @@
 # AI Operating System (AI-OS)
 **Author:** Rudra Sharma  
 **Version:** 2.0  
+**Compatibility:** Google Antigravity, Cursor, Claude Code, GitHub Copilot, VS Code, OpenAI Codex / ChatGPT, Windsurf, and Local LLMs.
+
+---
 
 A reusable, versioned operating system for running reliable, context-aware, and self-improving AI coding agents across software engineering projects.
 
@@ -8,17 +11,17 @@ A reusable, versioned operating system for running reliable, context-aware, and 
 
 ## ⚡ Quick Links & Documentation
 
-- 📘 **[AI-OS Complete User Guide & Manual (docs/AI-OS-USER-GUIDE.md)](docs/AI-OS-USER-GUIDE.md)**: **Start Here!** Step-by-step developer tutorial for integrating AI-OS into your existing projects, safety GitHub baseline, personalized confirmation banners, and the exact first kickoff prompt.
-- 🏛️ **[AI-OS Complete Technical Specification (docs/AI-OS-COMPLETE-SPECIFICATION.md)](docs/AI-OS-COMPLETE-SPECIFICATION.md)**: Deep architectural specification, mathematical consensus models, token caching prefix layouts, and multi-agent coordination contracts.
+- 📘 **[AI-OS Complete User Guide & Integration Manual (docs/AI-OS-USER-GUIDE.md)](docs/AI-OS-USER-GUIDE.md)**: **Start Here!** The official handbook for integrating AI-OS into your projects, GitHub baseline safety, personalized confirmation greeting, and the kickoff prompt.
+- 🏛️ **[AI-OS Complete Technical Specification (docs/AI-OS-COMPLETE-SPECIFICATION.md)](docs/AI-OS-COMPLETE-SPECIFICATION.md)**: Deep systems architecture, mathematical consensus models, token caching layout, and multi-agent coordination contracts.
 - 📊 **[Architecture & Operational Graph (docs/graph.md)](docs/graph.md)**: Visual Mermaid graphs and blast-radius dependency maps.
 
 ---
 
-## The Vision
+## 👁️ The Vision
 
-Modern AI coding agents are powerful but often session-dependent. Without an operational framework, each session starts from zero: instructions drift, conventions are forgotten, mistakes repeat, and naive self-modification risks prompt injection or rule corruption.
+Modern AI coding agents are powerful but often session-dependent. Without a standardized operational framework, every new chat session starts from zero: instructions drift, conventions are forgotten, mistakes repeat, and naive self-modification risks prompt injection or rule corruption.
 
-The **AI Operating System** acts as a durable operational layer between engineers and AI agents:
+The **AI Operating System** acts as a durable, self-correcting operational layer between software engineers and AI coding agents:
 
 ```
                   USER / ENGINEER
@@ -39,53 +42,22 @@ The **AI Operating System** acts as a durable operational layer between engineer
 
 ---
 
-## 🚀 Quickstart: Integrating AI-OS into an Existing Project
+## 🚀 How to Integrate AI-OS into Your Project
 
-Follow the standard 4-step workflow (detailed in [docs/AI-OS-USER-GUIDE.md](docs/AI-OS-USER-GUIDE.md)):
+Whether you have an **existing repository** or are starting a **brand new project**, AI-OS is designed to integrate cleanly without modifying your existing business logic.
 
-### Step 1: Save & Push Your Project to GitHub
-```bash
-cd /path/to/my-project
-git status
-git add .
-git commit -m "chore: save working baseline before adding AI-OS"
-git push origin main
-```
+👉 **To get started, follow the official step-by-step developer tutorial in [docs/AI-OS-USER-GUIDE.md](docs/AI-OS-USER-GUIDE.md).**
 
-### Step 2: Run the AI-OS Integrator
-- **On Windows (PowerShell):**
-  ```powershell
-  powershell -File "C:\path\to\ai-operating-system\scripts\install.ps1" -TargetPath "C:\path\to\my-project"
-  ```
-- **On macOS / Linux (Bash):**
-  ```bash
-  ./scripts/install.sh "/path/to/my-project"
-  ```
-
-### Step 3: Open Project in Your AI IDE (Antigravity, Cursor, Claude Code, VS Code)
-
-### Step 4: Paste This EXACT Kickoff Prompt into Chat:
-```markdown
-Read AGENTS.md and follow playbooks/codebase-analysis.md to analyze this repository. 
-Please map our existing codebase and update docs/architecture.md, docs/conventions.md, 
-and docs/graph.md with our current components, tech stack, and data flow.
-```
+### What the User Guide covers:
+1. **Safety First**: Creating a clean GitHub baseline before integration.
+2. **1-Step Integration**: Running the safe, non-destructive AI-OS installer for your OS.
+3. **Automated Verification**: Diagnostic health check and personalized confirmation greeting.
+4. **Kickoff Activation**: The exact initial prompt to paste into any AI IDE to index and graph your codebase.
+5. **Daily Workflows**: Prompt auto-refinement, self-learning rules, and multi-agent coordination.
 
 ---
 
-## ✨ Starting a Brand New Project from Scratch
-
-```powershell
-# Windows PowerShell
-powershell -File "C:\path\to\ai-operating-system\scripts\init-project.ps1" -Name "my-new-app" -Stack "Next.js + Tailwind + Supabase"
-
-# macOS / Linux
-./scripts/init-project.sh "my-new-app" "Next.js + Tailwind + Supabase"
-```
-
----
-
-## Core Capabilities
+## 💡 Core Capabilities
 
 - **Canonical Rule Hierarchy**: Single source of truth in [AGENTS.md](AGENTS.md) ensuring consistent execution across Claude, Gemini, Codex, and other LLMs without duplicating rules.
 - **Safe Self-Improvement Loop**: Prevents dangerous naive self-modification. Agents log unverified lessons as candidates (`.ai/mistakes-candidates.md`), pass a 10-point quality check, and promote only verified rules (`docs/lessons.md` / `AGENTS.md`).
@@ -93,15 +65,15 @@ powershell -File "C:\path\to\ai-operating-system\scripts\init-project.ps1" -Name
 - **Proportional Effort Complexity Gate (Anti-Over-Engineering)**: Defaults to lightweight Solo Model execution for 95% of routine tasks; reserves Multi-Agent MCP and Stochastic Consensus strictly for complex systems.
 - **Multi-Agent MCP Orchestration**: Manager-Worker coordination with contract-first isolation ([playbooks/multi-agent-orchestration.md](playbooks/multi-agent-orchestration.md)).
 - **Stochastic Consensus for Strategic Decisions**: Multi-persona ideation and voting mapped to safe bets vs. human judgment calls ([playbooks/stochastic-consensus.md](playbooks/stochastic-consensus.md)).
-- **Visual Dependency Graph & Blast Radius Mapping**: Visual Mermaid wiring diagrams in `docs/graph.md` for safe refactoring.
-- **Token Optimization & Prompt Caching**: Pinned static rule prefix layout cutting latency by 5x and token costs by up to 90%.
-- **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating.
+- **Visual Dependency Graph & Blast Radius Mapping**: Visual Mermaid wiring diagrams in [docs/graph.md](docs/graph.md) for safe refactoring.
+- **Token Optimization & Prompt Caching**: Pinned static rule prefix layout cutting latency by 5x and token costs by up to 90% ([playbooks/token-optimization.md](playbooks/token-optimization.md)).
+- **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating ([playbooks/testing.md](playbooks/testing.md)).
 - **Pre-Commit AI Guard**: Automated git hook blocking secret leaks and verifying task state hygiene.
 - **Federated Global Learning**: CLI tool syncing universal rules learned across projects back to the master repository.
 
 ---
 
-## Repository Map
+## 🗺️ Repository Structure
 
 ```
 ai-operating-system/
@@ -152,3 +124,10 @@ ai-operating-system/
         ├── GEMINI.md                  # Gemini adapter
         └── CODEX.md                   # Codex adapter
 ```
+
+---
+
+## 👤 Author & Maintainer
+
+**AI Operating System** is conceived, built, and maintained by **Rudra Sharma**.
+Feel free to open issues, contribute playbooks, or share how AI-OS powers your agentic workflows!
