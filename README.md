@@ -59,6 +59,7 @@ Whether you have an **existing repository** or are starting a **brand new projec
 
 ## 💡 Core Capabilities
 
+- **Autonomous Codebase & Context Discovery**: Deep 6-stage exploration protocol that reads existing files, dependencies, routes, and database models to generate visual architecture graphs and persistent task state before writing code ([playbooks/codebase-analysis.md](playbooks/codebase-analysis.md)).
 - **Canonical Rule Hierarchy**: Single source of truth in [AGENTS.md](AGENTS.md) ensuring consistent execution across Claude, Gemini, Codex, and other LLMs without duplicating rules.
 - **Safe Self-Improvement Loop**: Prevents dangerous naive self-modification. Agents log unverified lessons as candidates (`.ai/mistakes-candidates.md`), pass a 10-point quality check, and promote only verified rules (`docs/lessons.md` / `AGENTS.md`).
 - **Prompt Auto-Refinement Engine**: Automatically transforms messy, conversational user prompts into rigorous engineering specifications with edge cases and security checks ([playbooks/prompt-refinement.md](playbooks/prompt-refinement.md)).

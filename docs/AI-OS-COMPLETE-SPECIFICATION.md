@@ -138,7 +138,19 @@ Transforms informal or messy user prompts into production-grade specifications (
 
 ---
 
-## 8. Anti-Over-Engineering Complexity Tiers
+## 8. Autonomous Codebase Discovery & Context Mapping Engine
+
+When AI-OS is integrated into an existing project, agents execute the 6-stage exploration protocol (`playbooks/codebase-analysis.md`) to build full architectural context before modifying any files:
+1. **Structure & Dependency Ingestion**: Parses root manifest files (`package.json`, `requirements.txt`, `go.mod`, `Cargo.toml`) and directory trees to catalog runtime libraries and build tooling.
+2. **Entry Points & Service Boundaries**: Identifies controllers, API routers, entry files (`main.ts`, `app.py`), and background workers.
+3. **Data Flow & State Lifecycle**: Traces end-to-end user requests to database transactions, caching layers (Redis), and external APIs.
+4. **Testing & Quality Baseline**: Evaluates test harnesses, linters, and baseline code health.
+5. **Persistent Artifact Generation**: Synthesizes findings into `docs/architecture.md`, `docs/conventions.md`, and visual Mermaid diagrams in `docs/graph.md`.
+6. **Task State Initialization**: Initializes `docs/task-state.md` with active project features, completed milestones, and pending technical debt.
+
+---
+
+## 9. Anti-Over-Engineering Complexity Tiers
 
 | Tier | Task Type | Execution Strategy | Overhead |
 | --- | --- | --- | :---: |
