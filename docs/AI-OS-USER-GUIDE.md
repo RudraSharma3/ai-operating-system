@@ -217,6 +217,15 @@ I want to build my-new-app using Next.js, Tailwind, and Supabase. Please review 
 
 ## 💡 Daily Development & Pro Features
 
+### 0. Autonomous Codebase Discovery (How AI-OS Understands What You've Built)
+When AI-OS is first connected to an existing project, it executes the **Autonomous Codebase Exploration Protocol** (`playbooks/codebase-analysis.md`):
+- **Reads All Files & Dependencies**: Ingests your package manifests (`package.json`, `requirements.txt`, `go.mod`), environment variables, and folder hierarchy.
+- **Maps Application Boundaries**: Inspects frontend UI components, backend routes, database models, and background workers.
+- **Builds Visual & Textual Memory**: Writes your system architecture into `docs/architecture.md` and generates an interactive Mermaid dependency graph in `docs/graph.md`.
+- **Initializes Task State**: Analyzes git history and existing code to populate `docs/task-state.md` with what features are done and what remains to be built.
+
+---
+
 ### 1. Building Features with Messy Prompts (Prompt Auto-Refining)
 You do not need to write complex prompts. Even if you type casually:
 > *"Add user authentication with Google OAuth and a logout button in the navbar."*
