@@ -1,165 +1,269 @@
 # AI Operating System: Complete User Guide & Manual
-
-A practical, step-by-step handbook for building software with the AI Operating System. No prior AI engineering experience required.
+**Author:** Rudra Sharma  
+**Version:** 2.0  
+**Compatibility:** Works seamlessly with Google Antigravity, Cursor, Claude Code, GitHub Copilot, VS Code, OpenAI Codex/ChatGPT, and Local LLMs.
 
 ---
 
-## 1. Quick Start: Scaffolding a New Project in 10 Seconds
+## 📖 Welcome to AI-OS
 
-To start a new project equipped with the entire AI Operating System:
+The **AI Operating System (AI-OS)** is a standardized operational layer that equips your software repositories with persistent context, self-correcting rules, automatic prompt refinement, and multi-agent coordination.
 
-### Option A: Using the 1-Command CLI (Recommended)
+This guide walks you through integrating AI-OS into any existing project (**Project X**) safely, professionally, and step-by-step without affecting your existing code or the AI-OS master repository.
 
-**On Windows (PowerShell):**
+---
+
+## 🎯 The 2-Repository Integration Scenario
+
+Let's suppose you have two repositories on your local computer:
+1. **`ai-operating-system`** — The AI-OS repository cloned from GitHub.
+2. **`Project-X`** — Your existing application repository (e.g., React, Node.js, Python, Django, Flutter, Go, etc.).
+
+Follow the steps below to integrate AI-OS into `Project-X` like a senior software engineer.
+
+```
+┌───────────────────────────┐           ┌───────────────────────────┐
+│    ai-operating-system    │           │         Project-X         │
+│     (Master Repository)   │           │    (Your Existing Code)   │
+└─────────────┬─────────────┘           └─────────────┬─────────────┘
+              │                                       │
+              │  1. Push Baseline to GitHub           │ (git push origin main)
+              │  2. Run AI-OS Integrator Script       │
+              └──────────────────────────────────────>│ (Safely adds AI-OS layers)
+                                                      │
+                                                      ▼
+                                       🎉 "Hey [User]! AI-OS by Rudra is 
+                                          integrated into Project-X!"
+                                                      │
+                                                      ▼
+                                        Open in IDE & Paste Kickoff Prompt
+```
+
+---
+
+## 🚀 Step-by-Step Integration Guide
+
+---
+
+### 🔹 Step 1: Save & Push Your Project Code to GitHub (Safety Baseline)
+
+Before adding any new tools or configuration, always save your project state. This creates a clean Git baseline so you can track all AI-OS enhancements.
+
+Open your terminal, navigate to your project directory, and push:
+
+```bash
+# 1. Navigate to your project folder
+cd /path/to/Project-X
+
+# 2. Check your git status
+git status
+
+# 3. Stage and commit any outstanding changes
+git add .
+git commit -m "chore: save working baseline before adding AI-OS"
+
+# 4. Push to your GitHub repository
+git push origin main
+```
+
+*(If your default branch is `master`, replace `main` with `master`)*
+
+---
+
+### 🔹 Step 2: Run the AI-OS Integrator
+
+Now, let the automated AI-OS installer configure your repository. It will copy the standardized rule hierarchy, architecture templates, playbooks, and Git security hooks into `Project-X` **without touching or modifying any of your existing code**.
+
+#### **Option A: On Windows (PowerShell)**
+Open PowerShell and run:
+
 ```powershell
 # From your ai-operating-system directory:
-.\scripts\init-project.ps1 -Name "my-saas-app" -Stack "Next.js + Tailwind + Supabase"
+powershell -File "C:\path\to\ai-operating-system\scripts\install.ps1" -TargetPath "C:\path\to\Project-X"
 ```
+*(Tip: Replace the paths with your actual folder paths on your machine)*
 
-**On macOS / Linux (Bash):**
+#### **Option B: On macOS / Linux (Bash Terminal)**
+Open Terminal and run:
+
 ```bash
-./scripts/init-project.sh "my-saas-app" "Next.js + Tailwind + Supabase"
+# From your ai-operating-system directory:
+./scripts/install.sh "/path/to/Project-X"
 ```
 
-### Option B: Manual Copy
-1. Copy the `templates/project/` folder to your new project directory:
-   ```bash
-   cp -r ai-operating-system/templates/project/. my-saas-app/
-   ```
-2. Open `my-saas-app` in your favorite IDE (Cursor, VS Code, Antigravity, Claude Code).
+#### **Option C: Manual Copy (If you prefer not to run scripts)**
+If you prefer manual file management, copy the contents of `templates/project/` into your `Project-X` root:
+- **Windows (PowerShell):**
+  ```powershell
+  $src = "C:\path\to\ai-operating-system\templates\project"
+  $dest = "C:\path\to\Project-X"
+  Copy-Item -Path "$src\*" -Destination $dest -Recurse -Force
+  Copy-Item -Path "$src\.ai" -Destination $dest -Recurse -Force
+  Copy-Item -Path "$src\.claude" -Destination $dest -Recurse -Force
+  Copy-Item -Path "$src\.githooks" -Destination $dest -Recurse -Force
+  ```
+- **macOS / Linux:**
+  ```bash
+  cp -r /path/to/ai-operating-system/templates/project/. /path/to/Project-X/
+  ```
 
 ---
 
-## 2. Your Very First Prompt in a New Project
+### 🔹 Step 3: Verify the Confirmation & Health Diagnostic
 
-Once your project folder is open in your AI tool (Claude, Gemini, or ChatGPT), simply type:
+When the integrator finishes, it runs a 14-point diagnostic and displays your personalized confirmation banner:
 
-> *"I want to build a real-time collaborative note-taking app with user authentication and tag organization."*
+```
+========================================================================
+ 🎉 Hey [Your Username]! AI-OS by Rudra is successfully integrated
+    into your project 'Project-X'!
+========================================================================
 
-### What Happens Automatically:
-1. **Prompt Optimization**: The agent expands your idea into a full specification with UI requirements, edge cases, and security checks (`docs/task-state.md`).
-2. **Architecture Mapping**: The agent updates `docs/architecture.md` with components and database schemas.
-3. **Scaffolding**: The agent immediately runs the initial package setup and begins Phase 1!
+1. Core Instruction Files:
+ [PASS] Canonical AGENTS.md exists
+ [PASS] CLAUDE.md adapter exists
+ [PASS] GEMINI.md adapter exists
+ [PASS] CODEX.md adapter exists
+
+2. Documentation Integrity:
+ [PASS] docs/ directory exists
+ [PASS] docs/architecture.md exists
+ [PASS] docs/conventions.md exists
+ [PASS] docs/task-state.md exists
+ [PASS] docs/graph.md exists
+
+3. Learning Engine:
+ [PASS] .ai/ directory exists
+ [PASS] .ai/mistakes-candidates.md exists
+ [PASS] docs/lessons.md exists
+
+4. Secret & Security Hygiene:
+ [PASS] Zero secrets detected in Markdown/docs
+ [PASS] .env file not committed to Git
+
+====================================================
+ Health Summary: 14 Passed | 0 Warnings | 0 Failures
+ EXCELLENT! Project health is in pristine operational order.
+====================================================
+```
 
 ---
 
-## 3. Daily Workflow: How to Build Features
+### 🔹 Step 4: Open Your Project in Your AI IDE
 
-Every task follows a smooth 6-stage lifecycle:
-
-```
-  [1. Discover]  ───▶  [2. Plan]  ───▶  [3. Build]
-                                              │
-  [6. Handoff]   ◀───  [5. Learn] ◀───  [4. Verify]
-```
-
-### Step 1: Prompt Your Agent
-- **You**: *"Add Google OAuth login and a user profile dropdown."*
-- **The AI OS**: Translates this into explicit acceptance criteria, edge cases, and error states.
-
-### Step 2: The Agent Implements Code
-- The agent makes surgical changes adhering to `docs/conventions.md`.
-
-### Step 3: Autonomous Self-Healing Test Loop
-- The agent automatically runs your test suite.
-- If a test fails or throws a syntax error, the agent **auto-fixes the code and re-tests up to 3 times** before bothering you!
-
-### Step 4: Clean Handoff
-- The agent updates `docs/task-state.md` with checked-off tasks (`[x]`) and presents a concise summary of what was verified.
+Open `Project-X` in your favorite AI-powered IDE or editor:
+- **Google Antigravity**
+- **Cursor**
+- **Claude Code**
+- **VS Code** (with Copilot / Gemini / Claude extension)
+- **Windsurf**
 
 ---
 
-## 4. Teaching Your AI (Self-Modifying Rules)
+### 🔹 Step 5: The Very First Prompt to Paste in Any IDE
 
-Whenever you correct the agent or express a preference, the AI **permanently remembers it** for future sessions!
+As soon as your project is open in the IDE, open your AI chat window and paste this **exact kickoff prompt**:
 
-### How to Teach:
-Just speak naturally:
+```markdown
+Read AGENTS.md and follow playbooks/codebase-analysis.md to analyze this repository. 
+Please map our existing codebase and update docs/architecture.md, docs/conventions.md, 
+and docs/graph.md with our current components, tech stack, and data flow.
+```
+
+#### 🧠 What the AI Does Automatically:
+1. **Reads `AGENTS.md`**: Adopts the non-negotiable engineering principles, safety rules, and operational workflow.
+2. **Scans Your Existing Code**: Analyzes your folders, files, packages, frameworks, database connections, and API endpoints.
+3. **Populates `docs/architecture.md`**: Fills in your project's tech stack, directory structure, and core services.
+4. **Generates `docs/graph.md`**: Generates visual Mermaid diagrams of your system dependencies and data flows.
+5. **Configures `docs/conventions.md`**: Records your project's naming conventions, coding style, and testing commands.
+
+---
+
+### 🔹 Step 6: Push Your AI-OS Enabled Project to GitHub
+
+Now that AI-OS has mapped your codebase, commit and push the newly added AI-OS layer to your repository:
+
+```bash
+cd /path/to/Project-X
+git add .
+git commit -m "feat: integrate AI Operating System by Rudra"
+git push origin main
+```
+
+🎉 **Congratulations!** Your project is now permanently equipped with AI-OS.
+
+---
+
+## 🛠️ How to Start a BRAND NEW Project from Scratch
+
+If you want to start a completely fresh project from zero with AI-OS already pre-configured:
+
+#### **On Windows (PowerShell):**
+```powershell
+powershell -File "C:\path\to\ai-operating-system\scripts\init-project.ps1" -Name "my-new-app" -Stack "Next.js + Tailwind + Supabase"
+```
+
+#### **On macOS / Linux (Bash):**
+```bash
+./scripts/init-project.sh "my-new-app" "Next.js + Tailwind + Supabase"
+```
+
+Open the new folder `my-new-app` and paste:
+```markdown
+I want to build my-new-app using Next.js, Tailwind, and Supabase. Please review docs/architecture.md and start Phase 1.
+```
+
+---
+
+## 💡 Daily Development & Pro Features
+
+### 1. Building Features with Messy Prompts (Prompt Auto-Refining)
+You do not need to write complex prompts. Even if you type casually:
+> *"Add user authentication with Google OAuth and a logout button in the navbar."*
+
+The AI-OS **Prompt Auto-Refinement Engine** intercepts it and creates a complete specification in `docs/task-state.md` with:
+- Error boundaries & network failure handling
+- Loading spinners & disabled state triggers
+- Security checks & token hygiene
+- Acceptance criteria checklist
+
+---
+
+### 2. Teaching Your AI (Self-Modifying Rules Engine)
+Whenever you correct the AI during development, it permanently remembers:
 - *"Always use `bun` instead of `npm`."*
-- *"Use kebab-case for all component files."*
-- *"Never use inline styles; always use Tailwind utility classes."*
+- *"All components must use TypeScript strict types."*
 
-### What the Agent Does:
-The agent automatically:
-1. Formats your preference: `4. [CODE] Always use bun instead of npm — user preference.`
-2. Appends it to the `## Learned Rules` section in `AGENTS.md`.
-3. Displays a badge confirming:  
-   > 🧠 **Learned Rule Added to `AGENTS.md`**: `4. [CODE] Always use bun instead of npm — user preference.`
+The AI logs the lesson in `.ai/mistakes-candidates.md`, tests it against the 10-point quality criteria, and appends it to `AGENTS.md` under `## Learned Rules`. Next time you or a teammate opens the project, the AI already knows your preference!
 
 ---
 
-## 5. Switching Between AI Tools (Zero Amnesia!)
-
-Hit Claude's rate limit? Want to switch to ChatGPT or Gemini?
-
-You can switch models instantly without losing context!
-
-```
-1. You hit Claude's limit in the middle of building a feature.
-2. Open the exact same project folder in ChatGPT (or Gemini).
-3. ChatGPT automatically reads CODEX.md ──▶ docs/task-state.md.
-4. ChatGPT immediately says:
-   "I see where we left off on Step 2 (Google OAuth). Let's continue from here!"
-```
+### 3. Switching Between AI Tools (Zero Amnesia!)
+If you hit rate limits on Claude, simply open the exact same folder in **Gemini** or **ChatGPT/Codex**.
+Because AI-OS stores your project memory and active task progress in Markdown files (`AGENTS.md` and `docs/task-state.md`), the new AI picks up immediately where the previous AI left off!
 
 ---
 
-## 6. Using Slash Commands (Chat Shortcuts)
+### 4. Slash Commands Quick Reference
 
-If you use Claude Code or Antigravity, use these built-in shortcuts:
-
-| Command | What It Does |
-| --- | --- |
-| `/feature <idea>` | Auto-refines your prompt, plans the files, and creates acceptance criteria in `docs/task-state.md`. |
-| `/audit` | Triggers the **Security Reviewer** and **Tester** roles to scan for secret leaks, injection bugs, and edge cases. |
-| `/sync-state` | Scans git diff and synchronizes completed milestones into `docs/task-state.md`. |
-
----
-
-## 7. Advanced: Multi-Agent MCP & Decision Consensus
-
-### When to Use Multi-Agent Mode (`playbooks/multi-agent-orchestration.md`)
-For large fullstack features with separate UI, backend, and testing requirements:
-- Configure `templates/project/mcp.json`.
-- The **Manager (Claude)** creates the shared data contract first in `docs/architecture.md`.
-- **Worker 1 (Gemini)** builds the frontend UI.
-- **Worker 2 (Codex)** builds the backend API.
-- **Worker 3 (Codex)** writes the automated test suite.
-
-### When to Use Stochastic Consensus (`playbooks/stochastic-consensus.md`)
-Facing a major architectural dilemma? (e.g. *"Should we use Supabase or Custom Postgres + Prisma?"*):
-- Tell your agent: *"Run stochastic consensus on this architecture choice."*
-- The agent samples 3–5 distinct personas (*Minimalist*, *Scalability Expert*, *Security Auditor*).
-- Outputs a **Consensus Map** (Safe Bets vs. Trade-offs) and saves the decision to `docs/decisions/001-<decision>.md`.
+| Command | Action |
+|---|---|
+| `/feature <description>` | Intercepts feature request, refines the prompt, and updates `docs/task-state.md`. |
+| `/interview <idea>` | Launches a 4-question interactive architectural interview before writing any code. |
+| `/audit` | Activates the Security Reviewer and Tester roles to scan for secret leaks and bugs. |
+| `/sync-state` | Synchronizes completed milestones and updates the dependency graph. |
 
 ---
 
-## 8. Syncing Lessons Across All Your Projects
-
-When you learn a fantastic universal rule in one project, you can propagate it to all future projects:
+### 5. Running Health Diagnostics
+Anytime you want to verify your repository's AI-OS configuration:
 
 ```powershell
-# Run from your project directory:
-powershell -File C:\path\to\ai-operating-system\scripts\sync-rules.ps1
+powershell -File "scripts/doctor.ps1"
 ```
-This extracts all `[UNIVERSAL]` rules and merges them into your master AI Operating System repository.
+It tests 14 key integrity checks across rules, documentation, hooks, and security.
 
 ---
 
-## 9. Safety & Secret Protection
-
-- **Pre-Commit Guard**: A built-in Git hook in `.githooks/pre-commit` automatically blocks any commit containing API keys, private tokens, or un-ignored `.env` files.
-- **Zero Secrets in Rules**: The agent automatically converts secret corrections into generalized security policies (`"Load API keys from .env"`), keeping your codebase and prompt logs 100% secure.
-
----
-
-## 10. FAQ & Troubleshooting
-
-**Q: Can I use this with just 1 model like free ChatGPT or Antigravity?**  
-**A:** Yes! The entire OS defaults to lightweight **Solo Model Mode** with zero external API setup required.
-
-**Q: What if the agent suggests an over-complicated multi-agent swarm for a simple bug fix?**  
-**A:** Rule 1.5 strictly enforces the **Anti-Over-Engineering Gate**. The agent is commanded to fast-track routine tasks in solo mode with zero overhead.
-
-**Q: Where are my project tasks tracked?**  
-**A:** In `docs/task-state.md`. It serves as the durable baton passed between AI sessions.
+## 🤝 Need Help or Want to Contribute?
+AI Operating System is created and maintained by **Rudra Sharma**. If you build cool things with AI-OS, share your feedback and star the repository on GitHub!

@@ -1,6 +1,16 @@
-# AI Operating System
+# AI Operating System (AI-OS)
+**Author:** Rudra Sharma  
+**Version:** 2.0  
 
 A reusable, versioned operating system for running reliable, context-aware, and self-improving AI coding agents across software engineering projects.
+
+---
+
+## ⚡ Quick Links & Documentation
+
+- 📘 **[AI-OS Complete User Guide & Manual (docs/AI-OS-USER-GUIDE.md)](docs/AI-OS-USER-GUIDE.md)**: **Start Here!** Step-by-step developer tutorial for integrating AI-OS into your existing projects, safety GitHub baseline, personalized confirmation banners, and the exact first kickoff prompt.
+- 🏛️ **[AI-OS Complete Technical Specification (docs/AI-OS-COMPLETE-SPECIFICATION.md)](docs/AI-OS-COMPLETE-SPECIFICATION.md)**: Deep architectural specification, mathematical consensus models, token caching prefix layouts, and multi-agent coordination contracts.
+- 📊 **[Architecture & Operational Graph (docs/graph.md)](docs/graph.md)**: Visual Mermaid graphs and blast-radius dependency maps.
 
 ---
 
@@ -29,91 +39,60 @@ The **AI Operating System** acts as a durable operational layer between engineer
 
 ---
 
-## 🚀 How to Use AI-OS (Copy-Paste Quickstart)
+## 🚀 Quickstart: Integrating AI-OS into an Existing Project
 
-Choose your scenario below:
+Follow the standard 4-step workflow (detailed in [docs/AI-OS-USER-GUIDE.md](docs/AI-OS-USER-GUIDE.md)):
 
----
-
-### 📦 Case 1: Adding AI-OS to an EXISTING Project
-
-If you already have a project folder (e.g. `my-existing-app`) and want to equip it with AI-OS:
-
-#### Step 1: Copy AI-OS files into your project
-Open your terminal and run the command for your OS:
-
-**On Windows (PowerShell):**
-```powershell
-# Replace 'C:\path\to\your-project' with your actual project folder path:
-$dest = "C:\path\to\your-project"
-$src = "C:\Users\HP\OneDrive\Desktop\ai-operating-system\templates\project"
-Copy-Item -Path "$src\*" -Destination $dest -Recurse -Force
-Copy-Item -Path "$src\.ai" -Destination $dest -Recurse -Force
-Copy-Item -Path "$src\.claude" -Destination $dest -Recurse -Force
-Copy-Item -Path "$src\.githooks" -Destination $dest -Recurse -Force
-```
-
-**On Windows (Command Prompt / CMD):**
-```cmd
-xcopy /E /I /Y "C:\Users\HP\OneDrive\Desktop\ai-operating-system\templates\project\*" "C:\path\to\your-project\"
-```
-
-**On macOS / Linux (Terminal):**
+### Step 1: Save & Push Your Project to GitHub
 ```bash
-cp -r /path/to/ai-operating-system/templates/project/. /path/to/your-project/
+cd /path/to/my-project
+git status
+git add .
+git commit -m "chore: save working baseline before adding AI-OS"
+git push origin main
 ```
 
-#### Step 2: Open your project in your AI IDE
-Open your project folder in **Antigravity**, **Cursor**, **Claude Code**, or **VS Code**.
+### Step 2: Run the AI-OS Integrator
+- **On Windows (PowerShell):**
+  ```powershell
+  powershell -File "C:\path\to\ai-operating-system\scripts\install.ps1" -TargetPath "C:\path\to\my-project"
+  ```
+- **On macOS / Linux (Bash):**
+  ```bash
+  ./scripts/install.sh "/path/to/my-project"
+  ```
 
-#### Step 3: Copy-paste this Kickoff Prompt into your AI Chat:
+### Step 3: Open Project in Your AI IDE (Antigravity, Cursor, Claude Code, VS Code)
+
+### Step 4: Paste This EXACT Kickoff Prompt into Chat:
 ```markdown
 Read AGENTS.md and follow playbooks/codebase-analysis.md to analyze this repository. 
-Please map our existing codebase and update docs/architecture.md, docs/conventions.md, and docs/graph.md with our current components, stack, and data flow.
+Please map our existing codebase and update docs/architecture.md, docs/conventions.md, 
+and docs/graph.md with our current components, tech stack, and data flow.
 ```
 
 ---
 
-### ✨ Case 2: Starting a BRAND NEW Project from Scratch
+## ✨ Starting a Brand New Project from Scratch
 
-If you want to create a brand new project in 2 seconds:
-
-#### Step 1: Run the 1-Shot Scaffolding Command
-
-**On Windows (PowerShell):**
 ```powershell
-powershell -File "C:\Users\HP\OneDrive\Desktop\ai-operating-system\scripts\init-project.ps1" -Name "my-new-app" -Stack "Next.js + Tailwind + Supabase"
-```
+# Windows PowerShell
+powershell -File "C:\path\to\ai-operating-system\scripts\init-project.ps1" -Name "my-new-app" -Stack "Next.js + Tailwind + Supabase"
 
-**On macOS / Linux (Bash):**
-```bash
+# macOS / Linux
 ./scripts/init-project.sh "my-new-app" "Next.js + Tailwind + Supabase"
 ```
-
-#### Step 2: Open the newly created folder in your AI IDE
-
-#### Step 3: Copy-paste your prompt in chat:
-```markdown
-I want to build my-new-app using Next.js, Tailwind, and Supabase. Please review docs/architecture.md and start Phase 1.
-```
-
----
-
-## 📚 Essential Documentation
-
-- **[AI-OS Complete Technical Specification](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/docs/AI-OS-COMPLETE-SPECIFICATION.md)**: Deep technical architecture, mathematical consensus mapping, 4-level context hierarchy, and complete systems design.
-- **[AI-OS Complete User Guide](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/docs/AI-OS-USER-GUIDE.md)**: Step-by-step handbook, daily workflow tutorials, prompt refinement examples, multi-agent recipes, and cheat sheets.
 
 ---
 
 ## Core Capabilities
 
-- **Canonical Rule Hierarchy**: Single source of truth in [AGENTS.md](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/AGENTS.md) ensuring consistent execution across Claude, Gemini, Codex, and other LLMs without duplicating rules.
+- **Canonical Rule Hierarchy**: Single source of truth in [AGENTS.md](AGENTS.md) ensuring consistent execution across Claude, Gemini, Codex, and other LLMs without duplicating rules.
 - **Safe Self-Improvement Loop**: Prevents dangerous naive self-modification. Agents log unverified lessons as candidates (`.ai/mistakes-candidates.md`), pass a 10-point quality check, and promote only verified rules (`docs/lessons.md` / `AGENTS.md`).
-- **Prompt Auto-Refinement Engine**: Automatically transforms messy, conversational user prompts into rigorous engineering specifications with edge cases and security checks ([playbooks/prompt-refinement.md](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/playbooks/prompt-refinement.md)).
+- **Prompt Auto-Refinement Engine**: Automatically transforms messy, conversational user prompts into rigorous engineering specifications with edge cases and security checks ([playbooks/prompt-refinement.md](playbooks/prompt-refinement.md)).
 - **Proportional Effort Complexity Gate (Anti-Over-Engineering)**: Defaults to lightweight Solo Model execution for 95% of routine tasks; reserves Multi-Agent MCP and Stochastic Consensus strictly for complex systems.
-- **Multi-Agent MCP Orchestration**: Manager-Worker coordination with contract-first isolation ([playbooks/multi-agent-orchestration.md](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/playbooks/multi-agent-orchestration.md)).
-- **Stochastic Consensus for Strategic Decisions**: Multi-persona ideation and voting mapped to safe bets vs. human judgment calls ([playbooks/stochastic-consensus.md](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/playbooks/stochastic-consensus.md)).
+- **Multi-Agent MCP Orchestration**: Manager-Worker coordination with contract-first isolation ([playbooks/multi-agent-orchestration.md](playbooks/multi-agent-orchestration.md)).
+- **Stochastic Consensus for Strategic Decisions**: Multi-persona ideation and voting mapped to safe bets vs. human judgment calls ([playbooks/stochastic-consensus.md](playbooks/stochastic-consensus.md)).
 - **Visual Dependency Graph & Blast Radius Mapping**: Visual Mermaid wiring diagrams in `docs/graph.md` for safe refactoring.
 - **Token Optimization & Prompt Caching**: Pinned static rule prefix layout cutting latency by 5x and token costs by up to 90%.
 - **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating.
@@ -134,8 +113,8 @@ ai-operating-system/
 ├── workflow.md                # Standard 6-stage delivery lifecycle
 ├── stack-preferences.md       # Technical defaults & preferences
 ├── docs/
+│   ├── AI-OS-USER-GUIDE.md             # Complete user guide & manual (Start Here!)
 │   ├── AI-OS-COMPLETE-SPECIFICATION.md # Complete technical specification
-│   ├── AI-OS-USER-GUIDE.md             # Complete user guide & manual
 │   ├── architecture.md                 # System architecture doc
 │   ├── conventions.md                  # Engineering & git conventions
 │   ├── graph.md                        # Architecture & operational dependency graph
@@ -151,6 +130,8 @@ ai-operating-system/
 ├── prompts/ (7 Roles)         # architect, implementer, reviewer, tester,
 │                              # researcher, security-reviewer, data-ai-specialist
 ├── scripts/
+│   ├── install.ps1            # Project integrator & doctor installer (PowerShell)
+│   ├── install.sh             # Project integrator & doctor installer (Bash)
 │   ├── init-project.ps1       # One-shot project initializer (PowerShell)
 │   ├── init-project.sh        # One-shot project initializer (Bash)
 │   ├── sync-rules.ps1         # Federated global rule synchronizer
