@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AI Operating System Minimalist Project Integrator (by Rudra Sharma) - macOS/Linux
+# AI Operating System Project Integrator (by Rudra Sharma) - macOS/Linux
 
 set -e
 
@@ -12,34 +12,46 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 TEMPLATE_DIR="$REPO_ROOT/templates/project"
 
 echo ""
-echo -e "  \033[36m> AI Operating System v2.0\033[0m"
-echo -e "  \033[90m  by Rudra Sharma\033[0m"
+echo -e "\033[36m    ___    ____      ____  _____ \033[0m"
+echo -e "\033[36m   /   |  /  _/     / __ \/ ___/ \033[0m"
+echo -e "\033[36m  / /| |  / /______/ / / /\__ \  \033[0m"
+echo -e "\033[36m / ___ |_/ /_____/ /_/ /___/ /  \033[0m"
+echo -e "\033[36m/_/  |_/___/      \____//____/   \033[0m"
+echo -e "\033[35m   ++ AI OPERATING SYSTEM v2.0 ++\033[0m"
+echo -e "\033[90m       by Rudra Sharma\033[0m"
 echo ""
 
+echo "========================================================================"
+echo " 🚀 AI Operating System (AI-OS by Rudra Sharma) - Project Integrator"
+echo " Target Project: $PROJECT_NAME ($TARGET_PATH)"
+echo " User:           $GIT_USER"
+echo "========================================================================"
+
 if [ ! -d "$TARGET_PATH" ]; then
-    echo -e "  \033[31m[X] Target directory not found: $TARGET_PATH\033[0m"
+    echo "Error: Directory '$TARGET_PATH' does not exist!"
     exit 1
 fi
 
-echo -e "  \033[90m[+] Target: $PROJECT_NAME ($TARGET_PATH)\033[0m"
-
+echo ""
+echo "[1/3] Copying AI-OS architecture and rule files..."
 cp -n -r "$TEMPLATE_DIR/." "$TARGET_PATH/" 2>/dev/null || true
-echo -e "  \033[32m[OK] Architecture and Canonical Rules Ingested\033[0m"
 
+echo "[2/3] Configuring secret protection and Git hooks..."
 cd "$TARGET_PATH"
 if [ -d ".git" ] && [ -d ".githooks" ]; then
     git config core.hooksPath .githooks
 fi
-echo -e "  \033[32m[OK] Git Pre-Commit Secret Armor Armed\033[0m"
-echo ""
 
-echo -e "  \033[33mHey $GIT_USER! AI-OS by Rudra is successfully integrated into '$PROJECT_NAME'!\033[0m"
 echo ""
-echo -e "  \033[36mNext Step: Open '$PROJECT_NAME' in your AI IDE and paste this prompt:\033[0m"
-echo -e "  \033[90m--------------------------------------------------------------------------\033[0m"
-echo -e "  \033[37mRead AGENTS.md and follow playbooks/codebase-analysis.md to analyze this\033[0m"
-echo -e "  \033[37mrepository. Please map our existing codebase and update docs/architecture.md,\033[0m"
-echo -e "  \033[37mdocs/conventions.md, and docs/graph.md with our current components,\033[0m"
-echo -e "  \033[37mtech stack, and data flow.\033[0m"
-echo -e "  \033[90m--------------------------------------------------------------------------\033[0m"
+echo "========================================================================"
+echo " 🎉 Hey $GIT_USER! AI-OS by Rudra is successfully integrated"
+echo "    into your project '$PROJECT_NAME'!"
+echo "========================================================================"
+echo ""
+echo "📌 NEXT STEP: Open '$PROJECT_NAME' in your AI IDE and paste this prompt:"
+echo "------------------------------------------------------------------------"
+echo "Read AGENTS.md and follow playbooks/codebase-analysis.md to analyze this repository."
+echo "Please map our existing codebase and update docs/architecture.md, docs/conventions.md,"
+echo "and docs/graph.md with our current components, tech stack, and data flow."
+echo "------------------------------------------------------------------------"
 echo ""
