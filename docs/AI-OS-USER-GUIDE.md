@@ -109,7 +109,7 @@ Now, let the automated AI-OS installer configure your repository. It will copy t
    ```
 2. Run the installer (replace with the actual path to your `Project-X`):
    ```bash
-   ./scripts/install.sh "/path/to/Project-X"
+   bash ./scripts/install.sh "/path/to/Project-X"
    ```
 
 #### **Option C: Manual Copy (If you prefer not to run scripts)**
