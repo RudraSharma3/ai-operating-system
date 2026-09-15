@@ -90,36 +90,44 @@ git push origin main
 Now, let the automated AI-OS installer configure your repository. It will copy the standardized rule hierarchy, architecture templates, playbooks, and Git security hooks into `Project-X` **without touching or modifying any of your existing code**.
 
 #### **Option A: On Windows (PowerShell)**
-Open PowerShell and run:
 
-```powershell
-# From your ai-operating-system directory:
-powershell -File "C:\path\to\ai-operating-system\scripts\install.ps1" -TargetPath "C:\path\to\Project-X"
-```
-*(Tip: Replace the paths with your actual folder paths on your machine)*
+1. Open PowerShell and navigate into your `ai-operating-system` directory:
+   ```powershell
+   cd C:\path\to\ai-operating-system
+   ```
+2. Run the installer (replace with the actual path to your `Project-X`):
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -TargetPath "C:\Users\YourUsername\Projects\Project-X"
+   ```
+   > 💡 **Tip:** The `-ExecutionPolicy Bypass` flag ensures Windows runs the script cleanly without permission blocks.
 
-#### **Option B: On macOS / Linux (Bash Terminal)**
-Open Terminal and run:
+#### **Option B: On macOS / Linux (Terminal)**
 
-```bash
-# From your ai-operating-system directory:
-./scripts/install.sh "/path/to/Project-X"
-```
+1. Open Terminal and navigate into your `ai-operating-system` directory:
+   ```bash
+   cd /path/to/ai-operating-system
+   ```
+2. Run the installer (replace with the actual path to your `Project-X`):
+   ```bash
+   ./scripts/install.sh "/path/to/Project-X"
+   ```
 
 #### **Option C: Manual Copy (If you prefer not to run scripts)**
-If you prefer manual file management, copy the contents of `templates/project/` into your `Project-X` root:
+
+If you prefer to copy the template files manually:
 - **Windows (PowerShell):**
   ```powershell
-  $src = "C:\path\to\ai-operating-system\templates\project"
+  # Inside your ai-operating-system folder:
   $dest = "C:\path\to\Project-X"
-  Copy-Item -Path "$src\*" -Destination $dest -Recurse -Force
-  Copy-Item -Path "$src\.ai" -Destination $dest -Recurse -Force
-  Copy-Item -Path "$src\.claude" -Destination $dest -Recurse -Force
-  Copy-Item -Path "$src\.githooks" -Destination $dest -Recurse -Force
+  Copy-Item -Path ".\templates\project\*" -Destination $dest -Recurse -Force
+  Copy-Item -Path ".\templates\project\.ai" -Destination $dest -Recurse -Force
+  Copy-Item -Path ".\templates\project\.claude" -Destination $dest -Recurse -Force
+  Copy-Item -Path ".\templates\project\.githooks" -Destination $dest -Recurse -Force
   ```
 - **macOS / Linux:**
   ```bash
-  cp -r /path/to/ai-operating-system/templates/project/. /path/to/Project-X/
+  # Inside your ai-operating-system folder:
+  cp -r ./templates/project/. /path/to/Project-X/
   ```
 
 ---
