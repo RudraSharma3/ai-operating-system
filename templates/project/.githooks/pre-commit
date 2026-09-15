@@ -5,7 +5,7 @@
 echo "🔍 [AI-OS Guard] Checking commit for secret leaks and task state..."
 
 # 1. Check for staged .env files
-STAGED_ENV_FILES=$(git diff --cached --name-only | grep -E "^\.env$|^\.env\..+" || true)
+STAGED_ENV_FILES=$(git diff --cached --name-only -- ':!.githooks/*' | grep -E "^\.env$|^\.env\..+" || true)
 if [ -n "$STAGED_ENV_FILES" ]; then
     echo ""
     echo "❌ [AI-OS Guard BLOCKED COMMIT]: Staged environment file(s) detected:"
@@ -24,8 +24,8 @@ if [ -n "$STAGED_ENV_FILES" ]; then
     exit 1
 fi
 
-# 2. Check for hardcoded API keys or private keys in staged diff
-STAGED_DIFF=$(git diff --cached)
+# 2. Check for hardcoded API keys or private keys in staged diff (excluding .githooks itself)
+STAGED_DIFF=$(git diff --cached -- ':!.githooks/*')
 if echo "$STAGED_DIFF" | grep -E -q "sk-[a-zA-Z0-9]{20,}|anthropic-key|BEGIN (RSA|EC|PGP|OPENSSH) PRIVATE KEY"; then
     echo ""
     echo "❌ [AI-OS Guard BLOCKED COMMIT]: Potential private key or API token detected in staged code!"
