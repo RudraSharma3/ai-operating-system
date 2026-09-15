@@ -297,5 +297,11 @@ It tests 14 key integrity checks across rules, documentation, hooks, and securit
 
 ---
 
+### 6. Smart Pre-Commit Secret Armor & Actionable Remediation
+AI-OS automatically protects you from accidentally committing API keys, tokens, or `.env` files to GitHub.
+If a secret is ever staged, the Git Pre-Commit Guard (`.githooks/pre-commit`) blocks the commit and outputs the exact 3-step copy-paste commands to fix `.gitignore` and unstage the secret safely.
+
+---
+
 ## 🤝 Need Help or Want to Contribute?
 AI Operating System is created and maintained by **Rudra Sharma**. If you build cool things with AI-OS, share your feedback and star the repository on GitHub!
