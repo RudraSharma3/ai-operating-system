@@ -49,11 +49,12 @@ Whether you have an **existing repository** or are starting a **brand new projec
 👉 **To get started, follow the official step-by-step developer tutorial in [docs/AI-OS-USER-GUIDE.md](docs/AI-OS-USER-GUIDE.md).**
 
 ### What the User Guide covers:
-1. **Safety First**: Creating a clean GitHub baseline before integration.
-2. **1-Step Integration**: Running the safe, non-destructive AI-OS installer for your OS.
-3. **Automated Verification**: Diagnostic health check and personalized confirmation greeting.
-4. **Kickoff Activation**: The exact initial prompt to paste into any AI IDE to index and graph your codebase.
-5. **Daily Workflows**: Prompt auto-refinement, self-learning rules, and multi-agent coordination.
+1. **Quick Clone**: Getting the AI-OS repository locally (`git clone`).
+2. **Safety First**: Creating a clean GitHub baseline on your existing project before integration.
+3. **1-Step Integration**: Running the safe, non-destructive AI-OS installer for your OS.
+4. **Automated Verification**: Diagnostic health check and personalized confirmation greeting.
+5. **Kickoff Activation**: The exact initial prompt to paste into any AI IDE to index and graph your codebase.
+6. **Daily Workflows**: Prompt auto-refinement, self-learning rules, and multi-agent coordination.
 
 ---
 

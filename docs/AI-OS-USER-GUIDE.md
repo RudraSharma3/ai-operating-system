@@ -45,6 +45,21 @@ Follow the steps below to integrate AI-OS into `Project-X` like a senior softwar
 
 ---
 
+### 🔹 Step 0: Clone the AI-OS Repository to Your Computer
+
+If you haven't already downloaded AI-OS, open your terminal and clone the repository onto your machine (e.g. in your projects folder or Desktop):
+
+```bash
+# Clone AI-OS to your local machine
+git clone https://github.com/RudraSharma3/ai-operating-system.git
+```
+
+Now you have two folders on your computer:
+1. `ai-operating-system` (The AI-OS master engine)
+2. `Project-X` (Your project repository)
+
+---
+
 ### 🔹 Step 1: Save & Push Your Project Code to GitHub (Safety Baseline)
 
 Before adding any new tools or configuration, always save your project state. This creates a clean Git baseline so you can track all AI-OS enhancements.
