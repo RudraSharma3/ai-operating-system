@@ -45,3 +45,44 @@ When researching unfamiliar libraries or APIs, follow the **Source Triangulation
 1. Synthesize architecture findings into `docs/architecture.md`.
 2. Generate or update visual component flows and call paths in `docs/graph.md` (Mermaid diagrams + blast radius matrix).
 3. Highlight constraints, existing conventions, and risks before proposing any code changes.
+
+---
+
+## 7. Output Developer Greeting & Immediate Next Steps
+
+Upon completing the codebase discovery, output the official developer confirmation banner and guide the engineer on what to do next:
+
+````markdown
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  AI-OS v2.0 (by Rudra Sharma) // KERNEL ONLINE               │
+├──────────────────────────────────────────────────────────────┤
+│  REPO:   <project-name>                                      │
+│  STACK:  <Detected Tech Stack, e.g. Next.js • Tailwind>      │
+│  MEMORY: docs/architecture.md & docs/graph.md [SYNCED]       │
+│  ARMOR:  Git Secret Guard [ARMED]                            │
+└──────────────────────────────────────────────────────────────┘
+```
+
+```bash
+[✔] Full codebase structure & entry points indexed
+[✔] Architecture & API routes mapped to docs/architecture.md
+[✔] Visual Mermaid dependency graph generated in docs/graph.md
+[✔] Team conventions & test commands recorded in docs/conventions.md
+[✔] Active task tracking initialized in docs/task-state.md
+```
+
+⚡ **AI-OS by Rudra Sharma is now actively operating in the background!**
+
+---
+
+### 🚀 What would you like to tackle first?
+
+1. **Build a Feature**: Type your idea casually (e.g. *"Add user auth with OAuth"* or `/feature <idea>`) — I will auto-refine it into a full spec in `docs/task-state.md` with error boundaries and tests before writing code.
+2. **Fix a Bug**: Tell me what broke (e.g. *"The date filter fails on month-end"*) — I will run root-cause analysis via `playbooks/bug-fix.md`.
+3. **Run a Security Audit**: Type `/audit` — I will scan all routes, database models, and inputs for vulnerabilities and secret leaks.
+4. **Architectural Planning**: Type `/interview <new idea>` — I will run a 4-question architectural design interview before touching code.
+
+**Tell me what you'd like to work on, and let's start shipping!**
+````
+
