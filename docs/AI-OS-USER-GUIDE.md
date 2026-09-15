@@ -189,16 +189,29 @@ As soon as your project is open in the IDE, open your AI chat window and paste t
 
 ```markdown
 Read AGENTS.md and follow playbooks/codebase-analysis.md to analyze this repository. 
-Please map our existing codebase and update docs/architecture.md, docs/conventions.md, 
-and docs/graph.md with our current components, tech stack, and data flow.
+Please map our existing codebase, update docs/architecture.md, docs/conventions.md, 
+and docs/graph.md with our current components, tech stack, and data flow, 
+and conclude with the AI-OS integration greeting and next steps menu.
 ```
 
 #### 🧠 What the AI Does Automatically:
 1. **Reads `AGENTS.md`**: Adopts the non-negotiable engineering principles, safety rules, and operational workflow.
 2. **Scans Your Existing Code**: Analyzes your folders, files, packages, frameworks, database connections, and API endpoints.
-3. **Populates `docs/architecture.md`**: Fills in your project's tech stack, directory structure, and core services.
+3. **Populates `docs/architecture.md` & `docs/conventions.md`**: Records system components, tech stack, and coding standards.
 4. **Generates `docs/graph.md`**: Generates visual Mermaid diagrams of your system dependencies and data flows.
-5. **Configures `docs/conventions.md`**: Records your project's naming conventions, coding style, and testing commands.
+5. **Initializes `docs/task-state.md`**: Sets up persistent task and feature tracking.
+6. **Outputs Developer Integration Greeting & Action Menu**:
+   ```text
+   ┌──────────────────────────────────────────────────────────────┐
+   │  AI-OS v2.0 (by Rudra Sharma) // KERNEL ONLINE               │
+   ├──────────────────────────────────────────────────────────────┤
+   │  REPO:   [Project Name]                                      │
+   │  STACK:  [Detected Tech Stack, e.g. Next.js • Tailwind]      │
+   │  MEMORY: docs/architecture.md & docs/graph.md [SYNCED]       │
+   │  ARMOR:  Git Secret Guard [ARMED]                            │
+   └──────────────────────────────────────────────────────────────┘
+   ```
+   Followed by 4 immediate options to start building features, fixing bugs, or running audits!
 
 ---
 

@@ -83,7 +83,8 @@ Write-Host "`n NEXT STEP: Open '$projectName' in your AI IDE (Antigravity/Cursor
 Write-Host "   and paste this EXACT first prompt into chat:" -ForegroundColor Cyan
 Write-Host "------------------------------------------------------------------------" -ForegroundColor White
 Write-Host "Read AGENTS.md and follow playbooks/codebase-analysis.md to analyze this repository." -ForegroundColor Green
-Write-Host "Please map our existing codebase and update docs/architecture.md, docs/conventions.md," -ForegroundColor Green
-Write-Host "and docs/graph.md with our current components, tech stack, and data flow." -ForegroundColor Green
+Write-Host "Please map our existing codebase, update docs/architecture.md, docs/conventions.md," -ForegroundColor Green
+Write-Host "and docs/graph.md with our current components, tech stack, and data flow," -ForegroundColor Green
+Write-Host "and conclude with the AI-OS integration greeting and next steps menu." -ForegroundColor Green
 Write-Host "------------------------------------------------------------------------" -ForegroundColor White
 Write-Host ""
