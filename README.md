@@ -70,7 +70,8 @@ Whether you have an **existing repository** or are starting a **brand new projec
 - **Visual Dependency Graph & Blast Radius Mapping**: Visual Mermaid wiring diagrams in [docs/graph.md](docs/graph.md) for safe refactoring.
 - **Token Optimization & Prompt Caching**: Pinned static rule prefix layout cutting latency by 5x and token costs by up to 90% ([playbooks/token-optimization.md](playbooks/token-optimization.md)).
 - **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating ([playbooks/testing.md](playbooks/testing.md)).
-- **Pre-Commit AI Guard**: Automated git hook blocking secret leaks and verifying task state hygiene.
+- **Smart Pre-Commit Secret Armor & Actionable Remediation**: Real-time git hook that intercepts credential leaks, identifies offending files, and provides instant copy-paste resolution commands.
+- **Idempotent Non-Destructive Project Integrator**: Safe installer (`scripts/install.ps1`, `scripts/install.sh`) that preserves existing project files, arms git protection, and runs a 14-point diagnostic doctor.
 - **Federated Global Learning**: CLI tool syncing universal rules learned across projects back to the master repository.
 
 ---
