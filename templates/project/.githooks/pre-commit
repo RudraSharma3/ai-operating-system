@@ -1,24 +1,41 @@
 #!/usr/bin/env bash
-# AI Operating System Pre-Commit Guard Hook
+# AI Operating System Pre-Commit Guard Hook (by Rudra Sharma)
 # Protects against secret leaks and enforces task state hygiene.
 
 echo "🔍 [AI-OS Guard] Checking commit for secret leaks and task state..."
 
-# 1. Secret Scanning Check
+# 1. Check for staged .env files
+STAGED_ENV_FILES=$(git diff --cached --name-only | grep -E "^\.env$|^\.env\..+" || true)
+if [ -n "$STAGED_ENV_FILES" ]; then
+    echo ""
+    echo "❌ [AI-OS Guard BLOCKED COMMIT]: Staged environment file(s) detected:"
+    for f in $STAGED_ENV_FILES; do
+        echo "   • $f"
+    done
+    echo ""
+    echo "💡 QUICK FIX (Copy and paste to resolve):"
+    echo "   1. Unstage secret file(s):"
+    for f in $STAGED_ENV_FILES; do
+        echo "      git reset $f"
+    done
+    echo "   2. Ensure it is in .gitignore: echo \"$STAGED_ENV_FILES\" >> .gitignore"
+    echo "   3. Commit again:              git commit -m \"feat: your commit message\""
+    echo ""
+    exit 1
+fi
+
+# 2. Check for hardcoded API keys or private keys in staged diff
 STAGED_DIFF=$(git diff --cached)
-
-# Check for API key patterns (OpenAI, Anthropic, generic private keys, jwt)
 if echo "$STAGED_DIFF" | grep -E -q "sk-[a-zA-Z0-9]{20,}|anthropic-key|BEGIN (RSA|EC|PGP|OPENSSH) PRIVATE KEY"; then
-    echo "❌ [AI-OS Guard BLOCKED COMMIT]: Potential secret or private key detected in staged diff!"
-    echo "Please remove the credentials from code and use environment variables instead."
+    echo ""
+    echo "❌ [AI-OS Guard BLOCKED COMMIT]: Potential private key or API token detected in staged code!"
+    echo "💡 QUICK FIX:"
+    echo "   1. Replace hardcoded secrets with environment variables (e.g. process.env.API_KEY)."
+    echo "   2. Re-stage the cleaned files: git add ."
+    echo "   3. Commit again:              git commit -m \"feat: your commit message\""
+    echo ""
     exit 1
 fi
 
-# Check for .env staged
-if git diff --cached --name-only | grep -E -q "^\.env$|\.env\.local$|\.env\.production$"; then
-    echo "❌ [AI-OS Guard BLOCKED COMMIT]: Staged .env file detected! Never commit secrets to git."
-    exit 1
-fi
-
-echo "✅ [AI-OS Guard] Secret check passed. Clean commit."
+echo "✅ [AI-OS Guard] Secret hygiene check passed. Clean commit!"
 exit 0
