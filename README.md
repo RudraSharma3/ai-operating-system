@@ -29,6 +29,76 @@ The **AI Operating System** acts as a durable operational layer between engineer
 
 ---
 
+## 🚀 How to Use AI-OS (Copy-Paste Quickstart)
+
+Choose your scenario below:
+
+---
+
+### 📦 Case 1: Adding AI-OS to an EXISTING Project
+
+If you already have a project folder (e.g. `my-existing-app`) and want to equip it with AI-OS:
+
+#### Step 1: Copy AI-OS files into your project
+Open your terminal and run the command for your OS:
+
+**On Windows (PowerShell):**
+```powershell
+# Replace 'C:\path\to\your-project' with your actual project folder path:
+$dest = "C:\path\to\your-project"
+$src = "C:\Users\HP\OneDrive\Desktop\ai-operating-system\templates\project"
+Copy-Item -Path "$src\*" -Destination $dest -Recurse -Force
+Copy-Item -Path "$src\.ai" -Destination $dest -Recurse -Force
+Copy-Item -Path "$src\.claude" -Destination $dest -Recurse -Force
+Copy-Item -Path "$src\.githooks" -Destination $dest -Recurse -Force
+```
+
+**On Windows (Command Prompt / CMD):**
+```cmd
+xcopy /E /I /Y "C:\Users\HP\OneDrive\Desktop\ai-operating-system\templates\project\*" "C:\path\to\your-project\"
+```
+
+**On macOS / Linux (Terminal):**
+```bash
+cp -r /path/to/ai-operating-system/templates/project/. /path/to/your-project/
+```
+
+#### Step 2: Open your project in your AI IDE
+Open your project folder in **Antigravity**, **Cursor**, **Claude Code**, or **VS Code**.
+
+#### Step 3: Copy-paste this Kickoff Prompt into your AI Chat:
+```markdown
+Read AGENTS.md and follow playbooks/codebase-analysis.md to analyze this repository. 
+Please map our existing codebase and update docs/architecture.md, docs/conventions.md, and docs/graph.md with our current components, stack, and data flow.
+```
+
+---
+
+### ✨ Case 2: Starting a BRAND NEW Project from Scratch
+
+If you want to create a brand new project in 2 seconds:
+
+#### Step 1: Run the 1-Shot Scaffolding Command
+
+**On Windows (PowerShell):**
+```powershell
+powershell -File "C:\Users\HP\OneDrive\Desktop\ai-operating-system\scripts\init-project.ps1" -Name "my-new-app" -Stack "Next.js + Tailwind + Supabase"
+```
+
+**On macOS / Linux (Bash):**
+```bash
+./scripts/init-project.sh "my-new-app" "Next.js + Tailwind + Supabase"
+```
+
+#### Step 2: Open the newly created folder in your AI IDE
+
+#### Step 3: Copy-paste your prompt in chat:
+```markdown
+I want to build my-new-app using Next.js, Tailwind, and Supabase. Please review docs/architecture.md and start Phase 1.
+```
+
+---
+
 ## 📚 Essential Documentation
 
 - **[AI-OS Complete Technical Specification](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/docs/AI-OS-COMPLETE-SPECIFICATION.md)**: Deep technical architecture, mathematical consensus mapping, 4-level context hierarchy, and complete systems design.
@@ -44,26 +114,11 @@ The **AI Operating System** acts as a durable operational layer between engineer
 - **Proportional Effort Complexity Gate (Anti-Over-Engineering)**: Defaults to lightweight Solo Model execution for 95% of routine tasks; reserves Multi-Agent MCP and Stochastic Consensus strictly for complex systems.
 - **Multi-Agent MCP Orchestration**: Manager-Worker coordination with contract-first isolation ([playbooks/multi-agent-orchestration.md](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/playbooks/multi-agent-orchestration.md)).
 - **Stochastic Consensus for Strategic Decisions**: Multi-persona ideation and voting mapped to safe bets vs. human judgment calls ([playbooks/stochastic-consensus.md](file:///C:/Users/HP/OneDrive/Desktop/ai-operating-system/playbooks/stochastic-consensus.md)).
+- **Visual Dependency Graph & Blast Radius Mapping**: Visual Mermaid wiring diagrams in `docs/graph.md` for safe refactoring.
+- **Token Optimization & Prompt Caching**: Pinned static rule prefix layout cutting latency by 5x and token costs by up to 90%.
 - **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating.
 - **Pre-Commit AI Guard**: Automated git hook blocking secret leaks and verifying task state hygiene.
 - **Federated Global Learning**: CLI tool syncing universal rules learned across projects back to the master repository.
-
----
-
-## Quick Start: Scaffolding a New Project in 2 Seconds
-
-**On Windows (PowerShell):**
-```powershell
-.\scripts\init-project.ps1 -Name "my-app" -Stack "Next.js + Tailwind + Supabase"
-```
-
-**On macOS / Linux (Bash):**
-```bash
-./scripts/init-project.sh "my-app" "Next.js + Tailwind + Supabase"
-```
-
-Then open `my-app` in your AI IDE and prompt:
-> *"I want to build my-app using Next.js, Tailwind, and Supabase."*
 
 ---
 
@@ -81,32 +136,20 @@ ai-operating-system/
 ├── docs/
 │   ├── AI-OS-COMPLETE-SPECIFICATION.md # Complete technical specification
 │   ├── AI-OS-USER-GUIDE.md             # Complete user guide & manual
+│   ├── architecture.md                 # System architecture doc
+│   ├── conventions.md                  # Engineering & git conventions
 │   ├── graph.md                        # Architecture & operational dependency graph
+│   ├── lessons.md                      # Verified permanent lessons
+│   ├── task-state.md                   # Active task progress tracker
 │   └── decisions/
 │       └── 001-ai-operating-system-architecture.md # Formal ADR 001
-├── playbooks/                 # Step-by-step repeatable work procedures
-│   ├── new-project.md         # Bootstrapping new repositories
-│   ├── feature.md             # Feature implementation lifecycle
-│   ├── bug-fix.md             # Root-cause analysis & minimal bug fixing
-│   ├── codebase-analysis.md   # Safe codebase exploration and mapping
-│   ├── testing.md             # Change falsification & self-healing test loop
-│   ├── review.md              # Independent code & architecture review
-│   ├── architecture-decisions.md # Trade-off evaluation & ADR creation
-│   ├── learning-loop.md       # Candidate logging, evaluation, & promotion
-│   ├── prompt-refinement.md   # Auto-refinement of messy prompts
-│   ├── multi-agent-orchestration.md # Manager-worker MCP protocol
-│   ├── stochastic-consensus.md # Multi-persona consensus mapping
-│   ├── token-optimization.md  # Prompt caching & token reduction architecture
-│   ├── interview.md           # Socratic requirements elicitation
-│   └── release-and-learn.md   # Milestone release & lesson harvesting
-├── prompts/                   # Multi-agent role prompts
-│   ├── architect.md           # System design & trade-off analysis
-│   ├── implementer.md         # Single-owner code implementation with self-healing
-│   ├── reviewer.md            # Independent inspection & review
-│   ├── tester.md              # Test execution & falsification
-│   ├── researcher.md          # Investigation & codebase discovery
-│   ├── security-reviewer.md   # Threat modeling & injection defense
-│   └── data-ai-specialist.md  # AI/ML integration & prompt pipelines
+├── playbooks/ (13 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
+│                              # testing, review, architecture-decisions,
+│                              # learning-loop, prompt-refinement,
+│                              # multi-agent-orchestration, stochastic-consensus,
+│                              # token-optimization, interview, release-and-learn
+├── prompts/ (7 Roles)         # architect, implementer, reviewer, tester,
+│                              # researcher, security-reviewer, data-ai-specialist
 ├── scripts/
 │   ├── init-project.ps1       # One-shot project initializer (PowerShell)
 │   ├── init-project.sh        # One-shot project initializer (Bash)
