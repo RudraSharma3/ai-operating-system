@@ -1,6 +1,6 @@
 # Prompt Refinement, Reverse Prompting & Prompt Contract Playbook
 
-Follow this playbook whenever the user provides an informal, brief, ambiguous, or messy prompt. The AI Operating System automatically transforms conversational input into a rigorous, production-grade **Prompt Contract** (GOAL, CONSTRAINTS, FORMAT, FAILURE) and applies **Reverse Prompting** to eliminate blind assumptions before modifying code.
+Follow this playbook whenever the user provides an informal, brief, ambiguous, or non-trivial prompt. The AI Operating System automatically transforms conversational input into a rigorous, production-grade **Prompt Contract** (GOAL, CONSTRAINTS, FORMAT, FAILURE) and applies **Reverse Prompting** to eliminate blind assumptions before modifying code.
 
 ---
 
@@ -12,10 +12,10 @@ Follow this playbook whenever the user provides an informal, brief, ambiguous, o
                                    ▼
   ┌─────────────────────────────────────────────────────────────────┐
   │  PHASE 1: REVERSE PROMPTING (Clarification Gate)                │
-  │  • Detect ambiguities & implicit assumptions                    │
-  │  • Ask 3–5 sharp clarifying questions (with recommendations)    │
+  │  • Analyze: Stated vs Implicit, Decision Points, Failure Modes  │
+  │  • Ask 3–5 Non-Intuitive, Concrete, Opinionated Questions       │
   └────────────────────────────────┬────────────────────────────────┘
-                                   │ User Answers / Clarifies
+                                   │ User Answers / Confirms
                                    ▼
   ┌─────────────────────────────────────────────────────────────────┐
   │  PHASE 2: PROMPT CONTRACT FORMULATION                           │
@@ -44,25 +44,48 @@ Follow this playbook whenever the user provides an informal, brief, ambiguous, o
 
 ## 1. Phase 1: Reverse Prompting (The Clarification Gate)
 
-Whenever a task has multiple viable architectures or missing requirements, **never silently guess**. Execute Reverse Prompting:
+Whenever a task has multiple viable approaches, implicit trade-offs, or unspecified edge cases, **never silently guess**. Execute Reverse Prompting:
 
-### When to Trigger:
-- Core data models, auth boundaries, or external APIs are unspecified.
+### 1.1 When to Trigger:
+- Building, implementing, or refactoring non-trivial components/services.
+- When requirements have multiple architectural forks or taste-dependent choices.
 - User says: *"Build a notification system"*, *"Add checkout flow"*, *"Make an analytics dashboard"*.
-- There are multiple competing technical trade-offs.
+- **Do NOT trigger for**: Single-line bug fixes, typos, simple lookups, or when the user already provided an explicit contract.
 
-### Protocol:
-1. Identify up to **3–5 high-impact questions** (Target user workflow, data storage, integration API, error behavior).
-2. Format questions with recommended defaults:
-   - *Option A (Recommended): Next.js Server Actions with optimistic UI updates.*
-   - *Option B: REST API route with client-side SWR fetching.*
-3. Once the user selects/confirms, proceed immediately to Phase 2.
+### 1.2 Step 1: Analyze the Request (Silent Pre-Analysis)
+Before generating questions, silently identify:
+- **Stated Requirements**: What the user explicitly requested.
+- **Implicit Assumptions**: What you are about to assume without being told.
+- **Decision Points**: Where multiple valid architectural paths exist.
+- **Failure Modes**: What could go wrong or feel broken to the user.
+- **Taste-Dependent Choices**: Where personal preference determines the right answer.
+
+### 1.3 Step 2: Generate Clarifying Questions
+All questions must strictly adhere to the **4 Question Standards**:
+
+1. **Non-Intuitive**: Don't ask what is already in context or obvious.
+   - *Bad:* *"What language should I use?"* (Obvious from repo).
+   - *Good:* *"When a network request times out, should this fail silently, show an inline retry banner, or trigger a global toast?"*
+2. **High-Impact**: Every question must meaningfully alter the code implementation. Skip trivial questions that don't change the architecture.
+3. **Concrete**: Reference specific scenarios and edge cases, not vague abstractions.
+   - *Bad:* *"How should errors be handled?"*
+   - *Good:* *"If the API returns a 429 rate limit, should we retry with exponential backoff or queue in background storage?"*
+4. **Opinionated (With Recommended Defaults)**: Always provide your recommended choice so the user can just say "yes" to defaults.
+   - *Format:* *"I recommend Option A: [Description] — want something different?"*
+
+### 1.4 Categories to Draw Questions From:
+- **Edge Case Behavior**: What happens when APIs fail, inputs are empty, or payload exceeds limits?
+- **Scope Boundaries**: What is strictly IN scope vs. explicitly OUT of scope?
+- **Integration Points**: How this connects to existing database tables, routes, and state stores (`docs/architecture.md`).
+- **Format & UI/UX Preferences**: Optimistic UI updates vs. blocking spinners, drawer vs. modal.
+- **Performance vs. Simplicity Trade-offs**: Client-side filtering vs. server-side pagination.
+- **Security & Permissions**: Role-based access control, RLS policies, input sanitization.
 
 ---
 
 ## 2. Phase 2: The 4-Section Prompt Contract
 
-Synthesize the request, repository architecture (`docs/architecture.md`), and conventions (`docs/conventions.md`) into a formal contract:
+Once clarified, synthesize the user intent, codebase architecture (`docs/architecture.md`), and conventions (`docs/conventions.md`) into a formal contract:
 
 ```markdown
 ## 📋 Prompt Contract: [Feature / Task Name]
@@ -92,7 +115,7 @@ Synthesize the request, repository architecture (`docs/architecture.md`), and co
 
 ## 3. Phase 3: Present Contract & Save to Task State
 
-1. **In Chat**: Output the structured Prompt Contract block before writing code so the user sees the restructured specification.
+1. **In Chat**: Output the structured Prompt Contract block before modifying code so the user sees the restructured specification.
 2. **In Repository**: Append the active contract and acceptance criteria checklist `[ ]` into `docs/task-state.md`.
 
 ---
