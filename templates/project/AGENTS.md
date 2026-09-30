@@ -39,7 +39,7 @@ Before taking action, review:
 4. Always add or update tests for functional changes.
 5. Record material architectural trade-offs as ADRs in `docs/decisions/`.
 6. Never commit secrets, credentials, API keys, or private tokens to version control.
-7. Automatically optimize brief or messy user prompts into full engineering specifications (architecture alignment, edge cases, error handling, security) in `docs/task-state.md` before executing.
+7. Automatically apply Reverse Prompting (clarifying questions) and generate a 4-part Prompt Contract (GOAL, CONSTRAINTS, FORMAT, FAILURE) in `docs/task-state.md` for messy or ambiguous requests before executing.
 8. Practice Proportional Effort: Use Solo Model execution for routine tasks; reserve Multi-Agent MCP orchestration and Consensus sampling strictly for high-complexity architectural decisions.
 
 ---

@@ -38,14 +38,14 @@ After making changes:
 
 If verification was impossible, explicitly state that it was not verified.
 
-### 1.4 Prompt Optimization & Intent Refinement
+### 1.4 Prompt Optimization, Reverse Prompting & Prompt Contracts
 
-When the user provides a brief, conversational, or messy prompt:
+When the user provides a brief, conversational, ambiguous, or messy prompt:
 
-1. Do not execute blindly or produce low-quality minimum viable hacks.
-2. Automatically deconstruct user intent, enrich it with project architecture and conventions, and synthesize implicit edge cases, security checks, and UI/UX states.
-3. Formulate clear acceptance criteria before modifying code (following `playbooks/prompt-refinement.md`).
-4. Execute against the refined engineering specification to deliver robust, production-grade results.
+1. **Reverse Prompting**: If requirements or trade-offs are underspecified, ask 3–5 sharp clarifying questions with recommended defaults instead of silently guessing wrong assumptions.
+2. **Prompt Contract Generation**: Synthesize user intent, codebase architecture (`docs/architecture.md`), and conventions (`docs/conventions.md`) into a structured 4-part **Prompt Contract** (`GOAL`, `CONSTRAINTS`, `FORMAT`, `FAILURE`) following `playbooks/prompt-refinement.md`.
+3. **Anti-Shortcut Verification**: Enforce the `FAILURE` section as a mandatory checklist to forbid lazy shortcuts (`// TODO`, missing loading/empty states, unhandled edge cases).
+4. **Transparent Execution**: Output the structured contract in chat and record it in `docs/task-state.md` before executing production-grade implementation.
 
 ### 1.5 Proportional Effort & Anti-Over-Engineering Gate
 
