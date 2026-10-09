@@ -1,0 +1,51 @@
+name: AI-OS CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-linux:
+    name: Linux Verification (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "AI-OS Tester"
+          git config --global user.email "tester@ai-os.dev"
+
+      - name: Run Master Test Harness
+        run: bash tests/run_tests.sh
+
+      - name: Run AI-OS Doctor Diagnostics (--ci)
+        run: bash scripts/doctor.sh --ci .
+
+      - name: Audit Tracked Files for Leaks
+        run: bash scripts/scan-repo-secrets.sh
+
+  test-windows:
+    name: Windows Verification (Windows Server)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "AI-OS Windows Tester"
+          git config --global user.email "wintester@ai-os.dev"
+
+      - name: Run Doctor Diagnostics (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/doctor.ps1 -ProjectPath . -Ci
+
+      - name: Run Bootstrap (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+
+      - name: Run Test Harness (Git Bash on Windows)
+        shell: bash
+        run: bash tests/run_tests.sh

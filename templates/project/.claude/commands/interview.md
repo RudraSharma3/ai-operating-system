@@ -2,7 +2,7 @@
 description: Run Socratic 4-question requirements interview before designing architecture
 ---
 
-Assume the **Architect** role and follow `playbooks/interview.md`.
+Assume the **Architect** role and follow `.ai-os/playbooks/interview.md` (or `playbooks/interview.md`).
 Conduct a focused, 3-to-4 question interview to clarify:
 1. Target User & Core Problem
 2. Data Entities & State Model
