@@ -49,7 +49,7 @@ if (Test-Path $agentsFile) {
 # 2. Provider adapters point to AGENTS.md
 $adaptersOk = $true
 $adapterErr = ""
-foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md")) {
+foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md", ".cursorrules", ".github/copilot-instructions.md")) {
     $adPath = Join-Path $target $ad
     if (-not (Test-Path $adPath)) {
         $adaptersOk = $false; $adapterErr = "Missing $ad adapter"; break

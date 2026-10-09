@@ -1,0 +1,1 @@
+3. [TEST] Run verification checks, tests, or targeted validations before declaring completion, and explicitly report remaining risks if verification is impossible — ensures evidence-based task completion.

@@ -95,25 +95,55 @@ This document tracks the current development milestones and task state for the m
 
 ---
 
-## Phase 3 Plan: Single Source of Truth, Versioning & Upgrade (F5, F8, F9)
-1. **Versioning & Licensing**:
-   - Add `VERSION` file (set to `2.1.0`).
-   - Add `CHANGELOG.md` following Keep a Changelog standard.
-   - Add `LICENSE` (MIT).
-2. **Single Source of Truth Generator**:
-   - Implement `scripts/build-templates.sh` and `scripts/build-templates.ps1` to programmatically assemble `templates/project/` from master source files (master `AGENTS.md`, `playbooks/`, `prompts/`, `.ai/`, `.githooks/`, etc.).
-   - Add CI drift check (`scripts/build-templates.sh --check` or `git diff --exit-code`) to fail if `templates/project/` drifts from master.
-3. **Manifest & Upgrade Engine**:
-   - Generate `.ai-os/manifest.json` recording release version, file list, and SHA256 hashes of upstream-managed files.
-   - Implement `scripts/upgrade.sh` and `scripts/upgrade.ps1` (or add `--upgrade` flag to installer): checks version against manifest, compares local sha256 to detect local customizations vs unmodified files, prompts/merges cleanly without clobbering user project modifications.
-4. **Template `AGENTS.md` Hardening**:
-   - Update template `AGENTS.md` to include all production sections: Safe self-modification, never learn secrets, conflict detection, learned rule quality test, minimal self-modification. Remove unsafe "Immediately append" instructions.
-5. **Rule Files Modularization**:
-   - Implement individual rule files under `.ai/rules/NNNN-slug.md`.
-   - Implement compiler script (`scripts/compile-rules.sh` / `.ps1`) that assembles `.ai/rules/*.md` into the canonical `## Learned Rules` block in `AGENTS.md`.
-6. **Provider Adapters**:
-   - Add Cursor adapter (`.cursor/rules` / `.cursorrules`) and GitHub Copilot adapter (`.github/copilot-instructions.md`) pointing to `AGENTS.md`.
-7. **Verification**: Run `tests/run_tests.sh`, verify template builder clean diff, run doctor diagnostics.
+---
+
+### Phase 3 Handoff
+- **What Changed**:
+  - **Versioning & Licensing**: Added canonical `VERSION` (2.1.0), `CHANGELOG.md` (Keep a Changelog format), and MIT `LICENSE` (Copyright Rudra Sharma).
+  - **Provider Adapters**: Standardized Cursor (`.cursorrules`, `.cursor/rules/agents.mdc`) and GitHub Copilot (`.github/copilot-instructions.md`) adapters pointing to `AGENTS.md` in both master and template repositories. Updated doctor check 2 to verify all adapters.
+  - **Single Source of Truth Generator**: Created `scripts/build-templates.sh` and `scripts/build-templates.ps1` with deterministic `--check` mode verifying zero drift between master files and `templates/project/`.
+  - **Cryptographic Manifest & Upgrade Engine**:
+    - Created `.ai-os/manifest.json` indexing 48 upstream files with cross-platform normalized SHA256 checksums.
+    - Implemented `scripts/upgrade.sh` and `scripts/upgrade.ps1` supporting three-way checksum comparison: safely upgrades untouched upstream files while preserving local user customizations (and generating `.ai-os-update` candidates).
+  - **Rule Modularization Compiler**:
+    - Modularized canonical rules under `.ai/rules/0001-read-existing-files.md`, `0002-never-write-secrets.md`, `0003-run-verification-checks.md`.
+    - Created `scripts/compile-rules.sh` and `scripts/compile-rules.ps1` with `--check` mode to synchronize modular rule files into canonical `AGENTS.md` learned rules blocks.
+  - **Template `AGENTS.md` Hardening**: Completely overhauled downstream `templates/project/AGENTS.md` to remove unsafe "Immediately append" instructions and install the production self-correcting rules engine, 10-point quality test gate, and safe self-modification constraints.
+  - **Automated Verification**: Expanded `tests/test_installer.sh` with 3 new automated tests: upgrader customization preservation, template drift verification, and rule compiler synchronization. Updated CI matrix workflow.
+- **What Was Verified**:
+  - `tests/run_tests.sh`: **29/29 tests PASSED** (19 hook tests + 10 installer/upgrader/drift tests).
+  - `scripts/doctor.ps1 --ci`: **14/14 checks PASSED**, exit code 0.
+  - `scripts/doctor.sh --ci`: **14/14 checks PASSED**, exit code 0.
+  - `scripts/build-templates.sh --check`: **PASS** (Zero drift detected).
+  - `scripts/build-templates.ps1 -Check`: **PASS** (Zero drift detected).
+  - `scripts/compile-rules.sh --check`: **PASS** (Zero drift detected).
+  - `scripts/compile-rules.ps1 -Check`: **PASS** (Zero drift detected).
+- **Known Risks**:
+  - Syncing rules from downstream projects back to master still relies on prototype script (`scripts/sync-rules.ps1`) until Phase 4 federated PR proposal workflow is implemented.
+
+---
+
+## Phase 4 Plan: Federated Sync & Learning Gate (F6)
+1. **Federated Proposal Workflow**:
+   - Replace prototype `scripts/sync-rules.ps1` with production cross-platform scripts (`scripts/sync-rules.sh` and `scripts/sync-rules.ps1`).
+   - Rather than silently modifying master rules directly, downstream learning exports generate formal proposals in `proposals/` (e.g. `proposals/YYYYMMDD-rule-slug.md`).
+2. **10-Point Mechanical Quality Gate**:
+   - Implement automated validation checks:
+     1. Reusable engineering principle?
+     2. Concrete rationale and evidence provided?
+     3. Specific and actionable instruction?
+     4. General enough to avoid project-specific overfit?
+     5. Free of conflicts or duplicates against active rules?
+     6. Safe self-modification compliant (not inferred from third-party / web)?
+     7. Zero secret credentials or key signatures?
+     8. Durable across future sessions?
+     9. Sequential rule numbering?
+     10. Canonical category tag valid (`[STYLE]`, `[CODE]`, etc.)?
+3. **Approval & Compilation Integration**:
+   - Implement `scripts/approve-proposal.sh` and `scripts/approve-proposal.ps1` to promote accepted proposals from `proposals/` into `.ai/rules/` and recompile via `compile-rules.*`.
+4. **Verification**:
+   - Test proposal generation, mechanical gate rejections (for bad candidates with secrets or duplicates), and promotion into canonical rules.
+
 
 
 

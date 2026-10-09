@@ -6,4 +6,3 @@
 *.bash text eol=lf
 .githooks/* text eol=lf
 pre-commit text eol=lf
-EOF text eol=lf

@@ -180,6 +180,40 @@ test_ps1_preserves_and_chains_hookspath() {
     assert_contains "$husky_hook" ".githooks/pre-commit" "install.ps1: AI-OS guard must be chained into existing husky hook"
 }
 
+test_sh_upgrade_preserves_customizations() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    # 1. Install fresh AI-OS into sandbox
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+    
+    # 2. Modify one file to simulate customization (e.g. AGENTS.md)
+    echo "## Custom User Rule" >> "$sandbox/AGENTS.md"
+    
+    # 3. Run upgrade.sh
+    "$REPO_ROOT/scripts/upgrade.sh" --target "$sandbox" >/dev/null 2>&1
+    
+    local customized_content
+    customized_content=$(cat "$sandbox/AGENTS.md")
+    local manifest_exists=false
+    [ -f "$sandbox/.ai-os/manifest.json" ] && manifest_exists=true
+    cleanup_sandbox "$sandbox"
+    
+    assert_contains "$customized_content" "Custom User Rule" "upgrade.sh must preserve locally customized files"
+    assert_eq "true" "$manifest_exists" "upgrade.sh must create/update .ai-os/manifest.json"
+}
+
+test_template_drift_check() {
+    "$REPO_ROOT/scripts/build-templates.sh" --check >/dev/null 2>&1
+    local ret=$?
+    assert_eq "0" "$ret" "build-templates.sh --check must verify zero drift between master and templates"
+}
+
+test_rule_compiler_check() {
+    "$REPO_ROOT/scripts/compile-rules.sh" --check >/dev/null 2>&1
+    local ret=$?
+    assert_eq "0" "$ret" "compile-rules.sh --check must verify rules in AGENTS.md match .ai/rules/"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -188,6 +222,9 @@ run_test "install.sh: Installs .ai-os/playbooks/ and prompts/" test_sh_installs_
 run_test "install.ps1: Installs template docs into existing docs/ dir" test_ps1_copies_into_existing_docs_dir
 run_test "install.ps1: Merges .gitignore without overwriting" test_ps1_merges_gitignore
 run_test "install.ps1: Preserves and chains existing core.hooksPath" test_ps1_preserves_and_chains_hookspath
+run_test "upgrade.sh: Upgrades template and preserves customizations" test_sh_upgrade_preserves_customizations
+run_test "build-templates.sh: Zero drift between master and templates" test_template_drift_check
+run_test "compile-rules.sh: Rules in AGENTS.md match .ai/rules/" test_rule_compiler_check
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
@@ -195,3 +232,4 @@ if [ "$FAILED_TESTS" -gt 0 ]; then
     exit 1
 fi
 exit 0
+

@@ -64,7 +64,7 @@ fi
 # 2. Provider adapters point to AGENTS.md
 ADAPTERS_OK=true
 ADAPTER_ERR=""
-for ad in "CLAUDE.md" "GEMINI.md" "CODEX.md"; do
+for ad in "CLAUDE.md" "GEMINI.md" "CODEX.md" ".cursorrules" ".github/copilot-instructions.md"; do
     if [ ! -f "$PROJECT_PATH/$ad" ]; then
         ADAPTERS_OK=false
         ADAPTER_ERR="Missing $ad adapter"

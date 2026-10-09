@@ -2,9 +2,10 @@
 
 # Claude Adapter
 
-Follow the canonical instructions in `AGENTS.md`.
+Read `AGENTS.md` before beginning substantive work. The shared rules there are the canonical instructions for this repository.
 
-## Claude-Specific Configuration
+## Claude-Specific Guidance
 
-- Add project-specific Claude tool settings, slash command definitions, or MCP server references below.
-- Never duplicate general engineering or project rules here; keep all shared rules in `AGENTS.md`.
+- Follow the universal rules in `AGENTS.md` strictly.
+- When working with Claude Code or Claude IDE integrations, invoke project tools and bash commands directly when requested.
+- Keep tool-specific configuration here; do not duplicate shared operating policies.
