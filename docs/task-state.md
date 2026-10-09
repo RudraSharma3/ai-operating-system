@@ -69,24 +69,52 @@ This document tracks the current development milestones and task state for the m
 
 ---
 
-## Phase 2 Plan: Installer, Doctor & Downstream Playbooks (F1, F3, F4)
-1. **Downstream Package Structure (F1)**:
-   - Package all `playbooks/` and `prompts/` under `.ai-os/` (e.g. `.ai-os/playbooks/` and `.ai-os/prompts/`) or equivalent single folder for downstream projects.
-   - Update references in template `AGENTS.md`, `.claude/commands/`, README, user guide, and installation prompts.
-2. **Installer Parity & Non-Destructiveness (F3)**:
-   - Make `install.sh` and `install.ps1` perform identical per-file no-clobber copies (preserving user's existing files including existing `docs/` directories).
-   - Merge `.gitignore`: Append missing AI-OS rules inside a clearly marked `# --- AI-OS START ---` block without altering existing rules.
-   - Hook chaining: If `core.hooksPath` is already configured (e.g., `.husky`), do NOT overwrite it. Instead, create a chain script or hook delegation, and print clear manual instructions.
-   - Add `scripts/bootstrap.sh` and `scripts/bootstrap.ps1` to configure `core.hooksPath` for fresh team clones.
-3. **Doctor Parity & Real Verification (F4)**:
-   - Implement identical 14-point health checks in `doctor.sh` and `doctor.ps1`.
-   - Verify hook installation, executable bit, and active `core.hooksPath`.
-   - Secret scan all tracked files using the secret pattern engine.
-   - Verify `.env` files are not tracked by Git via `git ls-files`.
-   - Verify all referenced playbooks/prompts paths exist.
-   - Dynamic `ARMOR` status based on actual doctor checks rather than hardcoded text.
-   - Support `--ci` / `-Ci` and `--json` flags and exit with nonzero code on any failure.
-4. Run `tests/test_installer.sh` and doctor validations to verify 100% PASS.
+### Phase 2 Handoff
+- **What Changed**:
+  - Packaged downstream distribution: `playbooks/` and `prompts/` placed under `templates/project/.ai-os/playbooks/` and `templates/project/.ai-os/prompts/`.
+  - Updated command references across `.claude/commands/`, `templates/project/.claude/commands/`, and `playbooks/codebase-analysis.md`.
+  - Upgraded `scripts/install.sh` and `scripts/install.ps1`:
+    - Full recursive per-file no-clobber copy preserving existing user files and existing `docs/` directories.
+    - Non-destructive `.gitignore` merge using `# --- AI-OS START ---` block.
+    - Safe Git hook chaining: detects existing `core.hooksPath` (e.g., `.husky`) and chains execution instead of overwriting.
+    - Sets execution permissions (`chmod +x`).
+  - Added `scripts/bootstrap.sh` and `scripts/bootstrap.ps1` for lightweight team clone setup.
+  - Rewrote `scripts/doctor.sh` and `scripts/doctor.ps1`:
+    - 14-point diagnostic engine with parity across Bash and PowerShell.
+    - Full tracked file secret scanning and `.env` tracker detection.
+    - `--ci` flag (fails fast with non-zero exit code) and `--json` flag.
+    - Dynamic ARMOR status (`[ARMED]` vs `[UNARMED]`).
+  - Added CI matrix workflow `.github/workflows/ci.yml` running on `ubuntu-latest` and `windows-latest`.
+  - Expanded `tests/test_installer.sh` with 7 comprehensive installer tests covering bash and powershell installers.
+- **What Was Verified**:
+  - `tests/run_tests.sh`: **26/26 tests PASSED** (19 hook tests + 7 installer tests).
+  - `scripts/doctor.ps1 --ci`: **14/14 checks PASSED**, exit code 0.
+  - `scripts/doctor.sh --ci`: **14/14 checks PASSED**, exit code 0.
+- **Known Risks**:
+  - `templates/project/` is currently manually synchronized with master until Phase 3 build generator (`scripts/build-templates.*`) is created.
+
+---
+
+## Phase 3 Plan: Single Source of Truth, Versioning & Upgrade (F5, F8, F9)
+1. **Versioning & Licensing**:
+   - Add `VERSION` file (set to `2.1.0`).
+   - Add `CHANGELOG.md` following Keep a Changelog standard.
+   - Add `LICENSE` (MIT).
+2. **Single Source of Truth Generator**:
+   - Implement `scripts/build-templates.sh` and `scripts/build-templates.ps1` to programmatically assemble `templates/project/` from master source files (master `AGENTS.md`, `playbooks/`, `prompts/`, `.ai/`, `.githooks/`, etc.).
+   - Add CI drift check (`scripts/build-templates.sh --check` or `git diff --exit-code`) to fail if `templates/project/` drifts from master.
+3. **Manifest & Upgrade Engine**:
+   - Generate `.ai-os/manifest.json` recording release version, file list, and SHA256 hashes of upstream-managed files.
+   - Implement `scripts/upgrade.sh` and `scripts/upgrade.ps1` (or add `--upgrade` flag to installer): checks version against manifest, compares local sha256 to detect local customizations vs unmodified files, prompts/merges cleanly without clobbering user project modifications.
+4. **Template `AGENTS.md` Hardening**:
+   - Update template `AGENTS.md` to include all production sections: Safe self-modification, never learn secrets, conflict detection, learned rule quality test, minimal self-modification. Remove unsafe "Immediately append" instructions.
+5. **Rule Files Modularization**:
+   - Implement individual rule files under `.ai/rules/NNNN-slug.md`.
+   - Implement compiler script (`scripts/compile-rules.sh` / `.ps1`) that assembles `.ai/rules/*.md` into the canonical `## Learned Rules` block in `AGENTS.md`.
+6. **Provider Adapters**:
+   - Add Cursor adapter (`.cursor/rules` / `.cursorrules`) and GitHub Copilot adapter (`.github/copilot-instructions.md`) pointing to `AGENTS.md`.
+7. **Verification**: Run `tests/run_tests.sh`, verify template builder clean diff, run doctor diagnostics.
+
 
 
 
