@@ -43,6 +43,12 @@ jobs:
       - name: Run Doctor Diagnostics (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File scripts/doctor.ps1 -ProjectPath . -Ci
 
+      - name: Verify Template Drift (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/build-templates.ps1 -Check
+
+      - name: Verify Rule Compiler Synchronization (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/compile-rules.ps1 -Check
+
       - name: Run Bootstrap (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
 
