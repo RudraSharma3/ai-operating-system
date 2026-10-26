@@ -148,20 +148,48 @@ This document tracks the current development milestones and task state for the m
 
 ---
 
-## Phase 5 Plan: Honest Routing & Consensus (F7, F8)
-1. **Clean & Verify `mcp.json`**:
-   - Audit `mcp.json` and `templates/project/mcp.json`: remove fictitious, broken, or unreachable servers. Keep genuine, verified configurations (or realistic stdio MCP configurations with clear setup docs).
-2. **Model Routing Matrix (`.ai/routing.md`)**:
-   - Create `.ai/routing.md` defining practical, honest routing tiers:
-     - Tier 1: Routine tasks (Solo model mode, zero multi-agent overhead).
-     - Tier 2: Standard feature implementation (1-Implementer + 1-Verifier).
-     - Tier 3: Strategic architecture & cross-cutting changes (Consensus / Multi-agent).
-3. **Ground Stochastic Consensus (`playbooks/stochastic-consensus.md`)**:
-   - Replace vague subjective model voting with deterministic criteria (compilation passes, type checking, test assertion passes, benchmark/linter validation).
-4. **Headless Escape Hatch (`playbooks/prompt-refinement.md`)**:
-   - Add clear escape hatch for non-interactive / CI / script-driven environments where interactive Reverse Prompting is disabled.
-5. **Verification**:
-   - Run tests, verify template drift, and run doctor diagnostics.
+---
+
+### Phase 5 Handoff
+- **What Changed**:
+  - **Clean & Verified MCP Architecture (`mcp.json`)**:
+    - Removed non-standard placeholder packages (`@google/gemini-mcp-server`) and broken daemons (`ollama serve`) from `mcp.json` and `templates/project/mcp.json`.
+    - Standardized on verified, official `@modelcontextprotocol` servers (`server-filesystem`, `server-git`, `server-fetch`).
+  - **Honest Model Routing Matrix (`.ai/routing.md`)**:
+    - Created canonical `.ai/routing.md` (in master and `templates/project/.ai/`) specifying complexity tiers (Tier 1 Solo Model, Tier 2 Feature Pair, Tier 3 Architecture Consensus).
+    - Codified anti-overkill rules forbidding multi-agent swarms for simple tasks or using LLM votes for deterministic facts.
+  - **Deterministic Consensus (`playbooks/stochastic-consensus.md`)**:
+    - Replaced subjective LLM vote counting with deterministic engineering verification (compilation, type checks, lint checks, test pass rates, benchmark budgets) before recording ADRs.
+  - **Headless Escape Hatch (`playbooks/prompt-refinement.md`)**:
+    - Added Section 5 providing explicit non-interactive / CI / autonomous escape hatches: auto-selects documented defaults without hanging in chat, records them under `### ⛓️ CONSTRAINTS` with `[HEADLESS AUTO-RESOLVED DEFAULT]`, and proceeds surgically.
+  - **Template Synchronization**:
+    - Rebuilt `templates/project/` using `build-templates` (manifest updated with 49 tracked files, zero drift verified).
+- **What Was Verified**:
+  - `tests/run_tests.sh`: **34/34 tests PASSED** (19 hook tests + 10 installer/upgrader/drift tests + 5 sync gate tests).
+  - `scripts/doctor.ps1 --ci`: **14/14 checks PASSED**, exit code 0.
+  - `scripts/doctor.sh --ci`: **14/14 checks PASSED**, exit code 0.
+  - `scripts/build-templates.ps1 -Check`: **PASS** (Zero drift detected).
+- **Known Risks**:
+  - Documentation still contains legacy speculative numbers (e.g. unbenchmarked token savings) until Phase 6 metric audit.
+
+---
+
+## Phase 6 Plan: Measure Instead of Claim (F8)
+1. **Metric Audit Across All Docs**:
+   - Audit `README.md`, `AI-OS-USER-GUIDE.md`, `AI-OS-COMPLETE-SPECIFICATION.md`, and `playbooks/token-optimization.md`.
+   - Remove or replace any unmeasured marketing numbers (e.g. `10x`, `80% token savings`, `$0.00 cost`) with empirical metrics or explicitly mark them as `(design target, unbenchmarked)`.
+2. **Measurement Script (`scripts/token-report.sh` / `.ps1`)**:
+   - Implement `scripts/token-report.sh` and `scripts/token-report.ps1` to measure:
+     - Exact character count, line count, and estimated tokens across canonical core files (`AGENTS.md`, adapters, playbooks, prompts).
+     - Token budget compliance (verifying `AGENTS.md` is strictly under the 15KB / ~3,750 token limit).
+3. **Reproducible Evaluation Suite (`evals/`)**:
+   - Create `evals/` test directory with benchmark test cases:
+     - Prompt Contract generation quality.
+     - Secret leak defense benchmark.
+     - Health check latency benchmark.
+4. **Verification**:
+   - Run token-report script, verify all documentation claims against actual measured script outputs, and run full test suites.
+
 
 
 

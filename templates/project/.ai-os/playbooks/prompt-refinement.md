@@ -129,3 +129,16 @@ Once clarified, synthesize the user intent, codebase architecture (`docs/archite
    - [ ] Is input sanitized against injection/XSS?
    - [ ] Are all affected tests passing?
 3. **Update Task State**: Check off completed items in `docs/task-state.md` and report verified progress.
+
+---
+
+## 5. Headless & Non-Interactive Escape Hatch
+
+When operating in headless, non-interactive, CI, or overnight autonomous modes (`CI=true`, background cron execution, scripted runs, or explicit non-interactive flags):
+
+1. **Do NOT Block on Interactive Clarifications**: Never stop execution waiting for chat input when there is no human in the loop.
+2. **Auto-Select Recommended Defaults**: Automatically select the documented default option for every decision point identified in Step 1.2.
+3. **Formulate Explicit Contract**: Generate the Prompt Contract incorporating those defaults, and flag the decision points under `### ⛓️ CONSTRAINTS` with `[HEADLESS AUTO-RESOLVED DEFAULT]`.
+4. **Log Contract in Task State**: Record the contract and auto-resolved decisions into `docs/task-state.md`.
+5. **Proceed With Execution**: Execute the task surgically according to the generated contract.
+
