@@ -60,28 +60,28 @@ AI-OS enforces **Disk-First Persistence**:
 
 ## 🎯 4. Model Routing: The 60 / 30 / 10 Rule
 
-To slash token costs by **70–80%** without sacrificing code quality, AI-OS structures agent tasks into 3 tiers:
+To minimize token consumption while maintaining implementation quality, AI-OS structures agent tasks into 3 complexity tiers (see [.ai/routing.md](../.ai/routing.md)):
 
 ```
-                          ┌──▶ 60% HAIKU / FLASH ($0.50–$1 / 1M tokens)
-                          │    Triage, classification, pre-commit scans, yes/no checks
+                          ┌──▶ TIER 1: FAST / LOCAL WORKERS
+                          │    Triage, classification, git pre-commit scans, mechanical checks
                           │
-  AGENT ROUTER ───────────┼──▶ 30% SONNET / GPT-4o ($3 / 1M tokens)
-  (Complexity Gate)       │    Code generation, feature implementation, refactoring
+  AGENT ROUTER ───────────┼──▶ TIER 2: PRIMARY WORKHORSE
+  (Complexity Gate)       │    Code generation, feature implementation, refactoring, test writing
                           │
-                          └──▶ 10% OPUS / O1 / THINKING ($5–$15 / 1M tokens)
-                               Strategic system architecture, consensus ADRs, audits
+                          └──▶ TIER 3: DEEP ARCHITECTURAL REASONING
+                               Strategic system architecture, consensus ADRs, threat modeling
 ```
 
 ### Allocation Breakdown:
-1. **60% Tasks (Fast & Cost-Efficient)**:
+1. **Tier 1 Tasks (Fast & Cost-Efficient)**:
    - Git pre-commit secret scanning (`.githooks/pre-commit`)
-   - Health doctor diagnostics (`scripts/doctor.ps1`)
+   - Health doctor diagnostics (`scripts/doctor.ps1`, `scripts/doctor.sh`)
    - Simple file lookups, test execution, and triage
-2. **30% Tasks (Core Workhorse)**:
+2. **Tier 2 Tasks (Core Workhorse)**:
    - 1-Implementer code generation (`playbooks/feature.md`)
    - Autonomous bug-fixing & test writing (`playbooks/bug-fix.md`)
-3. **10% Tasks (Heavyweight Reasoning)**:
+3. **Tier 3 Tasks (Heavyweight Reasoning)**:
    - Strategic Stochastic Consensus (`playbooks/stochastic-consensus.md`)
    - Architecture Decision Records (`docs/decisions/`)
    - Threat modeling & multi-agent orchestrations
@@ -92,11 +92,12 @@ To slash token costs by **70–80%** without sacrificing code quality, AI-OS str
 
 Modern LLM providers (Anthropic, Gemini, OpenAI) offer **server-side prompt caching**:
 
-- **Pinned Prefix (Top of Context - 100% Cached)**:
+- **Pinned Prefix (Top of Context - Static Cached)**:
   - Canonical Operating Rules (`AGENTS.md`)
   - Team Conventions (`docs/conventions.md`)
   - Static Architecture Tokens (`docs/architecture.md`)
 - **Dynamic Suffix (Bottom of Context - Changing)**:
   - Active task status (`docs/task-state.md`) and latest user prompt
 
-> 💰 **Impact**: Cuts input token latency from **~8s to <2s** and slashes input token costs by **up to 90%**!
+> ℹ️ **Design Target**: When provider prompt caching (e.g. Anthropic Prompt Caching or OpenAI Prefix Caching) is active, stable prefix layouts enable cache read pricing (typically up to 90% input discount per provider published rate cards, unbenchmarked).
+

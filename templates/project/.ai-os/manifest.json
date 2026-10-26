@@ -1,6 +1,6 @@
 {
     "ai_os_version":  "2.1.0",
-    "generated_at":  "2026-10-26T12.33.33Z",
+    "generated_at":  "2026-10-26T12.44.21Z",
     "file_count":  49,
     "files":  {
                   ".ai/mistakes-candidates.md":  "a756813da14e24033776fad56d5e342af5337efeb8813993a6f91e2d38ffafa1",
@@ -23,7 +23,7 @@
                   ".ai-os/playbooks/review.md":  "021b31f1adacf901085ac022c353b50afefa548d4a2efb9933be16c66ed35a20",
                   ".ai-os/playbooks/stochastic-consensus.md":  "8a0ad38a01e91c62e96b36e5be4c80ed8da98256852e00482f6f5c6ad999a57c",
                   ".ai-os/playbooks/testing.md":  "f490abc6944a70936206b4281ab98e58bdcdaccf1636f6b48cb7c25d5ef65ace",
-                  ".ai-os/playbooks/token-optimization.md":  "47e56b7c466706fa23929111544605897063e44e92a560f348afad47bb3e56bd",
+                  ".ai-os/playbooks/token-optimization.md":  "5b7af877b81e2b7fdd2c2fb4ae8771a025ed106bcb0204ce62340eb17f3d2744",
                   ".ai-os/prompts/architect.md":  "01031e643f7a0d98668c38062ca5ee1c58c426c199471cf26e36d862679af7e3",
                   ".ai-os/prompts/data-ai-specialist.md":  "381965681c7cbffbce46f2f7b20886c75bae4bc321b1a47328e6fbaf8d03d5e6",
                   ".ai-os/prompts/implementer.md":  "0a9e8bd942e71eb57c8396934f817fb13a610a7f96b8819e14f587753c6a9a48",

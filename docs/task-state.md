@@ -174,21 +174,51 @@ This document tracks the current development milestones and task state for the m
 
 ---
 
-## Phase 6 Plan: Measure Instead of Claim (F8)
-1. **Metric Audit Across All Docs**:
-   - Audit `README.md`, `AI-OS-USER-GUIDE.md`, `AI-OS-COMPLETE-SPECIFICATION.md`, and `playbooks/token-optimization.md`.
-   - Remove or replace any unmeasured marketing numbers (e.g. `10x`, `80% token savings`, `$0.00 cost`) with empirical metrics or explicitly mark them as `(design target, unbenchmarked)`.
-2. **Measurement Script (`scripts/token-report.sh` / `.ps1`)**:
-   - Implement `scripts/token-report.sh` and `scripts/token-report.ps1` to measure:
-     - Exact character count, line count, and estimated tokens across canonical core files (`AGENTS.md`, adapters, playbooks, prompts).
-     - Token budget compliance (verifying `AGENTS.md` is strictly under the 15KB / ~3,750 token limit).
-3. **Reproducible Evaluation Suite (`evals/`)**:
-   - Create `evals/` test directory with benchmark test cases:
-     - Prompt Contract generation quality.
-     - Secret leak defense benchmark.
-     - Health check latency benchmark.
-4. **Verification**:
-   - Run token-report script, verify all documentation claims against actual measured script outputs, and run full test suites.
+---
+
+### Phase 6 Handoff
+- **What Changed**:
+  - **Empirical Measurement Scripts**:
+    - Implemented cross-platform footprint tools `scripts/token-report.sh` and `scripts/token-report.ps1` measuring characters, lines, words, bytes, and estimated tokens across 29 core files.
+    - Verified that canonical `AGENTS.md` (10,495 bytes / ~2,624 est. tokens) is strictly within the 15,360 byte token budget.
+  - **Metric Audit Across All Docs**:
+    - Audited `README.md`, `playbooks/token-optimization.md`, and `docs/AI-OS-COMPLETE-SPECIFICATION.md`.
+    - Removed unbenchmarked marketing claims (`95%`, `5x`, `70-80%`, `up to 90%`) and clearly labeled provider caching mechanisms as `(design target, unbenchmarked)`.
+  - **Reproducible Evaluation Suite (`evals/`)**:
+    - Created `evals/README.md`, `evals/run_evals.sh`, and `evals/run_evals.ps1` establishing benchmark tests for:
+      1. Token Budget Compliance.
+      2. Secret Defense Multi-Vendor Accuracy.
+      3. Diagnostic Doctor Execution Latency (<4.0s).
+      4. Prompt Contract 4-Part Structural Integrity.
+      5. Template Zero Drift Verification.
+  - **Template Synchronization**:
+    - Rebuilt `templates/project` via `build-templates` to synchronize cleaned docs.
+- **What Was Verified**:
+  - `evals/run_evals.sh`: **5/5 benchmarks PASSED**.
+  - `evals/run_evals.ps1`: **4/4 benchmarks PASSED**.
+  - `scripts/token-report.sh`: **PASS** (`AGENTS.md`: 10,495 bytes / limit 15,360 bytes).
+  - `scripts/token-report.ps1`: **PASS** (`AGENTS.md`: 10,495 bytes / limit 15,360 bytes).
+  - `tests/run_tests.sh`: **34/34 tests PASSED**.
+- **Known Risks**:
+  - Registry files (`registry/projects.md`) may still contain local paths from the initial prototype environment.
+
+---
+
+## Phase 7 & 8 Plan: Harness Enforcement & Final Production Cleanup
+1. **Sanitize Machine-Specific Paths**:
+   - Audit `registry/projects.md` and repository markdown files for hardcoded local user paths (e.g. `C:\Users\rudra\...`, `/Users/rudra/...`) and replace with generic portable placeholders (`<project-root>`, `./projects/`).
+2. **Comprehensive Tool & Execution Audit**:
+   - Verify `scripts/init-project.sh` and `scripts/init-project.ps1` work cleanly with the updated template structure.
+   - Verify all file permissions and `.gitattributes` LF enforcement.
+3. **End-to-End Test & Diagnostic Verification**:
+   - Run `tests/run_tests.sh` (all 34 integration tests).
+   - Run `evals/run_evals.sh` and `evals/run_evals.ps1` (all benchmarks).
+   - Run `scripts/doctor.sh --ci` and `scripts/doctor.ps1 -Ci` (14/14 checks).
+   - Run `scripts/build-templates.sh --check` and `scripts/build-templates.ps1 -Check` (zero drift).
+   - Run `scripts/scan-repo-secrets.sh` (0 false positives, 0 leaked tokens).
+4. **Final Task State & Repository Sign-off**:
+   - Record comprehensive final state in `docs/task-state.md` and produce final engineering report.
+
 
 
 
