@@ -113,13 +113,19 @@ if os.path.isdir(master_rules_dir):
                     master_rules.append(txt)
 
 def evaluate_rule(rule_str):
-    # Rule syntax: N. [CATEGORY] Description — rationale.
-    match = re.match(r'^[0-9]+\.\s+\[([A-Z]+)\]\s+(.*)', rule_str)
+    # 0. Zero-width / hidden unicode characters check
+    zero_width_pattern = r'[\u200B-\u200D\uFEFF\u202A-\u202E\u2060-\u206F]'
+    if re.search(zero_width_pattern, rule_str):
+        return False, 'Contains hidden unicode or zero-width directional characters', [('FAIL', 'Hidden unicode / zero-width characters detected')]
+
+    # Rule syntax: <ID>. [CATEGORY] Description — rationale.
+    match = re.match(r'^([a-zA-Z0-9_-]+)\.\s+\[([A-Z]+)\]\s+(.*)', rule_str)
     if not match:
-        return False, 'Fails format syntax (N. [CATEGORY] Description — rationale.)', []
+        return False, 'Fails format syntax (<ID>. [CATEGORY] Description — rationale.)', []
     
-    category = match.group(1)
-    body = match.group(2)
+    rule_id = match.group(1)
+    category = match.group(2)
+    body = match.group(3)
     
     checks = []
     
@@ -163,13 +169,27 @@ def evaluate_rule(rule_str):
     else:
         return False, 'Rule already present in master ruleset', checks
     
-    # 6. Safe source
-    injection_words = ['ignore previous', 'system prompt', 'api key sk-', 'bypass guard']
+    # 6. Safe source & anti-injection / privilege escalation
+    injection_words = [
+        'ignore previous',
+        'disable the pre-commit',
+        'disable pre-commit',
+        '--no-verify',
+        'do not ask the user',
+        "don't ask the user",
+        'never ask the user',
+        'edit agents.md directly',
+        'modify agents.md directly',
+        'write to agents.md',
+        'system prompt',
+        'api key sk-',
+        'bypass guard'
+    ]
     has_inj = any(iw in body.lower() for iw in injection_words)
     if not has_inj:
         checks.append(('PASS', 'Clean instruction source'))
     else:
-        return False, 'Contains prompt injection or suspicious phrases', checks
+        return False, 'Contains prompt injection or security-subverting phrases', checks
     
     # 7. Zero secrets
     has_secret = any(rx.search(rule_str) for rx in secret_regexes)
@@ -177,6 +197,7 @@ def evaluate_rule(rule_str):
         checks.append(('PASS', 'Zero secrets or credential patterns detected'))
     else:
         return False, 'CRITICAL: Contains credential or secret pattern!', checks
+
     
     # 8. Durability
     checks.append(('PASS', 'Durable engineering practice'))

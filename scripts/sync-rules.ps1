@@ -76,14 +76,21 @@ $stats = @{ proposed = 0; rejected = 0; duplicate = 0 }
 $validCategories = @("STYLE", "CODE", "ARCH", "TOOL", "PROCESS", "DATA", "UX", "SECURITY", "TEST", "OTHER")
 
 foreach ($r in $candidateRules) {
-    if ($r -notmatch '^[0-9]+\.\s+\[([A-Z]+)\]\s+(.*)') {
+    if ($r -match '[\u200B-\u200D\uFEFF\u202A-\u202E\u2060-\u206F]') {
+        Write-Host " [REJECTED] Contains hidden unicode or zero-width directional characters: $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+
+    if ($r -notmatch '^([a-zA-Z0-9_-]+)\.\s+\[([A-Z]+)\]\s+(.*)') {
         Write-Host " [REJECTED] Fails format syntax: $r" -ForegroundColor Red
         $stats.rejected++
         continue
     }
 
-    $category = $Matches[1]
-    $body = $Matches[2]
+    $ruleId = $Matches[1]
+    $category = $Matches[2]
+    $body = $Matches[3]
     $checks = @()
 
     if ($category -notin $validCategories) {
@@ -131,6 +138,32 @@ foreach ($r in $candidateRules) {
     }
     $checks += "5. [PASS] Non-conflicting and not already present in master"
 
+    $injectionWords = @(
+        'ignore previous',
+        'disable the pre-commit',
+        'disable pre-commit',
+        '--no-verify',
+        'do not ask the user',
+        "don't ask the user",
+        'never ask the user',
+        'edit agents.md directly',
+        'modify agents.md directly',
+        'write to agents.md',
+        'system prompt',
+        'api key sk-',
+        'bypass guard'
+    )
+    $hasInj = $false
+    foreach ($iw in $injectionWords) {
+        if ($body.ToLower().Contains($iw.ToLower())) { $hasInj = $true; break }
+    }
+    if ($hasInj) {
+        Write-Host " [REJECTED] Contains prompt injection or security-subverting phrases: $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+    $checks += "6. [PASS] Clean instruction source"
+
     $hasSecret = $false
     foreach ($rx in $secretRegexes) {
         if ($rx.IsMatch($r)) { $hasSecret = $true; break }
@@ -140,11 +173,11 @@ foreach ($r in $candidateRules) {
         $stats.rejected++
         continue
     }
-    $checks += "6. [PASS] Zero secrets or credential patterns detected"
-    $checks += "7. [PASS] Clean instruction source"
+    $checks += "7. [PASS] Zero secrets or credential patterns detected"
     $checks += "8. [PASS] Durable engineering practice"
     $checks += "9. [PASS] Complies with canonical format"
     $checks += "10. [PASS] Reusable principle across software stacks"
+
 
     $slug = ($bodyCore.ToLower() -replace '[^a-z0-9]+', '-').Trim('-')
     if ($slug.Length -gt 40) { $slug = $slug.Substring(0, 40) }

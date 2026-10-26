@@ -63,75 +63,102 @@ if [ -z "$ADDED_DIFF" ]; then
     exit 0
 fi
 
-# Load Allowlisted Entries
-ALLOWLIST_ENTRIES=()
-if [ -f "$ALLOWLIST_FILE" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-        # Ignore comments and empty lines
-        clean_line=$(echo "$line" | sed 's/#.*//' | tr -d ' \t\r\n')
-        if [ -n "$clean_line" ]; then
-            ALLOWLIST_ENTRIES+=("$clean_line")
-        fi
-    done < "$ALLOWLIST_FILE"
-fi
-
-# Load or Define Patterns
-declare -a SCAN_PATTERNS
-if [ -f "$PATTERNS_FILE" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-        [[ "$line" =~ ^[[:space:]]*# ]] && continue
-        [[ -z "${line// }" ]] && continue
-        SCAN_PATTERNS+=("$line")
-    done < "$PATTERNS_FILE"
-else
-    # Fallback built-in patterns
-    SCAN_PATTERNS=(
-        "OpenAI API Key (Standard)|sk-[a-zA-Z0-9]{20,}"
-        "OpenAI API Key (Project)|sk-proj-[a-zA-Z0-9_-]{20,}"
-        "Anthropic API Key|sk-ant-[a-zA-Z0-9_-]{20,}"
-        "AWS Access Key ID|(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"
-        "GitHub Token|(ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9_]{16,}"
-        "Stripe Secret Key|sk_live_[0-9a-zA-Z]{20,}"
-        "Google API Key|AIza[0-9A-Za-z_-]{30,}"
-        "Slack Token|xox[baprs]-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*"
-        "Private Key Header|-----BEGIN (RSA|EC|DSA|OPENSSH|PGP) PRIVATE KEY-----"
-        "Database URL with Credentials|[a-zA-Z0-9+.-]+://[^:@[:space:]]+:[^@[:space:]]+@[a-zA-Z0-9.-]+"
-        "JWT Token|eyJ[a-zA-Z0-9_-]{10,}\.eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}"
-    )
-fi
-
-VIOLATIONS_FOUND=0
 DETECTED_NAMES=()
 
-while IFS= read -r diff_line || [ -n "$diff_line" ]; do
-    [ -z "$diff_line" ] && continue
-    
-    # Check if line contains an allowlisted token
-    is_allowlisted=0
-    for allow_entry in "${ALLOWLIST_ENTRIES[@]}"; do
-        if [[ "$diff_line" == *"$allow_entry"* ]]; then
-            is_allowlisted=1
-            break
-        fi
-    done
-    [ "$is_allowlisted" -eq 1 ] && continue
-    
-    for pattern_entry in "${SCAN_PATTERNS[@]}"; do
-        name="${pattern_entry%%|*}"
-        regex="${pattern_entry#*|}"
-        
-        if echo "$diff_line" | grep -E -q -e "$regex"; then
-            VIOLATIONS_FOUND=$((VIOLATIONS_FOUND + 1))
-            DETECTED_NAMES+=("$name")
-        fi
-    done
-done <<< "$ADDED_DIFF"
+if command -v python3 >/dev/null 2>&1; then
+    # High-performance batch scanner
+    PYTHON_OUTPUT=$(printf '%s\n' "$ADDED_DIFF" | python3 - "$ALLOWLIST_FILE" "$PATTERNS_FILE" << 'EOF'
+import sys, re, os
 
-if [ "$VIOLATIONS_FOUND" -gt 0 ]; then
+allowlist_file = sys.argv[1]
+patterns_file = sys.argv[2]
+
+allowlist = []
+if os.path.isfile(allowlist_file):
+    with open(allowlist_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            clean = line.split('#')[0].strip()
+            if clean:
+                allowlist.append(clean)
+
+patterns = []
+if os.path.isfile(patterns_file):
+    with open(patterns_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                parts = line.split('|', 1)
+                name = parts[0].strip()
+                pat = parts[1].strip() if len(parts) > 1 else parts[0].strip()
+                try:
+                    patterns.append((name, re.compile(pat)))
+                except Exception:
+                    pass
+
+violations = set()
+for line in sys.stdin:
+    line = line.rstrip('\r\n')
+    if not line:
+        continue
+    if any(tok in line for tok in allowlist):
+        continue
+    for name, rx in patterns:
+        if rx.search(line):
+            violations.add(name)
+
+for v in sorted(violations):
+    print(v)
+EOF
+)
+    if [ -n "$PYTHON_OUTPUT" ]; then
+        while IFS= read -r vname; do
+            [ -n "$vname" ] && DETECTED_NAMES+=("$vname")
+        done <<< "$PYTHON_OUTPUT"
+    fi
+else
+    # POSIX Shell Fallback
+    ALLOWLIST_ENTRIES=()
+    if [ -f "$ALLOWLIST_FILE" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            clean_line=$(echo "$line" | sed 's/#.*//' | tr -d ' \t\r\n')
+            [ -n "$clean_line" ] && ALLOWLIST_ENTRIES+=("$clean_line")
+        done < "$ALLOWLIST_FILE"
+    fi
+
+    declare -a SCAN_PATTERNS
+    if [ -f "$PATTERNS_FILE" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            [[ -z "${line// }" ]] && continue
+            SCAN_PATTERNS+=("$line")
+        done < "$PATTERNS_FILE"
+    fi
+
+    while IFS= read -r diff_line || [ -n "$diff_line" ]; do
+        [ -z "$diff_line" ] && continue
+        is_allowlisted=0
+        for allow_entry in "${ALLOWLIST_ENTRIES[@]}"; do
+            if [[ "$diff_line" == *"$allow_entry"* ]]; then
+                is_allowlisted=1
+                break
+            fi
+        done
+        [ "$is_allowlisted" -eq 1 ] && continue
+        
+        for pattern_entry in "${SCAN_PATTERNS[@]}"; do
+            name="${pattern_entry%%|*}"
+            regex="${pattern_entry#*|}"
+            if echo "$diff_line" | grep -E -q -e "$regex"; then
+                DETECTED_NAMES+=("$name")
+            fi
+        done
+    done <<< "$ADDED_DIFF"
+fi
+
+if [ ${#DETECTED_NAMES[@]} -gt 0 ]; then
     echo ""
     echo "❌ [AI-OS Guard BLOCKED COMMIT]: High-risk credentials detected in staged code!"
     echo "   Detected secret types:"
-    # Unique detected names
     printf '%s\n' "${DETECTED_NAMES[@]}" | sort -u | while IFS= read -r dname; do
         echo "   • $dname"
     done

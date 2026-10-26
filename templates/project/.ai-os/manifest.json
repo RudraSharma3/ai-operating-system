@@ -1,7 +1,7 @@
 {
     "ai_os_version":  "2.1.0",
-    "generated_at":  "2026-10-26T12.53.44Z",
-    "file_count":  49,
+    "generated_at":  "2026-10-26T16.55.33Z",
+    "file_count":  48,
     "files":  {
                   ".ai/mistakes-candidates.md":  "a756813da14e24033776fad56d5e342af5337efeb8813993a6f91e2d38ffafa1",
                   ".ai/routing.md":  "fdfbc2544a96e5be4626218490f1b3ef17645d37d0c19d3f1c2f2dc46415a3dc",
@@ -15,8 +15,8 @@
                   ".ai-os/playbooks/codebase-analysis.md":  "f9fb0a005bd6e619a536cf16596558cea5ba4340e251fb5219c1dd293e6fe2bf",
                   ".ai-os/playbooks/feature.md":  "186c7a2cb020f698728e1786b91a112e9db7053abedf93c1189c7a0a6e60c08f",
                   ".ai-os/playbooks/interview.md":  "378107da7dcf90d611c4f6e3b39faf561edf704d4e8fd63c9536bf3b96b15133",
-                  ".ai-os/playbooks/learning-loop.md":  "50310c9fb4d5cfdd73bbed2ed5bdb56c756d4372c7307692890791f9ec5a3fd5",
-                  ".ai-os/playbooks/multi-agent-orchestration.md":  "8d3e57de6bd1b8dfccb31accd10892a209f8555d0297c9f140678a5aa330815a",
+                  ".ai-os/playbooks/learning-loop.md":  "5c49c1751044c7429dcadcc25d4fd645e059f39781bc72e83e07ce0a9edd359a",
+                  ".ai-os/playbooks/multi-agent-orchestration.md":  "ac98a8637e0e5417ff1019d37c4e202eeae895e11df2139a1d99be4afbd72dcd",
                   ".ai-os/playbooks/new-project.md":  "6cb2f333c937b374907009181d33e9694480a10d3d4469d4c036bd2dc5f521ee",
                   ".ai-os/playbooks/prompt-refinement.md":  "db6db679681674df4fc419c2aad3c14d0b05468f6eae2eb9d102ef553604a596",
                   ".ai-os/playbooks/release-and-learn.md":  "d3d1f3cbe3d96a7a5037983f8bebf51231411e4f321c59e9140038a1157c1c0d",
@@ -36,9 +36,8 @@
                   ".claude/commands/interview.md":  "015e163aca1f215647ab0bc2f475a6e74f01e05db25cfdb2c16e5e408b54963a",
                   ".claude/commands/sync-state.md":  "1892747121991159698d95d1b85fbb9191c15df0f5250134a53d2d19d7f59138",
                   ".cursor/rules/agents.mdc":  "85262834af1736fe8a66b308808ae4d6d90e2f6866ad5228cae5d06c4b8263d2",
-                  ".cursorrules":  "f29890f724ac5c915288395d68e6c59d93031d94ca49de0deeb5d124a21f8829",
-                  ".gitattributes":  "dc776bb195a091fb3671bbc27781477d352be4610848c468290fcf8b6c87341e",
-                  ".githooks/pre-commit":  "b9144f55f0afaecec07dc3d85d87884a6cd8f57c8ded2318049b6730a8fab531",
+                  ".gitattributes":  "4559807333eee868a4ccea54e70520ff9ed8247edbc36143481b1c927a5aca02",
+                  ".githooks/pre-commit":  "fa1419d95bbb845fbdefd01e455e5dd1fccd1d470d7b59c061e2f68fc1b5d0db",
                   ".github/copilot-instructions.md":  "1a0d713f4d0fb85ec3251f8e4f86c96fa35eaf926d4fbd8d73728ea724b1931a",
                   ".gitignore":  "eb117ab871271d8802d24906733c051922818606fc307f6c1430926e759a5cd3",
                   "AGENTS.md":  "b5f2c1f3ac78d9eed313e5bef89ed9e42c157a67c6f089cda0a9c7d02e4151b5",
@@ -51,6 +50,6 @@
                   "docs/lessons.md":  "2a85ef0bf78fd5cf698e206d8402d4a60c171daff716d5eec80d3a868603842f",
                   "docs/task-state.md":  "ef76c04c6da2c57baf2fedaa004f56240fb2e525b78dcfa83debcce0a9c157c3",
                   "GEMINI.md":  "06d23b5157bffd0c1496bfd7061e87a97aad16b7efa098078d9900a2cf399a11",
-                  "mcp.json":  "55e227ffddf420aec89f98e55bcaff61abaada28baa48435bd22a914b0495710"
+                  "mcp.json":  "6414f1f251bca488593df60425f3cd3b456528959df8acbdc98f1d48f6873f95"
               }
 }

@@ -13,7 +13,7 @@ $targetFiles = @(
     "CLAUDE.md",
     "GEMINI.md",
     "CODEX.md",
-    ".cursorrules",
+    ".cursor/rules/agents.mdc",
     ".github/copilot-instructions.md",
     ".ai/routing.md",
     "templates/project/AGENTS.md"
