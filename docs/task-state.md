@@ -123,26 +123,46 @@ This document tracks the current development milestones and task state for the m
 
 ---
 
-## Phase 4 Plan: Federated Sync & Learning Gate (F6)
-1. **Federated Proposal Workflow**:
-   - Replace prototype `scripts/sync-rules.ps1` with production cross-platform scripts (`scripts/sync-rules.sh` and `scripts/sync-rules.ps1`).
-   - Rather than silently modifying master rules directly, downstream learning exports generate formal proposals in `proposals/` (e.g. `proposals/YYYYMMDD-rule-slug.md`).
-2. **10-Point Mechanical Quality Gate**:
-   - Implement automated validation checks:
-     1. Reusable engineering principle?
-     2. Concrete rationale and evidence provided?
-     3. Specific and actionable instruction?
-     4. General enough to avoid project-specific overfit?
-     5. Free of conflicts or duplicates against active rules?
-     6. Safe self-modification compliant (not inferred from third-party / web)?
-     7. Zero secret credentials or key signatures?
-     8. Durable across future sessions?
-     9. Sequential rule numbering?
-     10. Canonical category tag valid (`[STYLE]`, `[CODE]`, etc.)?
-3. **Approval & Compilation Integration**:
-   - Implement `scripts/approve-proposal.sh` and `scripts/approve-proposal.ps1` to promote accepted proposals from `proposals/` into `.ai/rules/` and recompile via `compile-rules.*`.
-4. **Verification**:
-   - Test proposal generation, mechanical gate rejections (for bad candidates with secrets or duplicates), and promotion into canonical rules.
+---
+
+### Phase 4 Handoff
+- **What Changed**:
+  - **Federated Proposal Workflow**:
+    - Replaced prototype `scripts/sync-rules.ps1` with production cross-platform proposal generators (`scripts/sync-rules.sh` and `scripts/sync-rules.ps1`).
+    - Downstream rule synchronization now creates structured, auditable proposals under `proposals/` (`YYYYMMDD-HHMMSS-slug.md`) instead of performing silent direct writes to master.
+  - **10-Point Mechanical Quality Gate**:
+    - Implemented automated gate verifying: category validity, rationale separator, actionable statement length, general scope (no local file paths), non-conflicting check against active master rules, safe instruction source, zero secret patterns (checked against master regex registry), durability, canonical syntax, and cross-stack reusability.
+  - **Proposal Promotion Engine**:
+    - Created `scripts/approve-proposal.sh` and `scripts/approve-proposal.ps1` to promote accepted proposals from `proposals/` into `.ai/rules/NNNN-slug.md`, automatically recompile `AGENTS.md` via `compile-rules`, and synchronize templates via `build-templates`.
+  - **Automated Test Coverage**:
+    - Created dedicated test suite `tests/test_sync.sh` covering secret rejection, missing rationale rejection, local path rejection, duplicate skipping, and proposal generation.
+    - Updated master test runner `tests/run_tests.sh`.
+- **What Was Verified**:
+  - `tests/run_tests.sh`: **34/34 tests PASSED** (19 hook tests + 10 installer/upgrader/drift tests + 5 sync gate tests).
+  - `tests/test_sync.sh`: **5/5 tests PASSED**.
+  - `scripts/doctor.ps1 --ci`: **14/14 checks PASSED**, exit code 0.
+  - `scripts/doctor.sh --ci`: **14/14 checks PASSED**, exit code 0.
+  - `scripts/build-templates.ps1 -Check`: **PASS** (Zero drift detected).
+- **Known Risks**:
+  - `mcp.json` and model routing configuration still contain prototype/placeholder items until Phase 5 fixes.
+
+---
+
+## Phase 5 Plan: Honest Routing & Consensus (F7, F8)
+1. **Clean & Verify `mcp.json`**:
+   - Audit `mcp.json` and `templates/project/mcp.json`: remove fictitious, broken, or unreachable servers. Keep genuine, verified configurations (or realistic stdio MCP configurations with clear setup docs).
+2. **Model Routing Matrix (`.ai/routing.md`)**:
+   - Create `.ai/routing.md` defining practical, honest routing tiers:
+     - Tier 1: Routine tasks (Solo model mode, zero multi-agent overhead).
+     - Tier 2: Standard feature implementation (1-Implementer + 1-Verifier).
+     - Tier 3: Strategic architecture & cross-cutting changes (Consensus / Multi-agent).
+3. **Ground Stochastic Consensus (`playbooks/stochastic-consensus.md`)**:
+   - Replace vague subjective model voting with deterministic criteria (compilation passes, type checking, test assertion passes, benchmark/linter validation).
+4. **Headless Escape Hatch (`playbooks/prompt-refinement.md`)**:
+   - Add clear escape hatch for non-interactive / CI / script-driven environments where interactive Reverse Prompting is disabled.
+5. **Verification**:
+   - Run tests, verify template drift, and run doctor diagnostics.
+
 
 
 
