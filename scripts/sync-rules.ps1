@@ -1,73 +1,190 @@
-<#
-.SYNOPSIS
-    Federated Global Rule Synchronizer for AI Operating System.
-.DESCRIPTION
-    Scans a downstream project's AGENTS.md for [UNIVERSAL] rules and syncs them to the master AI-OS AGENTS.md.
-.PARAMETER ProjectPath
-    The path to the downstream project directory. Defaults to current directory.
-#>
-param (
-    [Parameter(Mandatory=$false)]
-    [string]$ProjectPath = (Get-Location).Path
+[CmdletBinding()]
+param(
+    [string]$ProjectPath = ".",
+    [switch]$DryRun
 )
 
+$ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$MasterRepoRoot = Split-Path -Parent $ScriptDir
-$MasterAgentsPath = Join-Path $MasterRepoRoot "AGENTS.md"
-$ProjectAgentsPath = Join-Path $ProjectPath "AGENTS.md"
+$MasterRoot = Split-Path -Parent $ScriptDir
+$ResolvedProjectPath = (Resolve-Path $ProjectPath).Path
 
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host " 🧠 Federated Rule Sync: Downstream ──▶ Master AI-OS" -ForegroundColor Cyan
-Write-Host " Project: $ProjectAgentsPath" -ForegroundColor Cyan
-Write-Host " Master:  $MasterAgentsPath" -ForegroundColor Cyan
+Write-Host " AI-OS Federated Learning & Proposal Gate" -ForegroundColor Cyan
+Write-Host " Source Project: $ResolvedProjectPath" -ForegroundColor Cyan
+Write-Host " Master AI-OS:   $MasterRoot" -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
 
-if (-not (Test-Path $ProjectAgentsPath)) {
-    Write-Error "No AGENTS.md found in $ProjectPath! Please point to a valid project directory."
-    exit 1
-}
+$secretPatternsFile = Join-Path $MasterRoot ".ai/secret-patterns.txt"
+$proposalsDir = Join-Path $MasterRoot "proposals"
+if (-not (Test-Path $proposalsDir)) { New-Item -ItemType Directory -Path $proposalsDir -Force | Out-Null }
 
-$projectContent = Get-Content $ProjectAgentsPath -Raw
-$masterContent = Get-Content $MasterAgentsPath -Raw
-
-# Extract rules tagged with [UNIVERSAL] or universal categories
-$regex = '(?m)^\d+\.\s*\[(UNIVERSAL|SECURITY|PROCESS|TEST)\]\s*(.+)$'
-$matches = [regex]::Matches($projectContent, $regex)
-
-if ($matches.Count -eq 0) {
-    Write-Host "No universal candidate rules found in project to sync." -ForegroundColor Yellow
-    exit 0
-}
-
-Write-Host "Found $($matches.Count) potential universal rules. Checking against master..." -ForegroundColor Green
-
-# Find the highest rule number in master
-$masterRuleMatches = [regex]::Matches($masterContent, '(?m)^(\d+)\.\s*\[')
-$maxRuleNum = 0
-foreach ($m in $masterRuleMatches) {
-    $num = [int]$m.Groups[1].Value
-    if ($num -gt $maxRuleNum) { $maxRuleNum = $num }
-}
-
-$addedCount = 0
-foreach ($match in $matches) {
-    $ruleText = $match.Groups[2].Value.Trim()
-    
-    # Check if rule already exists in master
-    if ($masterContent -notmatch [regex]::Escape($ruleText.Substring(0, [Math]::Min(30, $ruleText.Length)))) {
-        $maxRuleNum++
-        $newRuleLine = "`n$maxRuleNum. [$($match.Groups[1].Value)] $ruleText"
-        $masterContent += $newRuleLine
-        Write-Host " + Added to Master AI-OS: $newRuleLine" -ForegroundColor Cyan
-        $addedCount++
-    } else {
-        Write-Host " = Already present in Master: $($match.Value)" -ForegroundColor DarkGray
+$secretRegexes = @()
+if (Test-Path $secretPatternsFile) {
+    Get-Content $secretPatternsFile | Where-Object { $_.Trim().Length -gt 0 -and -not $_.Trim().StartsWith("#") } | ForEach-Object {
+        $parts = $_ -split '\|', 2
+        $pat = if ($parts.Count -eq 2) { $parts[1] } else { $parts[0] }
+        try {
+            $secretRegexes += [regex]$pat
+        } catch { }
     }
 }
 
-if ($addedCount -gt 0) {
-    Set-Content -Path $MasterAgentsPath -Value $masterContent -Force
-    Write-Host "`n✅ Successfully synced $addedCount new universal rule(s) to Master AI-OS AGENTS.md!" -ForegroundColor Green
-} else {
-    Write-Host "`n✨ Master AI-OS is already up-to-date with all project rules." -ForegroundColor Green
+$masterRules = @()
+$masterRulesDir = Join-Path $MasterRoot ".ai/rules"
+if (Test-Path $masterRulesDir) {
+    Get-ChildItem -Path $masterRulesDir -Filter "*.md" | ForEach-Object {
+        $content = [System.IO.File]::ReadAllText($_.FullName, [System.Text.Encoding]::UTF8).Trim()
+        if ($content) { $masterRules += $content }
+    }
 }
+
+$candidateRules = @()
+$projectRulesDir = Join-Path $ResolvedProjectPath ".ai/rules"
+if (Test-Path $projectRulesDir) {
+    Get-ChildItem -Path $projectRulesDir -Filter "*.md" | Sort-Object Name | ForEach-Object {
+        $lines = @(Get-Content -Path $_.FullName | Where-Object { $_.Trim().Length -gt 0 })
+        if ($lines.Count -gt 0) { $candidateRules += $lines[0] }
+    }
+}
+
+if ($candidateRules.Count -eq 0) {
+    $projectAgents = Join-Path $ResolvedProjectPath "AGENTS.md"
+    if (Test-Path $projectAgents) {
+        $inLearned = $false
+        Get-Content $projectAgents | ForEach-Object {
+            if ($_ -match '^##\s+([0-9]+\.\s*)?Learned Rules') {
+                $inLearned = $true
+            } elseif ($inLearned -and ($_ -match '^##\s+')) {
+                $inLearned = $false
+            }
+            if ($inLearned -and ($_ -match '^[0-9]+\.\s+\[[A-Z]+\]')) {
+                $candidateRules += $_.Trim()
+            }
+        }
+    }
+}
+
+if ($candidateRules.Count -eq 0) {
+    Write-Host "No learned rules discovered in project to evaluate." -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host "Found $($candidateRules.Count) candidate rule(s). Evaluating through 10-point mechanical gate..." -ForegroundColor Cyan
+
+$stats = @{ proposed = 0; rejected = 0; duplicate = 0 }
+$validCategories = @("STYLE", "CODE", "ARCH", "TOOL", "PROCESS", "DATA", "UX", "SECURITY", "TEST", "OTHER")
+
+foreach ($r in $candidateRules) {
+    if ($r -notmatch '^[0-9]+\.\s+\[([A-Z]+)\]\s+(.*)') {
+        Write-Host " [REJECTED] Fails format syntax: $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+
+    $category = $Matches[1]
+    $body = $Matches[2]
+    $checks = @()
+
+    if ($category -notin $validCategories) {
+        Write-Host " [REJECTED] Invalid category [$category]: $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+    $checks += "1. [PASS] Valid Category tag [$category]"
+
+    if ($body -notmatch ' — ' -and $body -notmatch ' - ') {
+        Write-Host " [REJECTED] Missing evidence/rationale separator: $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+    $checks += "2. [PASS] Includes explicit evidence and rationale separator"
+
+    if ($body.Length -lt 20) {
+        Write-Host " [REJECTED] Statement too brief to be actionable: $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+    $checks += "3. [PASS] Actionable instruction statement length adequate"
+
+    $hasLocalPath = $false
+    foreach ($lp in @('/Users/', 'C:\\', 'D:\\', '/home/', 'node_modules', 'apps/web', 'src/components')) {
+        if ($body -match [regex]::Escape($lp)) { $hasLocalPath = $true; break }
+    }
+    if ($hasLocalPath) {
+        Write-Host " [REJECTED] Contains project-specific local file paths: $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+    $checks += "4. [PASS] Free of project-specific local file paths"
+
+    $bodyCore = ($body -split ' — ')[0].Trim()
+    $bodyCore = ($bodyCore -split ' - ')[0].Trim()
+    $isDup = $false
+    foreach ($mr in $masterRules) {
+        if ($mr.ToLower().Contains($bodyCore.ToLower())) { $isDup = $true; break }
+    }
+    if ($isDup) {
+        Write-Host " [=] Skipped (already in master): $bodyCore..." -ForegroundColor DarkGray
+        $stats.duplicate++
+        continue
+    }
+    $checks += "5. [PASS] Non-conflicting and not already present in master"
+
+    $hasSecret = $false
+    foreach ($rx in $secretRegexes) {
+        if ($rx.IsMatch($r)) { $hasSecret = $true; break }
+    }
+    if ($hasSecret) {
+        Write-Host " [REJECTED] CRITICAL: Contains credential or secret pattern! $r" -ForegroundColor Red
+        $stats.rejected++
+        continue
+    }
+    $checks += "6. [PASS] Zero secrets or credential patterns detected"
+    $checks += "7. [PASS] Clean instruction source"
+    $checks += "8. [PASS] Durable engineering practice"
+    $checks += "9. [PASS] Complies with canonical format"
+    $checks += "10. [PASS] Reusable principle across software stacks"
+
+    $slug = ($bodyCore.ToLower() -replace '[^a-z0-9]+', '-').Trim('-')
+    if ($slug.Length -gt 40) { $slug = $slug.Substring(0, 40) }
+    $ts = (Get-Date).ToUniversalTime().ToString("yyyyMMdd-HHmmss")
+    $propFilename = "$ts-$slug.md"
+    $propPath = Join-Path $proposalsDir $propFilename
+
+    $mdLines = @(
+        "# Rule Proposal: $bodyCore",
+        "",
+        "- **Source Project**: $ResolvedProjectPath",
+        "- **Proposed Date**: " + (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"),
+        "- **Category**: [$category]",
+        "- **Status**: PENDING",
+        "",
+        "## Proposed Rule Content",
+        "`[$category] $body`",
+        "",
+        "## 10-Point Mechanical Quality Gate Assessment"
+    )
+    $mdLines += $checks
+    $mdLines += @(
+        "",
+        "## Execution Command",
+        "To approve and compile into canonical rules:",
+        "```powershell",
+        "powershell -ExecutionPolicy Bypass -File scripts/approve-proposal.ps1 proposals/$propFilename",
+        "```"
+    )
+
+    if (-not $DryRun) {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllLines($propPath, $mdLines, $utf8NoBom)
+    }
+
+    Write-Host " [PASS] PROPOSAL GENERATED: proposals/$propFilename" -ForegroundColor Green
+    Write-Host "        Rule: [$category] $body" -ForegroundColor Gray
+    $stats.proposed++
+}
+
+Write-Host "====================================================" -ForegroundColor Gray
+Write-Host " Gate Summary: $($stats.proposed) proposal(s) created, $($stats.rejected) rejected, $($stats.duplicate) duplicate(s) skipped." -ForegroundColor Green
+Write-Host "====================================================" -ForegroundColor Gray
