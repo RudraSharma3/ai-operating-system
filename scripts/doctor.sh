@@ -64,7 +64,7 @@ fi
 # 2. Provider adapters point to AGENTS.md
 ADAPTERS_OK=true
 ADAPTER_ERR=""
-for ad in "CLAUDE.md" "GEMINI.md" "CODEX.md" ".cursorrules" ".github/copilot-instructions.md"; do
+for ad in "CLAUDE.md" "GEMINI.md" "CODEX.md" ".cursor/rules/agents.mdc" ".github/copilot-instructions.md"; do
     if [ ! -f "$PROJECT_PATH/$ad" ]; then
         ADAPTERS_OK=false
         ADAPTER_ERR="Missing $ad adapter"
@@ -167,36 +167,34 @@ else
     record_check 9 "Referenced playbooks and prompts paths exist" "FAIL" "Referenced playbooks directory or files missing"
 fi
 
-# 10. Sequential learned rule numbering in AGENTS.md
+# 10. Unique learned rule IDs in AGENTS.md (no collisions)
 RULES_OK=true
+RULE_ERROR=""
 if [ -f "$PROJECT_PATH/AGENTS.md" ]; then
     IN_LEARNED=false
-    declare -a RULE_NUMBERS=()
+    declare -A SEEN_RULES=()
     while IFS= read -r line || [ -n "$line" ]; do
         if [[ "$line" =~ ^##.*Learned[[:space:]]+Rules ]]; then
             IN_LEARNED=true
             continue
         fi
         if [ "$IN_LEARNED" = true ]; then
-            if [[ "$line" =~ ^([0-9]+)\.[[:space:]]*\[[A-Z]+\] ]]; then
-                RULE_NUMBERS+=("${BASH_REMATCH[1]}")
+            if [[ "$line" =~ ^([a-zA-Z0-9_-]+)\.[[:space:]]*\[[A-Z]+\] ]]; then
+                rid="${BASH_REMATCH[1]}"
+                if [ -n "${SEEN_RULES[$rid]:-}" ]; then
+                    RULES_OK=false
+                    RULE_ERROR="Duplicate rule ID '$rid' detected"
+                    break
+                fi
+                SEEN_RULES["$rid"]=1
             fi
         fi
     done < "$PROJECT_PATH/AGENTS.md"
-    
-    expected=1
-    for rnum in "${RULE_NUMBERS[@]}"; do
-        if [ "$rnum" -ne "$expected" ]; then
-            RULES_OK=false
-            break
-        fi
-        expected=$((expected + 1))
-    done
 fi
 if [ "$RULES_OK" = true ]; then
-    record_check 10 "Learned rules numbering is sequential" "PASS" ""
+    record_check 10 "Learned rule IDs are unique" "PASS" ""
 else
-    record_check 10 "Learned rules numbering is sequential" "FAIL" "Rule numbers in AGENTS.md are non-sequential or duplicated"
+    record_check 10 "Learned rule IDs are unique" "FAIL" "$RULE_ERROR"
 fi
 
 # 11. Active task state is maintained
@@ -227,6 +225,35 @@ if [ -f "$PROJECT_PATH/.ai/secret-patterns.txt" ] && [ -f "$PROJECT_PATH/.ai/sec
 else
     record_check 14 "Secret pattern registry and allowlist exist" "FAIL" "Missing .ai/secret-patterns.txt or .ai/secret-allowlist.txt"
 fi
+
+# 15. Worker tools in multi-agent playbook match mcp.json
+MCP_OK=true
+MCP_ERROR=""
+PLAYBOOK_FILE=""
+if [ -f "$PROJECT_PATH/playbooks/multi-agent-orchestration.md" ]; then
+    PLAYBOOK_FILE="$PROJECT_PATH/playbooks/multi-agent-orchestration.md"
+elif [ -f "$PROJECT_PATH/.ai-os/playbooks/multi-agent-orchestration.md" ]; then
+    PLAYBOOK_FILE="$PROJECT_PATH/.ai-os/playbooks/multi-agent-orchestration.md"
+fi
+
+MCP_JSON="$PROJECT_PATH/mcp.json"
+if [ -n "$PLAYBOOK_FILE" ] && [ -f "$MCP_JSON" ]; then
+    tools=$(grep -E '^\- \*\*`[a-zA-Z0-9_-]+`\*\*' "$PLAYBOOK_FILE" | sed -E 's/^- \*\*`([a-zA-Z0-9_-]+)`\*\*.*$/\1/' || true)
+    for tool in $tools; do
+        if ! grep -q "\"$tool\":" "$MCP_JSON"; then
+            MCP_OK=false
+            MCP_ERROR="Tool '$tool' declared in playbook is missing from mcp.json"
+            break
+        fi
+    done
+fi
+
+if [ "$MCP_OK" = true ]; then
+    record_check 15 "Playbook MCP worker tools exist in mcp.json" "PASS" ""
+else
+    record_check 15 "Playbook MCP worker tools exist in mcp.json" "FAIL" "$MCP_ERROR"
+fi
+
 
 if [ "$JSON_MODE" = true ]; then
     echo "{"

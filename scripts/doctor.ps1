@@ -49,7 +49,7 @@ if (Test-Path $agentsFile) {
 # 2. Provider adapters point to AGENTS.md
 $adaptersOk = $true
 $adapterErr = ""
-foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md", ".cursorrules", ".github/copilot-instructions.md")) {
+foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md", ".cursor/rules/agents.mdc", ".github/copilot-instructions.md")) {
     $adPath = Join-Path $target $ad
     if (-not (Test-Path $adPath)) {
         $adaptersOk = $false; $adapterErr = "Missing $ad adapter"; break
@@ -172,28 +172,30 @@ if ($playbooksOk) {
     Record-Check 9 "Referenced playbooks and prompts paths exist" "FAIL" "Referenced playbooks directory or files missing"
 }
 
-# 10. Sequential learned rule numbering
+# 10. Unique learned rule IDs
 $rulesOk = $true
+$ruleError = ""
 if (Test-Path $agentsFile) {
     $lines = Get-Content $agentsFile
-    $nums = @()
+    $seen = @{}
     $inLearnedSection = $false
     foreach ($l in $lines) {
         if ($l -match '^##\s+([0-9]+\.\s+)?Learned Rules') { $inLearnedSection = $true; continue }
-        if ($inLearnedSection -and ($l -match '^([0-9]+)\.\s+\[[A-Z]+\]')) {
-            $nums += [int]$matches[1]
+        if ($inLearnedSection -and ($l -match '^([a-zA-Z0-9_-]+)\.\s+\[[A-Z]+\]')) {
+            $rid = $matches[1]
+            if ($seen.ContainsKey($rid)) {
+                $rulesOk = $false
+                $ruleError = "Duplicate rule ID '$rid' detected"
+                break
+            }
+            $seen[$rid] = $true
         }
-    }
-    $expected = 1
-    foreach ($n in $nums) {
-        if ($n -ne $expected) { $rulesOk = $false; break }
-        $expected++
     }
 }
 if ($rulesOk) {
-    Record-Check 10 "Learned rules numbering is sequential" "PASS"
+    Record-Check 10 "Learned rule IDs are unique" "PASS"
 } else {
-    Record-Check 10 "Learned rules numbering is sequential" "FAIL" "Rule numbers in AGENTS.md are non-sequential or duplicated"
+    Record-Check 10 "Learned rule IDs are unique" "FAIL" $ruleError
 }
 
 # 11. Active task state tracker non-empty
@@ -229,6 +231,37 @@ if ((Test-Path $patternsFile) -and (Test-Path $allowFile)) {
 } else {
     Record-Check 14 "Secret pattern registry and allowlist exist" "FAIL" "Missing secret-patterns.txt or secret-allowlist.txt"
 }
+
+# 15. Worker tools in multi-agent playbook match mcp.json
+$mcpOk = $true
+$mcpError = ""
+$playbookPath = Join-Path $target "playbooks\multi-agent-orchestration.md"
+if (-not (Test-Path $playbookPath)) {
+    $playbookPath = Join-Path $target ".ai-os\playbooks\multi-agent-orchestration.md"
+}
+$mcpJsonPath = Join-Path $target "mcp.json"
+
+if ((Test-Path $playbookPath) -and (Test-Path $mcpJsonPath)) {
+    $pbContent = Get-Content $playbookPath
+    $mcpContent = Get-Content $mcpJsonPath -Raw
+    foreach ($line in $pbContent) {
+        if ($line -match '^\-\s+\*\*`([a-zA-Z0-9_-]+)`\*\*') {
+            $tool = $matches[1]
+            if ($mcpContent -notmatch "`"$tool`":") {
+                $mcpOk = $false
+                $mcpError = "Tool '$tool' declared in playbook is missing from mcp.json"
+                break
+            }
+        }
+    }
+}
+
+if ($mcpOk) {
+    Record-Check 15 "Playbook MCP worker tools exist in mcp.json" "PASS"
+} else {
+    Record-Check 15 "Playbook MCP worker tools exist in mcp.json" "FAIL" $mcpError
+}
+
 
 if ($Json) {
     $armor = if ($failures -eq 0) { "ARMED" } else { "UNARMED" }

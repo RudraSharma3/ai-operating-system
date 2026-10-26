@@ -58,7 +58,6 @@ chmod +x "$TARGET_DIR/.githooks/pre-commit"
 
 # 3. Sync Git and provider configurations
 cp "$ROOT_DIR/.gitattributes" "$TARGET_DIR/.gitattributes"
-cp "$ROOT_DIR/.cursorrules" "$TARGET_DIR/.cursorrules"
 mkdir -p "$TARGET_DIR/.cursor/rules"
 cp "$ROOT_DIR/.cursor/rules/agents.mdc" "$TARGET_DIR/.cursor/rules/agents.mdc"
 mkdir -p "$TARGET_DIR/.github"

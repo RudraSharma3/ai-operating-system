@@ -214,6 +214,61 @@ test_rule_compiler_check() {
     assert_eq "0" "$ret" "compile-rules.sh --check must verify rules in AGENTS.md match .ai/rules/"
 }
 
+test_compile_rules_monorepo() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    mkdir -p "$sandbox/packages/pkg-a/.ai/rules" "$sandbox/packages/pkg-b/.ai/rules"
+    
+    cat << 'EOF' > "$sandbox/packages/pkg-a/AGENTS.md"
+# Package A
+## Learned Rules
+<!-- rules below -->
+EOF
+    cat << 'EOF' > "$sandbox/packages/pkg-b/AGENTS.md"
+# Package B
+## Learned Rules
+<!-- rules below -->
+EOF
+
+    echo "20261026-01. [CODE] Use bun in Package A — package convention." > "$sandbox/packages/pkg-a/.ai/rules/01-bun.md"
+    echo "20261026-02. [CODE] Use pnpm in Package B — package convention." > "$sandbox/packages/pkg-b/.ai/rules/01-pnpm.md"
+
+    "$REPO_ROOT/scripts/compile-rules.sh" --project "$sandbox" --recursive >/dev/null 2>&1
+    local ret=$?
+
+    local pkg_a_content pkg_b_content
+    pkg_a_content=$(cat "$sandbox/packages/pkg-a/AGENTS.md")
+    pkg_b_content=$(cat "$sandbox/packages/pkg-b/AGENTS.md")
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "0" "$ret" "compile-rules.sh --recursive must successfully compile nested monorepo packages"
+    assert_contains "$pkg_a_content" "20261026-01. [CODE] Use bun in Package A" "Package A AGENTS.md must compile its scoped rule"
+    assert_contains "$pkg_b_content" "20261026-02. [CODE] Use pnpm in Package B" "Package B AGENTS.md must compile its scoped rule"
+}
+
+test_upgrade_conflict_preserves_both() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+    
+    # User modifies an installed playbook
+    local user_file="$sandbox/.ai-os/playbooks/review.md"
+    echo "## Custom User Review Step" >> "$user_file"
+
+    # Run upgrade
+    local upgrade_output
+    upgrade_output=$("$REPO_ROOT/scripts/upgrade.sh" --target "$sandbox" 2>&1)
+    
+    local user_content has_update_file=false
+    user_content=$(cat "$user_file")
+    [ -f "$user_file.ai-os-update" ] && has_update_file=true
+    cleanup_sandbox "$sandbox"
+
+    assert_contains "$user_content" "Custom User Review Step" "upgrade.sh must preserve user-modified file without data loss"
+    assert_eq "true" "$has_update_file" "upgrade.sh must write upstream copy to .ai-os-update side-by-side"
+    assert_contains "$upgrade_output" "Preserved customized" "upgrade.sh must output clear conflict/preserved message"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -223,8 +278,10 @@ run_test "install.ps1: Installs template docs into existing docs/ dir" test_ps1_
 run_test "install.ps1: Merges .gitignore without overwriting" test_ps1_merges_gitignore
 run_test "install.ps1: Preserves and chains existing core.hooksPath" test_ps1_preserves_and_chains_hookspath
 run_test "upgrade.sh: Upgrades template and preserves customizations" test_sh_upgrade_preserves_customizations
+run_test "upgrade.sh: Preserves customized file on conflict with side-by-side update" test_upgrade_conflict_preserves_both
 run_test "build-templates.sh: Zero drift between master and templates" test_template_drift_check
 run_test "compile-rules.sh: Rules in AGENTS.md match .ai/rules/" test_rule_compiler_check
+run_test "compile-rules.sh: Compiles nested packages in a monorepo" test_compile_rules_monorepo
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
@@ -232,4 +289,5 @@ if [ "$FAILED_TESTS" -gt 0 ]; then
     exit 1
 fi
 exit 0
+
 

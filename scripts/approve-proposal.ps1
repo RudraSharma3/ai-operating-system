@@ -1,78 +1,89 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true, Position=0)]
-    [string]$ProposalFile
+    [Parameter(Position=0, Mandatory=$true)]
+    [string]$ProposalFile,
+    [switch]$PrReview
 )
 
 $ErrorActionPreference = "Stop"
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$MasterRoot = Split-Path -Parent $ScriptDir
-$ResolvedProposal = (Resolve-Path $ProposalFile).Path
 
-if (-not (Test-Path $ResolvedProposal)) {
+if (-not (Test-Path $ProposalFile)) {
     Write-Error "Proposal file not found: $ProposalFile"
     exit 1
 }
 
-$rulesDir = Join-Path $MasterRoot ".ai/rules"
-if (-not (Test-Path $rulesDir)) { New-Item -ItemType Directory -Path $rulesDir -Force | Out-Null }
+$proposalItem = Get-Item $ProposalFile
+$proposalBasename = $proposalItem.BaseName
 
-$content = Get-Content $ResolvedProposal -Raw
-if ($content -notmatch '`(\[[A-Z]+\]\s+[^`]+)`') {
+# HUMAN CONFIRMATION GATE
+if (-not $PrReview) {
+    if (-not [Environment]::UserInteractive) {
+        Write-Error "approve-proposal requires interactive human confirmation or -PrReview flag.`nAutomated agents cannot approve proposals silently without human verification."
+        exit 1
+    }
+
+    Write-Host "====================================================" -ForegroundColor Yellow
+    Write-Host " 🚨 PROPOSAL PROMOTION HUMAN APPROVAL GATE" -ForegroundColor Yellow
+    Write-Host " Proposal File: $ProposalFile" -ForegroundColor Yellow
+    Write-Host " Proposal ID:   $proposalBasename" -ForegroundColor Yellow
+    Write-Host "====================================================" -ForegroundColor Yellow
+
+    $confirmInput = Read-Host "Type '$proposalBasename' to confirm promotion"
+    if ($confirmInput -ne $proposalBasename) {
+        Write-Error "Confirmation string did not match '$proposalBasename'. Promotion rejected."
+        exit 1
+    }
+    Write-Host "✅ Human confirmation verified." -ForegroundColor Green
+} else {
+    Write-Host "✅ Proposal approved via verified GitHub PR review." -ForegroundColor Green
+}
+
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$masterRoot = Split-Path -Parent $scriptDir
+$rulesDir = Join-Path $masterRoot ".ai\rules"
+if (-not (Test-Path $rulesDir)) {
+    New-Item -ItemType Directory -Path $rulesDir -Force | Out-Null
+}
+
+$lines = Get-Content $ProposalFile
+$proposedLine = $null
+foreach ($line in $lines) {
+    if ($line -match '^`(\[[A-Z]+\]\s+.*)`') {
+        $proposedLine = $Matches[1]
+        break
+    }
+}
+
+if (-not $proposedLine) {
     Write-Error "Could not locate proposed rule definition in $ProposalFile"
     exit 1
 }
 
-$proposedRuleBody = $Matches[1].Trim()
+$timestamp = Get-Date -Format "yyyyMMdd"
+$slug = ($proposedLine -replace '^\[[A-Z]+\]\s+', '' -replace '—.*', '' -replace '-.*', '').ToLower()
+$slug = ($slug -replace '[^a-z0-9]+', '-').Trim('-')
+if ($slug.Length -gt 30) { $slug = $slug.Substring(0, 30) }
+$ruleId = "$timestamp-$slug"
+$newRulePath = Join-Path $rulesDir "$ruleId.md"
 
-# Find next sequential rule number
-$maxNum = 0
-Get-ChildItem -Path $rulesDir -Filter "*.md" | ForEach-Object {
-    if ($_.Name -match '^([0-9]+)-') {
-        $num = [int]$Matches[1]
-        if ($num -gt $maxNum) { $maxNum = $num }
-    }
+$fullRuleLine = "$ruleId. $proposedLine"
+
+Write-Host "📝 Promoting proposal to Rule $ruleId`: $fullRuleLine" -ForegroundColor Cyan
+[System.IO.File]::WriteAllText($newRulePath, "$fullRuleLine`n", (New-Object System.Text.UTF8Encoding $false))
+
+# Archive proposal
+$archiveDir = Join-Path $masterRoot "proposals\approved"
+if (-not (Test-Path $archiveDir)) {
+    New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
 }
+Move-Item -Path $ProposalFile -Destination $archiveDir -Force
+Write-Host "📦 Archived proposal to proposals/approved/" -ForegroundColor Green
 
-$nextNum = $maxNum + 1
-$nextPadded = "{0:D4}" -f $nextNum
+# Trigger compile and build
+Write-Host "🔄 Recompiling canonical AGENTS.md..." -ForegroundColor Cyan
+& (Join-Path $scriptDir "compile-rules.ps1") -Project $masterRoot
 
-# Generate slug
-$coreText = ($proposedRuleBody -replace '^\[[A-Z]+\]\s+', '')
-$coreText = ($coreText -split '—')[0]
-$coreText = ($coreText -split '-')[0].Trim()
-$slug = ($coreText.ToLower() -replace '[^a-z0-9]+', '-').Trim('-')
-if ($slug.Length -gt 35) { $slug = $slug.Substring(0, 35) }
+Write-Host "🔄 Rebuilding templates..." -ForegroundColor Cyan
+& (Join-Path $scriptDir "build-templates.ps1")
 
-$newRuleFileName = "$nextPadded-$slug.md"
-$newRulePath = Join-Path $rulesDir $newRuleFileName
-$fullRuleLine = "$nextNum. $proposedRuleBody"
-
-Write-Host " Promoting proposal to Rule $nextNum: $fullRuleLine" -ForegroundColor Cyan
-$utf8NoBom = New-Object System.Text.UTF8Encoding $false
-[System.IO.File]::WriteAllText($newRulePath, $fullRuleLine + "`n", $utf8NoBom)
-
-# Recompile canonical AGENTS.md
-Write-Host " Compiling rules into AGENTS.md..." -ForegroundColor Cyan
-& (Join-Path $MasterRoot "scripts/compile-rules.ps1") -Project $MasterRoot
-
-# Rebuild templates/project
-Write-Host " Synchronizing template package..." -ForegroundColor Cyan
-& (Join-Path $MasterRoot "scripts/build-templates.ps1")
-
-# Mark proposal as approved
-$updatedContent = $content -replace '(?m)\*\*Status\*\*:\s*PENDING', '**Status**: APPROVED'
-$approvalRecord = @"
-
-## Approval Record
-- **Approved Date**: $((Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"))
-- **Canonical Rule**: Rule $nextNum (`.ai/rules/$newRuleFileName`)
-"@
-$updatedContent += $approvalRecord
-[System.IO.File]::WriteAllText($ResolvedProposal, $updatedContent + "`n", $utf8NoBom)
-
-Write-Host "====================================================" -ForegroundColor Gray
-Write-Host " [SUCCESS] Proposal approved into Rule $nextNum!" -ForegroundColor Green
-Write-Host " Location: .ai/rules/$newRuleFileName" -ForegroundColor Gray
-Write-Host " AGENTS.md and templates/project are fully synchronized." -ForegroundColor Green
-Write-Host "====================================================" -ForegroundColor Gray
+Write-Host "🎉 Proposal $proposalBasename successfully approved and promoted to canonical rule $ruleId!" -ForegroundColor Green

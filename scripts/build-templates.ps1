@@ -53,7 +53,6 @@ Copy-Item -Path (Join-Path $root ".githooks/pre-commit") -Destination (Join-Path
 
 # 3. Sync Git and provider configurations
 Copy-Item -Path (Join-Path $root ".gitattributes") -Destination (Join-Path $targetDir ".gitattributes") -Force
-Copy-Item -Path (Join-Path $root ".cursorrules") -Destination (Join-Path $targetDir ".cursorrules") -Force
 
 $cursorRulesDir = Join-Path $targetDir ".cursor/rules"
 if (-not (Test-Path $cursorRulesDir)) { New-Item -ItemType Directory -Path $cursorRulesDir -Force | Out-Null }
