@@ -219,6 +219,31 @@ This document tracks the current development milestones and task state for the m
 4. **Final Task State & Repository Sign-off**:
    - Record comprehensive final state in `docs/task-state.md` and produce final engineering report.
 
+---
+
+### Phase 7 & 8 Handoff (Final Production Sign-Off)
+- **What Changed**:
+  - **Path Sanitization**:
+    - Sanitized machine-specific link in `registry/projects.md` (`file:///C:/Users/HP/...`) to relative markdown link `docs/decisions/001-ai-operating-system-architecture.md`.
+    - Verified repo-wide absence of hardcoded user or absolute OS paths.
+  - **Project Scaffolding Hardening**:
+    - Added executable permissions ensure step `chmod +x .githooks/pre-commit 2>/dev/null || true` to `scripts/init-project.sh`.
+    - Added CI matrix steps in `.github/workflows/ci.yml` running both Linux (`evals/run_evals.sh`) and Windows (`evals/run_evals.ps1`) empirical evaluation suites.
+  - **Template Parity & Synchronized Artifacts**:
+    - Recompiled rule modules and rebuilt template distributions using `build-templates` (manifest tracking 49 files, verified 0 drift).
+- **What Was Verified**:
+  - `tests/run_tests.sh`: **34/34 tests PASSED** (19 hook tests + 10 installer/upgrader/drift tests + 5 sync gate tests).
+  - `evals/run_evals.sh`: **5/5 benchmarks PASSED**.
+  - `evals/run_evals.ps1`: **4/4 benchmarks PASSED**.
+  - `scripts/doctor.ps1 -Ci`: **14/14 checks PASSED**.
+  - `scripts/doctor.sh --ci`: **14/14 checks PASSED**.
+  - `scripts/build-templates.sh --check`: **PASS** (Zero drift).
+  - `scripts/build-templates.ps1 -Check`: **PASS** (Zero drift).
+  - `scripts/scan-repo-secrets.sh`: **PASS** (0 matches / 0 false positives).
+- **Known Risks**:
+  - None. Production-grade transition complete across all failure modes (F1–F9).
+
+
 
 
 

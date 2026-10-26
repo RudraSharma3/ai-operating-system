@@ -42,6 +42,7 @@ fi
 cd "$PROJECT_PATH"
 git init
 if [ -d ".githooks" ]; then
+    chmod +x .githooks/pre-commit 2>/dev/null || true
     git config core.hooksPath .githooks
 fi
 

@@ -28,6 +28,9 @@ jobs:
       - name: Audit Tracked Files for Leaks
         run: bash scripts/scan-repo-secrets.sh
 
+      - name: Run Empirical Evals & Benchmarks
+        run: bash evals/run_evals.sh
+
   test-windows:
     name: Windows Verification (Windows Server)
     runs-on: windows-latest
@@ -49,9 +52,13 @@ jobs:
       - name: Verify Rule Compiler Synchronization (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File scripts/compile-rules.ps1 -Check
 
+      - name: Run Empirical Evals & Benchmarks (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File evals/run_evals.ps1
+
       - name: Run Bootstrap (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
 
       - name: Run Test Harness (Git Bash on Windows)
         shell: bash
         run: bash tests/run_tests.sh
+
