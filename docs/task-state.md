@@ -424,3 +424,33 @@ This document tracks the current development milestones and task state for the m
   - `scripts/build-templates.ps1 -Check`: **Zero drift**.
 - **Not Verified**:
   - None.
+
+### Step 3: macOS and Legacy-Upgrade Coverage
+- **What Changed**:
+  - Added `test-macos` job to `.github/workflows/ci.yml` running on `macos-latest` executing:
+    - Master test harness (`bash tests/run_tests.sh`)
+    - AI-OS Doctor diagnostics (`bash scripts/doctor.sh --ci .`)
+    - Secret scan of tracked files (`bash scripts/scan-repo-secrets.sh`)
+    - Empirical evals & benchmarks (`bash evals/run_evals.sh`)
+    - Replayable task reference validity suite (`bash evals/run_task.sh --task all --reference`)
+  - Updated trigger branches in `.github/workflows/ci.yml` to include `hardening` on push and pull_request.
+  - Audited shell scripts for BSD portability (macOS):
+    - Confirmed `mktemp -d 2>/dev/null || mktemp -d -t '...'` portable fallback.
+    - Verified `date +"%Y%m%d"` POSIX compliance.
+    - Verified `sed -i.bak ... && rm ...` in `scripts/init-project.sh`.
+    - No GNU-only flags used across shell scripts.
+  - Added legacy pre-manifest upgrade handling:
+    - In `scripts/upgrade.sh` and `scripts/upgrade.ps1`, added explicit detection: `[LEGACY] No prior manifest found (pre-manifest legacy install detected). Migrating cleanly to manifest tracking...`.
+    - Preserves existing files without data loss and writes `.ai-os/manifest.json`.
+  - Added test in `tests/test_installer.sh` (`test_upgrade_legacy_pre_manifest`):
+    - Simulates pre-manifest install (files present, no `.ai-os/manifest.json`).
+    - Customizes an existing file.
+    - Runs upgrade: asserts exit code 0, asserts legacy detection message, asserts `.ai-os/manifest.json` is created, and asserts customized content is preserved without data loss.
+- **What Was Verified**:
+  - `tests/test_installer.sh`: **14/14 tests PASSED** (including `test_upgrade_legacy_pre_manifest`).
+  - `tests/run_tests.sh`: **57/57 tests PASSED**.
+  - `scripts/doctor.ps1`: **20/20 checks PASSED**.
+  - `scripts/doctor.sh`: **20/20 checks PASSED**.
+- **Not Verified**:
+  - Remote CI execution across Linux, Windows, macOS runners (pending push).
+
