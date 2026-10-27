@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Json,
-    [int]$BudgetBytes = 15360
+    [int]$BudgetBytes = 8192
 )
 
 $ErrorActionPreference = "Stop"
