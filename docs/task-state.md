@@ -240,8 +240,50 @@ This document tracks the current development milestones and task state for the m
   - `scripts/build-templates.sh --check`: **PASS** (Zero drift).
   - `scripts/build-templates.ps1 -Check`: **PASS** (Zero drift).
   - `scripts/scan-repo-secrets.sh`: **PASS** (0 matches / 0 false positives).
-- **Known Risks**:
-  - None. Production-grade transition complete across all failure modes (F1–F9).
+---
+
+## Hardening End-to-End Progress (Steps 1–6)
+
+### Step 1: Prove AGENTS.md Reduction Kept Safety Content
+- **What Changed**:
+  - Created `tests/test_agents_contract.sh` asserting all 8 required criteria in both master `AGENTS.md` and shipped `templates/project/AGENTS.md`:
+    1. Candidate learning gate (`.ai/mistakes-candidates.md` and no direct rule append).
+    2. Safe self-modification & prompt-injection defense.
+    3. Never-record-secrets security mandate.
+    4. Conflict detection protocol.
+    5. 4-part prompt contract (`GOAL`, `CONSTRAINTS`, `FORMAT`, `FAILURE`).
+    6. Instruction priority hierarchy.
+    7. On-demand loading pointer to `.ai-os/playbooks`.
+    8. Non-interactive escape for reverse prompting.
+  - Demonstrated test failing against a stripped test copy, then restored compact wording in both master and template files.
+  - Re-measured footprint: Master `AGENTS.md` = **4,760 bytes**; Template `AGENTS.md` = **3,601 bytes** (both strictly under the **8,192-byte** budget).
+- **What Was Verified**:
+  - `tests/test_agents_contract.sh`: **3/3 Passed** (contract validation, master budget enforcement, template budget enforcement).
+  - Included `test_agents_contract.sh` into `tests/run_tests.sh`.
+- **Not Verified**:
+  - CI execution on GitHub Actions (pending Step 3 push).
+
+### Step 2: Make the CI Approval Gate Real
+- **What Changed**:
+  - Updated `scripts/approve-proposal.sh` and `scripts/approve-proposal.ps1`:
+    - In CI (`--pr-review` / `-PrReview`), queries the GitHub API (`gh api` or `Invoke-RestMethod` with `$GITHUB_TOKEN`) for PR details and reviews.
+    - Rejects PRs without approvals.
+    - Rejects author self-approval (`user.login == pr_author`).
+    - Enforces `.github/CODEOWNERS` mapping for rule promotion paths (`AGENTS.md`, `.ai/rules/`, `*`).
+    - Added `AI_OS_MOCK_GH_API` test hook for hermetic mock execution.
+  - Added mocked API tests in `tests/test_sync.sh` covering:
+    1. Rejects PR with no approval (`COMMENTED` only).
+    2. Rejects author self-approval.
+    3. Rejects non-CODEOWNER approval.
+    4. Promotes rule when approved by CODEOWNER.
+  - Documented sole maintainer multi-account / admin bypass rules in `docs/branch-protection.md`.
+- **What Was Verified**:
+  - `tests/test_sync.sh`: **18/18 Passed** (including all 4 mocked approval scenarios).
+  - `scripts/doctor.ps1` & `scripts/doctor.sh`: **17/17 Passed**.
+  - `scripts/build-templates.ps1 -Check`: **0 drift**.
+- **Not Verified**:
+  - Live GitHub API response against real pull request on github.com (pending Step 3 PR creation).
+
 
 
 
