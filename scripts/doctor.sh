@@ -312,22 +312,22 @@ if [ -f "$README_PATH" ]; then
         DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
     fi
     claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 19 ]; then
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 20 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="README claims $claimed_doc-point doctor, expected 19"
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 20"
     fi
 fi
 
 if [ -f "$UG_PATH" ]; then
     ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 19 ]; then
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 20 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 19"
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 20"
     fi
     ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 19 ]; then
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 20 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 19"
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 20"
     fi
 fi
 
@@ -335,6 +335,28 @@ if [ "$DOC_COUNTS_OK" = true ]; then
     record_check 19 "Documentation counts match reality (playbooks, doctor checks)" "PASS" ""
 else
     record_check 19 "Documentation counts match reality (playbooks, doctor checks)" "FAIL" "$DOC_ERR"
+fi
+
+# 20. Private names deny-list check (.ai/private-names.txt)
+PRIV_NAMES_FILE="$PROJECT_PATH/.ai/private-names.txt"
+PRIV_MATCHES=0
+if [ -f "$PRIV_NAMES_FILE" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        trimmed=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+        [ -z "$trimmed" ] && continue
+        case "$trimmed" in \#*) continue ;; esac
+        HITS=$(git -C "$PROJECT_PATH" grep -iF "$trimmed" -- ":!.ai/private-names.txt" 2>/dev/null || true)
+        if [ -n "$HITS" ]; then
+            HIT_COUNT=$(echo "$HITS" | grep -c . || true)
+            PRIV_MATCHES=$((PRIV_MATCHES + HIT_COUNT))
+        fi
+    done < "$PRIV_NAMES_FILE"
+fi
+
+if [ "$PRIV_MATCHES" -gt 0 ]; then
+    record_check 20 "No private deny-listed names in tracked files" "FAIL" "Found $PRIV_MATCHES match(es) for private deny-listed names in tracked files"
+else
+    record_check 20 "No private deny-listed names in tracked files" "PASS" ""
 fi
 
 

@@ -321,9 +321,9 @@ if (Test-Path $readmePath) {
     }
     if ($readmeContent -match '(\d+)-point diagnostic doctor') {
         $claimedDoctor = [int]$matches[1]
-        if ($claimedDoctor -ne 19) {
+        if ($claimedDoctor -ne 20) {
             $docCountsOk = $false
-            $docErr = "README claims $claimedDoctor-point doctor, expected 19"
+            $docErr = "README claims $claimedDoctor-point doctor, expected 20"
         }
     }
 }
@@ -332,16 +332,16 @@ if (Test-Path $userGuidePath) {
     $ugContent = Get-Content $userGuidePath -Raw
     if ($ugContent -match '(\d+)-point diagnostic') {
         $ugClaimedDoctor = [int]$matches[1]
-        if ($ugClaimedDoctor -ne 19) {
+        if ($ugClaimedDoctor -ne 20) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 19"
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 20"
         }
     }
     if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
         $ugClaimedChecks = [int]$matches[1]
-        if ($ugClaimedChecks -ne 19) {
+        if ($ugClaimedChecks -ne 20) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 19"
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 20"
         }
     }
 }
@@ -350,6 +350,26 @@ if ($docCountsOk) {
     Record-Check 19 "Documentation counts match reality (playbooks, doctor checks)" "PASS"
 } else {
     Record-Check 19 "Documentation counts match reality (playbooks, doctor checks)" "FAIL" $docErr
+}
+
+# 20. Private names deny-list check (.ai/private-names.txt)
+$privNamesFile = Join-Path $target ".ai/private-names.txt"
+$privMatches = 0
+if (Test-Path $privNamesFile) {
+    $denied = @(Get-Content $privNamesFile | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 -and -not $_.StartsWith("#") })
+    if ($denied.Count -gt 0) {
+        foreach ($pattern in $denied) {
+            $hits = (git -C $target grep -iF "$pattern" -- ":!.ai/private-names.txt" 2>$null)
+            if ($hits) {
+                $privMatches += @($hits).Count
+            }
+        }
+    }
+}
+if ($privMatches -gt 0) {
+    Record-Check 20 "No private deny-listed names in tracked files" "FAIL" "Found $privMatches match(es) for private deny-listed names in tracked files"
+} else {
+    Record-Check 20 "No private deny-listed names in tracked files" "PASS"
 }
 
 
