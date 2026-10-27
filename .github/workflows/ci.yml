@@ -18,6 +18,7 @@ jobs:
         run: |
           git config --global user.name "AI-OS Tester"
           git config --global user.email "tester@ai-os.dev"
+          git config core.hooksPath .githooks
 
       - name: Run Master Test Harness
         run: bash tests/run_tests.sh
@@ -42,6 +43,7 @@ jobs:
         run: |
           git config --global user.name "AI-OS Windows Tester"
           git config --global user.email "wintester@ai-os.dev"
+          git config core.hooksPath .githooks
 
       - name: Run Doctor Diagnostics (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File scripts/doctor.ps1 -ProjectPath . -Ci
