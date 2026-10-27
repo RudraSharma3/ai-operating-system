@@ -1,6 +1,6 @@
 {
     "ai_os_version": "2.1.0",
-    "generated_at": "2026-10-27T07:22:30Z",
+    "generated_at": "2026-10-27T07:41:07Z",
     "file_count": 48,
     "files": {
         ".ai-os/playbooks/architecture-decisions.md": "32c7af2cbca3520d114d90881ad369e83bac85f11b44af9d8e0b0c53541e1910",
@@ -40,7 +40,7 @@
         ".githooks/pre-commit": "83d4bc5977fc11f8c23c660d35f6079a8073b162aa2166aa9fda67559f5a05a8",
         ".github/copilot-instructions.md": "1a0d713f4d0fb85ec3251f8e4f86c96fa35eaf926d4fbd8d73728ea724b1931a",
         ".gitignore": "eb117ab871271d8802d24906733c051922818606fc307f6c1430926e759a5cd3",
-        "AGENTS.md": "aafc0d016f88dee5bca26f43fbd50ac9bf288809dae30961342e0313db33b2f4",
+        "AGENTS.md": "8d6c49afd972aa89aab03b7656991e2931556c6a6a6615e61fe96d5149ee945b",
         "CLAUDE.md": "86d6e76fe697585093a293ab9a2f0ce67d885ae52af3e273f484ec527be57e39",
         "CODEX.md": "36bbea9b880ce5bb6a716d856e91f8a5bbbe053bc7cb9f4a8041277c75fa77d5",
         "GEMINI.md": "06d23b5157bffd0c1496bfd7061e87a97aad16b7efa098078d9900a2cf399a11",
