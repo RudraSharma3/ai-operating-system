@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  PYTHONIOENCODING: "utf-8"
+
 jobs:
   test-linux:
     name: Linux Verification (Ubuntu)

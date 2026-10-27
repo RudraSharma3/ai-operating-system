@@ -48,6 +48,8 @@ fi
 
 python3 -c "
 import os, sys, hashlib, json, shutil
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 template_dir = sys.argv[1]
 target_dir = sys.argv[2]
@@ -67,7 +69,7 @@ if os.path.isfile(target_manifest_path):
     except Exception:
         old_manifest = None
 
-text_extensions = {'.md', '.txt', '.json', '.sh', '.ps1', '.gitattributes', '.gitignore', ''}
+text_extensions = {'.md', '.mdc', '.txt', '.json', '.sh', '.ps1', '.gitattributes', '.gitignore', ''}
 
 def get_file_hash(path):
     if not os.path.isfile(path):
@@ -102,14 +104,14 @@ for rel_path, up_hash in upstream_manifest.get('files', {}).items():
             old_hash = old_manifest.get('files', {}).get(rel_path) if old_manifest else None
             if old_hash and current_hash == old_hash:
                 # Unmodified by user since previous AI-OS install -> safely upgrade
-                print(f' [↑] Upgraded: {rel_path}')
+                print(f' [UPGRADE] Upgraded: {rel_path}')
                 stats['upgraded'] += 1
                 if not dry_run:
                     shutil.copy2(src_file, dst_file)
                 new_target_files[rel_path] = up_hash
             else:
                 # User customized file -> preserve local copy
-                print(f' [🛡️] Preserved customized: {rel_path}')
+                print(f' [PRESERVED] Preserved customized: {rel_path}')
                 stats['preserved'] += 1
                 if not dry_run:
                     # Write .ai-os-new candidate for user inspection
