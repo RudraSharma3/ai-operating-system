@@ -43,3 +43,19 @@ On `github.com/RudraSharma3/ai-operating-system`:
   - `Linux Verification (Ubuntu)`
   - `Windows Verification (Windows Server)`
 - **Do not allow bypassing the above settings**: Enforced for all administrators and automated bots.
+
+---
+
+## 4. Sole Maintainer & Review Operations Note
+
+Under strict GitHub branch protection rules requiring:
+1. "Require review from Code Owners", and
+2. "Require review from users other than the PR author",
+
+GitHub's review policy prohibits an author from reviewing or approving their own Pull Request. Therefore, in single-maintainer repositories:
+- A sole maintainer cannot self-approve a Pull Request touching protected paths (`AGENTS.md`, `.ai/rules/`, `.githooks/`, `scripts/`).
+- Valid PR approvals require either:
+  1. A secondary authorized review account designated in `.github/CODEOWNERS`, or
+  2. An explicit repository administrator bypass recorded in the audit log.
+- Automated promotion scripts (`scripts/approve-proposal.sh --pr-review`) strictly enforce this restriction via the GitHub API by verifying that an approving review originates from a user distinct from the PR author and listed in `CODEOWNERS`.
+

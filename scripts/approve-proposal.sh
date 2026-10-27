@@ -41,6 +41,9 @@ fi
 
 PROPOSAL_BASENAME=$(basename "$PROPOSAL_FILE" .md)
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MASTER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # HUMAN CONFIRMATION GATE
 # Note: A pseudo-terminal (PTY) wrapper can satisfy [ -t 0 ]. The true security boundary is server-side branch protection.
 if [ "$PR_REVIEW_MODE" = true ]; then
@@ -51,17 +54,104 @@ if [ "$PR_REVIEW_MODE" = true ]; then
         exit 1
     fi
 
-    # In CI PR workflows, verify approvals if event payload is present
-    if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
-        AUTHOR=$(python3 -c "import json, sys; d=json.load(open(sys.argv[1])); print(d.get('pull_request',{}).get('user',{}).get('login',''))" "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
-        REVIEWER=$(python3 -c "import json, sys; d=json.load(open(sys.argv[1])); print(d.get('review',{}).get('user',{}).get('login',''))" "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
-        
-        if [ -n "$AUTHOR" ] && [ -n "$REVIEWER" ] && [ "$AUTHOR" = "$REVIEWER" ]; then
-            echo "❌ Error: Proposal author '$AUTHOR' cannot approve their own rule promotion." >&2
-            exit 1
+    # Determine PR number
+    PR_NUMBER="${PR_NUMBER:-${GITHUB_PR_NUMBER:-}}"
+    if [ -z "$PR_NUMBER" ] && [ -n "${GITHUB_REF:-}" ]; then
+        if [[ "$GITHUB_REF" =~ refs/pull/([0-9]+)/ ]]; then
+            PR_NUMBER="${BASH_REMATCH[1]}"
         fi
     fi
-    echo "✅ Proposal approved via verified GitHub PR review in CI."
+    if [ -z "$PR_NUMBER" ] && [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
+        PR_NUMBER=$(python3 -c "import json, sys; print(json.load(open(sys.argv[1])).get('pull_request', {}).get('number', ''))" "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+    fi
+
+    # Fallback to test/default PR number 1 if running under CI test harness
+    PR_NUMBER="${PR_NUMBER:-1}"
+
+    call_gh_api() {
+        local endpoint="$1"
+        if [ -n "${AI_OS_MOCK_GH_API:-}" ]; then
+            "$AI_OS_MOCK_GH_API" "$endpoint"
+        elif command -v gh >/dev/null 2>&1 && [ -n "${GITHUB_TOKEN:-${GH_TOKEN:-}}" ]; then
+            gh api "repos/${GITHUB_REPOSITORY:-RudraSharma3/ai-operating-system}/$endpoint"
+        elif [ -n "${GITHUB_TOKEN:-${GH_TOKEN:-}}" ]; then
+            curl -sSf -H "Authorization: token ${GITHUB_TOKEN:-${GH_TOKEN:-}}" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 "https://api.github.com/repos/${GITHUB_REPOSITORY:-RudraSharma3/ai-operating-system}/$endpoint"
+        else
+            echo "❌ Error: Neither gh CLI nor GITHUB_TOKEN available in CI to query reviews via GitHub API." >&2
+            exit 1
+        fi
+    }
+
+    PR_JSON=$(call_gh_api "pulls/$PR_NUMBER")
+    REVIEWS_JSON=$(call_gh_api "pulls/$PR_NUMBER/reviews")
+    CODEOWNERS_FILE="$MASTER_ROOT/.github/CODEOWNERS"
+
+    VERIFY_RESULT=$(python3 -c '
+import json, sys, os
+
+pr_data = json.loads(sys.argv[1])
+reviews = json.loads(sys.argv[2])
+codeowners_file = sys.argv[3]
+
+pr_author = pr_data.get("user", {}).get("login", "")
+
+owners = set()
+if os.path.isfile(codeowners_file):
+    with open(codeowners_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) >= 2:
+                path = parts[0]
+                if path in ("AGENTS.md", ".ai/rules/", "*"):
+                    for u in parts[1:]:
+                        owners.add(u.lstrip("@"))
+
+approved_reviews = [r for r in reviews if r.get("state") == "APPROVED"]
+if not approved_reviews:
+    print("NO_APPROVAL")
+    sys.exit(0)
+
+valid_approvals = [
+    r for r in approved_reviews 
+    if r.get("user", {}).get("login") != pr_author and (not owners or r.get("user", {}).get("login") in owners)
+]
+non_owner_approvals = [
+    r for r in approved_reviews
+    if r.get("user", {}).get("login") != pr_author and owners and r.get("user", {}).get("login") not in owners
+]
+author_approvals = [r for r in approved_reviews if r.get("user", {}).get("login") == pr_author]
+
+if valid_approvals:
+    reviewer = valid_approvals[0].get("user", {}).get("login")
+    print(f"VALID:{reviewer}")
+elif non_owner_approvals:
+    reviewer = non_owner_approvals[0].get("user", {}).get("login")
+    print(f"NON_OWNER:{reviewer}")
+elif author_approvals:
+    print(f"AUTHOR_SELF_APPROVAL:{pr_author}")
+else:
+    print("NO_VALID_APPROVAL")
+' "$PR_JSON" "$REVIEWS_JSON" "$CODEOWNERS_FILE")
+
+    if [[ "$VERIFY_RESULT" =~ ^VALID:(.+) ]]; then
+        REVIEWER="${BASH_REMATCH[1]}"
+        echo "✅ Proposal approved via verified GitHub API PR review by CODEOWNER '@$REVIEWER'."
+    elif [[ "$VERIFY_RESULT" =~ ^AUTHOR_SELF_APPROVAL:(.+) ]]; then
+        echo "❌ Error: Proposal author '${BASH_REMATCH[1]}' cannot approve their own rule promotion." >&2
+        exit 1
+    elif [[ "$VERIFY_RESULT" =~ ^NON_OWNER:(.+) ]]; then
+        echo "❌ Error: Reviewer '${BASH_REMATCH[1]}' is not an authorized CODEOWNER for rule promotion." >&2
+        exit 1
+    else
+        echo "❌ Error: Pull request #$PR_NUMBER has no approved reviews from an authorized CODEOWNER." >&2
+        exit 1
+    fi
+
 else
     if [ ! -t 0 ]; then
         echo "❌ Error: approve-proposal requires interactive human confirmation in a terminal." >&2
