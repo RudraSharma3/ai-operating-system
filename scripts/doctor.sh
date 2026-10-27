@@ -206,10 +206,10 @@ fi
 
 # 12. AGENTS.md size under budget
 AGENTS_SIZE=$(wc -c < "$PROJECT_PATH/AGENTS.md" 2>/dev/null || echo 0)
-if [ "$AGENTS_SIZE" -lt 15000 ]; then
-    record_check 12 "AGENTS.md size within token budget (<15KB)" "PASS" ""
+if [ "$AGENTS_SIZE" -lt 8192 ]; then
+    record_check 12 "AGENTS.md size within token budget (<8KB)" "PASS" ""
 else
-    record_check 12 "AGENTS.md size within token budget (<15KB)" "WARN" "AGENTS.md is ${AGENTS_SIZE} bytes (exceeds recommended budget)"
+    record_check 12 "AGENTS.md size within token budget (<8KB)" "WARN" "AGENTS.md is ${AGENTS_SIZE} bytes (exceeds recommended budget)"
 fi
 
 # 13. Line ending attributes (.gitattributes)

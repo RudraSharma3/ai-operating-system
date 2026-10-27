@@ -3,8 +3,8 @@ param(
     [string]$Project = ".",
     [switch]$Check,
     [switch]$Stdout,
-    [int]$MaxRules = 50,
-    [int]$TokenBudget = 12000,
+    [int]$MaxRules = 30,
+    [int]$TokenBudget = 8192,
     [switch]$Recursive
 )
 

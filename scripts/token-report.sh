@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 JSON_MODE=false
-BUDGET_BYTES=15360 # 15KB
+BUDGET_BYTES=8192 # 8KB
 
 while [[ $# -gt 0 ]]; do
     case "$1" in

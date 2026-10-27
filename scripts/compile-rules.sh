@@ -8,8 +8,8 @@ set -euo pipefail
 PROJECT_DIR="."
 CHECK_MODE=false
 STDOUT_MODE=false
-MAX_RULES=50
-TOKEN_BUDGET=12000
+MAX_RULES=30
+TOKEN_BUDGET=8192
 RECURSIVE=false
 
 while [[ $# -gt 0 ]]; do

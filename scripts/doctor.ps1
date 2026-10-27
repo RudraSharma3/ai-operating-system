@@ -209,10 +209,10 @@ if ((Test-Path $tsPath) -and ((Get-Item $tsPath).Length -gt 0)) {
 # 12. AGENTS.md size under budget
 if (Test-Path $agentsFile) {
     $size = (Get-Item $agentsFile).Length
-    if ($size -lt 15000) {
-        Record-Check 12 "AGENTS.md size within token budget (<15KB)" "PASS"
+    if ($size -lt 8192) {
+        Record-Check 12 "AGENTS.md size within token budget (<8KB)" "PASS"
     } else {
-        Record-Check 12 "AGENTS.md size within token budget (<15KB)" "WARN" "AGENTS.md is $size bytes (exceeds budget)"
+        Record-Check 12 "AGENTS.md size within token budget (<8KB)" "WARN" "AGENTS.md is $size bytes (exceeds budget)"
     }
 }
 
