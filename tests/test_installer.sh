@@ -322,11 +322,38 @@ test_upgrade_legacy_pre_manifest() {
     assert_contains "$content_after" "Custom User Legacy Architecture Notes" "upgrade.sh must preserve existing files without data loss"
 }
 
+test_claude_hooks_opt_in_install() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+
+    # 1. Default install (without flag)
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+    local default_has_hooks=false
+    [ -f "$sandbox/.claude/settings.json" ] && default_has_hooks=true
+    local doc_default_out
+    doc_default_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || true
+
+    # 2. Opt-in install with --with-claude-hooks
+    "$REPO_ROOT/scripts/install.sh" --with-claude-hooks "$sandbox" >/dev/null 2>&1
+    local optin_has_hooks=false
+    [ -f "$sandbox/.claude/settings.json" ] && [ -f "$sandbox/.claude/hooks/pre-tool-use.sh" ] && optin_has_hooks=true
+    local doc_optin_out
+    doc_optin_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || true
+
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "false" "$default_has_hooks" "install.sh without flag must not install .claude/settings.json"
+    assert_contains "$doc_default_out" "Optional Claude Code hooks status" "doctor Check 21 runs on clean install"
+    assert_eq "true" "$optin_has_hooks" "install.sh --with-claude-hooks must provision .claude/hooks and settings.json"
+    assert_contains "$doc_optin_out" "Opt-in Claude Code hooks are active" "doctor Check 21 reports WARN when hooks are installed"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
 run_test "install.sh: Installs template docs into existing docs/ dir" test_sh_copies_into_existing_docs_dir
 run_test "install.sh: Installs .ai-os/playbooks/ and prompts/" test_sh_installs_aios_playbooks
+run_test "install.sh: Installs Claude Code hooks only when --with-claude-hooks is specified" test_claude_hooks_opt_in_install
 run_test "install.ps1: Installs template docs into existing docs/ dir" test_ps1_copies_into_existing_docs_dir
 run_test "install.ps1: Merges .gitignore without overwriting" test_ps1_merges_gitignore
 run_test "install.ps1: Preserves and chains existing core.hooksPath" test_ps1_preserves_and_chains_hookspath

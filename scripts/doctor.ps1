@@ -321,9 +321,9 @@ if (Test-Path $readmePath) {
     }
     if ($readmeContent -match '(\d+)-point diagnostic doctor') {
         $claimedDoctor = [int]$matches[1]
-        if ($claimedDoctor -ne 20) {
+        if ($claimedDoctor -ne 21) {
             $docCountsOk = $false
-            $docErr = "README claims $claimedDoctor-point doctor, expected 20"
+            $docErr = "README claims $claimedDoctor-point doctor, expected 21"
         }
     }
 }
@@ -332,16 +332,16 @@ if (Test-Path $userGuidePath) {
     $ugContent = Get-Content $userGuidePath -Raw
     if ($ugContent -match '(\d+)-point diagnostic') {
         $ugClaimedDoctor = [int]$matches[1]
-        if ($ugClaimedDoctor -ne 20) {
+        if ($ugClaimedDoctor -ne 21) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 20"
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 21"
         }
     }
     if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
         $ugClaimedChecks = [int]$matches[1]
-        if ($ugClaimedChecks -ne 20) {
+        if ($ugClaimedChecks -ne 21) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 20"
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 21"
         }
     }
 }
@@ -370,6 +370,14 @@ if ($privMatches -gt 0) {
     Record-Check 20 "No private deny-listed names in tracked files" "FAIL" "Found $privMatches match(es) for private deny-listed names in tracked files"
 } else {
     Record-Check 20 "No private deny-listed names in tracked files" "PASS"
+}
+
+# 21. Optional Claude Code hooks installed check
+$claudeSettings = Join-Path $target ".claude/settings.json"
+if (Test-Path $claudeSettings) {
+    Record-Check 21 "Optional Claude Code hooks status" "WARN" "Opt-in Claude Code hooks are active (.claude/settings.json)"
+} else {
+    Record-Check 21 "Optional Claude Code hooks status" "PASS"
 }
 
 

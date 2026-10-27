@@ -312,22 +312,22 @@ if [ -f "$README_PATH" ]; then
         DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
     fi
     claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 20 ]; then
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 21 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="README claims $claimed_doc-point doctor, expected 20"
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 21"
     fi
 fi
 
 if [ -f "$UG_PATH" ]; then
     ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 20 ]; then
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 21 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 20"
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 21"
     fi
     ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 20 ]; then
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 21 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 20"
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 21"
     fi
 fi
 
@@ -357,6 +357,14 @@ if [ "$PRIV_MATCHES" -gt 0 ]; then
     record_check 20 "No private deny-listed names in tracked files" "FAIL" "Found $PRIV_MATCHES match(es) for private deny-listed names in tracked files"
 else
     record_check 20 "No private deny-listed names in tracked files" "PASS" ""
+fi
+
+# 21. Optional Claude Code hooks installed check
+CLAUDE_SETTINGS="$PROJECT_PATH/.claude/settings.json"
+if [ -f "$CLAUDE_SETTINGS" ]; then
+    record_check 21 "Optional Claude Code hooks status" "WARN" "Opt-in Claude Code hooks are active (.claude/settings.json)"
+else
+    record_check 21 "Optional Claude Code hooks status" "PASS" ""
 fi
 
 

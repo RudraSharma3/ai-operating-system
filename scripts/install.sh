@@ -3,7 +3,22 @@
 
 set -e
 
-TARGET_PATH="${1:-.}"
+WITH_CLAUDE_HOOKS=false
+TARGET_PATH="."
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --with-claude-hooks)
+            WITH_CLAUDE_HOOKS=true
+            shift
+            ;;
+        *)
+            TARGET_PATH="$1"
+            shift
+            ;;
+    esac
+done
+
 GIT_USER=$(git config user.name 2>/dev/null || echo "$USER")
 [ -z "$GIT_USER" ] && GIT_USER="Developer"
 PROJECT_NAME=$(basename "$TARGET_PATH")
@@ -111,6 +126,25 @@ EOF
     else
         git config core.hooksPath .githooks
         echo "  + Set core.hooksPath to .githooks"
+    fi
+fi
+
+# Step 2.5: Optional Claude Code Hooks (Opt-In)
+if [ "$WITH_CLAUDE_HOOKS" = true ]; then
+    echo ""
+    echo "[2.5/3] Configuring optional Claude Code hooks..."
+    mkdir -p "$TARGET_PATH/.claude/hooks"
+    HOOKS_SRC="$REPO_ROOT/.ai-os/optional/claude-hooks"
+    if [ ! -d "$HOOKS_SRC" ]; then
+        HOOKS_SRC="$TEMPLATE_DIR/.ai-os/optional/claude-hooks"
+    fi
+    if [ -d "$HOOKS_SRC" ]; then
+        cp "$HOOKS_SRC"/*.sh "$TARGET_PATH/.claude/hooks/" 2>/dev/null || true
+        cp "$HOOKS_SRC"/*.ps1 "$TARGET_PATH/.claude/hooks/" 2>/dev/null || true
+        chmod +x "$TARGET_PATH/.claude/hooks"/*.sh 2>/dev/null || true
+        cp "$HOOKS_SRC/settings.json" "$TARGET_PATH/.claude/settings.json"
+        echo "  + Installed optional Claude Code hooks into .claude/hooks/"
+        echo "  + Configured Claude Code settings in .claude/settings.json"
     fi
 fi
 

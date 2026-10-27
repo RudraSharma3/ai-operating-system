@@ -36,8 +36,55 @@ This document records the official documentation URLs, retrieval dates, and veri
 
 ---
 
-## 4. Phase 7: Agent-Harness Hooks
+## 4. Claude Code Lifecycle Hooks Specification
 
-- **Status**: **SKIPPED**
+- **Official Source**: `https://code.claude.com/docs/en/hooks` (Markdown version: `https://code.claude.com/docs/en/hooks.md`)
 - **Retrieval Date**: 2026-10-27
-- **Reason**: No official, vendor-supported lifecycle hook specification (such as pre-tool-call, post-tool-call, or harness-level intercepts) is published or standardized in official documentation by Cursor, GitHub Copilot, or Claude Code for third-party workspace integration. Rather than fabricating or introducing proprietary, undocumented hook names, Phase 7 is marked SKIPPED per AI-OS evidence-gated governance rules.
+- **Verification Status**: **VERIFIED**
+- **Lifecycle Events Utilized**:
+  - `SessionStart`: Fires when a session begins or resumes. Passes session context on stdin. Used in AI-OS to print task state summary and token budget metrics.
+  - `PreCompact`: Fires before context window compaction. Passes conversation metrics on stdin. Used in AI-OS to record a state checkpoint into `docs/task-state.md`.
+  - `PreToolUse`: Fires before tool call execution (Write, Edit, Bash, PowerShell). Input arrives on stdin containing `{"tool_name": "...", "tool_input": { ... }}`. Hook outputs JSON with `permissionDecision: "allow" | "deny"` and `permissionDecisionReason: "..."` to enforce governance boundaries.
+  - `Stop`: Fires when Claude finishes responding on a turn.
+- **Configuration Schema (`.claude/settings.json`)**:
+  ```json
+  {
+    "hooks": {
+      "SessionStart": [
+        {
+          "matcher": "*",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "${CLAUDE_PROJECT_DIR}/.ai-os/optional/claude-hooks/session-start.sh"
+            }
+          ]
+        }
+      ],
+      "PreCompact": [
+        {
+          "matcher": "*",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "${CLAUDE_PROJECT_DIR}/.ai-os/optional/claude-hooks/pre-compact.sh"
+            }
+          ]
+        }
+      ],
+      "PreToolUse": [
+        {
+          "matcher": "Write|Edit|Bash|PowerShell",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "${CLAUDE_PROJECT_DIR}/.ai-os/optional/claude-hooks/pre-tool-use.sh"
+            }
+          ]
+        }
+      ]
+    }
+  }
+  ```
+- **Security Notice**:
+  Hook commands run with the permissions of the local user. All AI-OS Claude Code hooks are provided as transparent, reviewable plain scripts in `.ai-os/optional/claude-hooks/` and are strictly opt-in via `--with-claude-hooks` / `-WithClaudeHooks`. Hook scripts never evaluate or execute arbitrary content taken from tool inputs.

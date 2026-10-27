@@ -1,6 +1,8 @@
 param (
     [Parameter(Mandatory=$false)]
-    [string]$TargetPath = (Get-Location).Path
+    [string]$TargetPath = (Get-Location).Path,
+    [Parameter(Mandatory=$false)]
+    [switch]$WithClaudeHooks
 )
 
 # Detect Git User and Project Name
@@ -116,6 +118,25 @@ try {
     }
 } finally {
     Pop-Location
+}
+
+# Step 2.5: Optional Claude Code Hooks (Opt-In)
+if ($WithClaudeHooks) {
+    Write-Host "`n[2.5/3] Configuring optional Claude Code hooks..." -ForegroundColor Green
+    $destClaude = Join-Path $TargetPath ".claude"
+    $destHooks = Join-Path $destClaude "hooks"
+    if (-not (Test-Path $destHooks)) { New-Item -ItemType Directory -Path $destHooks -Force | Out-Null }
+    
+    $hooksSrc = Join-Path $RepoRoot ".ai-os\optional\claude-hooks"
+    if (-not (Test-Path $hooksSrc)) { $hooksSrc = Join-Path $TemplateDir ".ai-os\optional\claude-hooks" }
+    
+    if (Test-Path $hooksSrc) {
+        Copy-Item -Path (Join-Path $hooksSrc "*.sh") -Destination $destHooks -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path (Join-Path $hooksSrc "*.ps1") -Destination $destHooks -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path (Join-Path $hooksSrc "settings.json") -Destination (Join-Path $destClaude "settings.json") -Force
+        Write-Host "  + Installed optional Claude Code hooks into .claude/hooks/" -ForegroundColor Gray
+        Write-Host "  + Configured Claude Code settings in .claude/settings.json" -ForegroundColor Gray
+    }
 }
 
 # Step 3: Run Diagnostic Validation

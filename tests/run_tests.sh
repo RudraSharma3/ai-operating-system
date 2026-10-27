@@ -22,6 +22,7 @@ run_suite "$SCRIPT_DIR/test_hook.sh"
 run_suite "$SCRIPT_DIR/test_installer.sh"
 run_suite "$SCRIPT_DIR/test_sync.sh"
 run_suite "$SCRIPT_DIR/test_agents_contract.sh"
+run_suite "$SCRIPT_DIR/test_claude_hooks.sh"
 
 echo "============================================================"
 if [ "$TOTAL_FAILED" -eq 0 ]; then
