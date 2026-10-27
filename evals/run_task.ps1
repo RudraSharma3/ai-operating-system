@@ -5,6 +5,7 @@ param(
     [string]$Mode = "with",
     [string]$AgentCmd = "",
     [switch]$Reference,
+    [switch]$Negative,
     [switch]$CheckOnly,
     [string]$TargetDir = ""
 )
@@ -32,6 +33,7 @@ function Run-SingleTask([string]$tDir) {
     $setupScript = Join-Path $tDir "setup.ps1"
     $checkScript = Join-Path $tDir "check.ps1"
     $refScript = Join-Path $tDir "reference_solution.ps1"
+    $negScript = Join-Path $tDir "negative_solution.ps1"
     $promptFile = Join-Path $tDir "prompt.md"
 
     if (-not $CheckOnly) {
@@ -46,6 +48,9 @@ function Run-SingleTask([string]$tDir) {
         if ($Reference) {
             Write-Host "Applying reference solution..." -ForegroundColor Gray
             & $refScript -TargetDir $sandbox
+        } elseif ($Negative) {
+            Write-Host "Applying negative-control solution..." -ForegroundColor Gray
+            & $negScript -TargetDir $sandbox
         } elseif ($AgentCmd) {
             Write-Host "Executing agent command: $AgentCmd..." -ForegroundColor Gray
             $orig = Get-Location
@@ -90,6 +95,7 @@ function Run-SingleTask([string]$tDir) {
     }
 
     Write-Host ""
+    $script:currentTaskPassed = $checkPassed
     return $checkPassed
 }
 
@@ -114,8 +120,9 @@ $failed = 0
 
 foreach ($t in $tasksToRun) {
     $total++
-    $result = Run-SingleTask $t.FullName
-    if ($result) {
+    $script:currentTaskPassed = $false
+    Run-SingleTask $t.FullName | Out-Host
+    if ($script:currentTaskPassed) {
         $passed++
     } else {
         $failed++

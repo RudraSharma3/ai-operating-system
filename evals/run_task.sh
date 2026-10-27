@@ -12,6 +12,7 @@ TASK_NAME="all"
 MODE="with"
 AGENT_CMD=""
 USE_REFERENCE=false
+USE_NEGATIVE=false
 CHECK_ONLY=false
 TARGET_DIR=""
 
@@ -33,6 +34,10 @@ while [[ $# -gt 0 ]]; do
             USE_REFERENCE=true
             shift
             ;;
+        --negative|-n)
+            USE_NEGATIVE=true
+            shift
+            ;;
         --check-only|-c)
             CHECK_ONLY=true
             shift
@@ -43,7 +48,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Unknown argument: $1" >&2
-            echo "Usage: run_task.sh [--task <name|all>] [--mode with|without] [--agent-cmd <command>] [--reference] [--check-only] [--target <dir>]" >&2
+            echo "Usage: run_task.sh [--task <name|all>] [--mode with|without] [--agent-cmd <command>] [--reference] [--negative] [--check-only] [--target <dir>]" >&2
             exit 1
             ;;
     esac
@@ -80,6 +85,9 @@ run_single_task() {
         if [ "$USE_REFERENCE" = true ]; then
             echo "▶️ Applying reference solution..."
             bash "$t_dir/reference_solution.sh" "$sandbox"
+        elif [ "$USE_NEGATIVE" = true ]; then
+            echo "▶️ Applying negative-control solution..."
+            bash "$t_dir/negative_solution.sh" "$sandbox"
         elif [ -n "$AGENT_CMD" ]; then
             echo "▶️ Executing agent command: $AGENT_CMD..."
             local prompt_file="$t_dir/prompt.md"
