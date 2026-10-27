@@ -294,25 +294,28 @@ This document tracks the current development milestones and task state for the m
   - Hardened `scripts/upgrade.sh` against Windows `cp1252` encoding by adding `sys.stdout.reconfigure(encoding='utf-8')` and ASCII indicators.
   - Robustified `evals/run_evals.ps1` Prompt Contract regex to match ASCII section headers across PowerShell versions.
 - **What Was Verified**:
-  - GitHub Actions Workflow Run URL: [https://github.com/RudraSharma3/ai-operating-system/actions/runs/40471271168](https://github.com/RudraSharma3/ai-operating-system/actions/runs/40471271168)
-  - `Windows Verification (Windows Server)`: **SUCCESS (PASS)** in 1m29s (Job ID: `122078686831`)
+  - GitHub Actions Workflow Run URL: [https://github.com/RudraSharma3/ai-operating-system/actions/runs/40476782802](https://github.com/RudraSharma3/ai-operating-system/actions/runs/40476782802)
+  - Pull Request #1: [https://github.com/RudraSharma3/ai-operating-system/pull/1](https://github.com/RudraSharma3/ai-operating-system/pull/1)
+  - `Windows Verification (Windows Server)`: **SUCCESS (PASS)** in 1m52s (Job ID: `122096858385`)
     - Set up job: PASS
     - Checkout code: PASS
     - Configure Git identity: PASS
-    - Run Doctor Diagnostics (PowerShell): PASS (17/17 checks)
+    - Run Doctor Diagnostics (PowerShell): PASS (19/19 checks)
     - Verify Template Drift (PowerShell): PASS (0 drift)
     - Verify Rule Compiler Synchronization (PowerShell): PASS
-    - Run Empirical Evals & Benchmarks (PowerShell): PASS (4/4 benchmarks)
+    - Run Empirical Evals & Benchmarks (PowerShell): PASS
+    - Run Replayable Task Suite (Reference Validity, PowerShell): PASS (5/5 tasks PASS)
     - Run Bootstrap (PowerShell): PASS
     - Run Test Harness (Git Bash on Windows): PASS (52/52 tests)
-  - `Linux Verification (Ubuntu)`: **SUCCESS (PASS)** in 11s (Job ID: `122078687038`)
+  - `Linux Verification (Ubuntu)`: **SUCCESS (PASS)** in 13s (Job ID: `122096858047`)
     - Set up job: PASS
     - Checkout code: PASS
     - Configure Git identity: PASS
     - Run Master Test Harness: PASS (52/52 tests)
-    - Run AI-OS Doctor Diagnostics (--ci): PASS (17/17 checks)
+    - Run AI-OS Doctor Diagnostics (--ci): PASS (19/19 checks)
     - Audit Tracked Files for Leaks: PASS (0 secrets)
     - Run Empirical Evals & Benchmarks: PASS (5/5 benchmarks)
+    - Run Replayable Task Suite (Reference Validity): PASS (5/5 tasks PASS)
 - **Not Verified**:
 ### Step 4: Real Evals (Replayable Tasks & Validity Proofs)
 - **What Changed**:
