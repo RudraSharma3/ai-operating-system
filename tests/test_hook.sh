@@ -408,6 +408,70 @@ EOF
     assert_eq "1" "$status" "Hook must block when gitleaks fails with runtime error"
 }
 
+# --- 6. Placeholder-Aware Secret Scanning Tests ---
+
+test_allowed_placeholder_db_url() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    local s="://"
+    local at="@"
+    cat << EOF > "$sandbox/.env.example"
+# Standard template database URLs with obvious placeholders
+DATABASE_URL=postgresql${s}user:password${at}localhost:5432/mydb
+CHANGEME_URL=postgres${s}admin:changeme${at}db.internal:5432/test
+XXX_URL=mysql${s}root:xxx${at}db-host:3306/dev
+YOUR_URL=postgres${s}user:your_password${at}db-host/mydb
+TEMPLATE_URL=postgresql${s}<user>:<password>${at}<host>/<dbname>
+ENV_VAR_URL=postgresql${s}\${DB_USER}:\${DB_PASSWORD}${at}\${DB_HOST}/\${DB_NAME}
+LOCAL_URL=postgres${s}user:pass${at}localhost:5432/mydb
+EOF
+    cat << EOF > "$sandbox/README.md"
+### Quickstart
+Run with \`DATABASE_URL=postgresql${s}user:password${at}localhost:5432/mydb\`
+EOF
+    git -C "$sandbox" add .env.example README.md
+    
+    local output
+    output=$(run_hook_on_staged "$sandbox")
+    local status=$?
+    cleanup_sandbox "$sandbox"
+    
+    assert_eq "0" "$status" "Obvious placeholder database URLs in .env.example and README.md must be allowed"
+}
+
+test_blocked_realistic_db_url() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    local s="://"
+    local at="@"
+    # A realistic database URL with a random-looking password assembled at runtime
+    echo "DATABASE_URL=postgres${s}prod_app:qK9_xM2_8vL9_R7p${at}db.production.internal:5432/orders_live" > "$sandbox/config.ts"
+    git -C "$sandbox" add config.ts
+    
+    local output
+    output=$(run_hook_on_staged "$sandbox")
+    local status=$?
+    cleanup_sandbox "$sandbox"
+    
+    assert_eq "1" "$status" "Realistic database URL with random-looking password must be blocked"
+}
+
+test_blocked_vendor_token_in_env_example() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    local k
+    k=$(make_key "sk-proj-" "1234567890abcdefghijklmnopqrstuvwxyz1234567890ABCD")
+    echo "OPENAI_API_KEY=$k" > "$sandbox/.env.example"
+    git -C "$sandbox" add .env.example
+    
+    local output
+    output=$(run_hook_on_staged "$sandbox")
+    local status=$?
+    cleanup_sandbox "$sandbox"
+    
+    assert_eq "1" "$status" "Vendor token inside .env.example must still be blocked"
+}
+
 # Run all hook tests
 run_test "Blocked: Plain OpenAI sk- key" test_blocked_plain_openai_sk
 run_test "Blocked: Root .env file" test_blocked_root_env
@@ -428,6 +492,9 @@ run_test "Hardening (P1.5): ++ prefix line without secret is allowed" test_regre
 run_test "Hardening (P1.5): Gitleaks present and blocking" test_gitleaks_present_and_blocking
 run_test "Hardening (P1.5): Gitleaks present but misses -> built-in blocks" test_gitleaks_present_but_misses_pattern
 run_test "Hardening (P1.5): Gitleaks present with runtime error -> blocks" test_gitleaks_present_with_runtime_error
+run_test "Hardening (Step 2): Obvious placeholder database URLs allowed" test_allowed_placeholder_db_url
+run_test "Hardening (Step 2): Realistic database URL with random password blocked" test_blocked_realistic_db_url
+run_test "Hardening (Step 2): Vendor token inside .env.example still blocked" test_blocked_vendor_token_in_env_example
 
 echo ""
 echo "Hook Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
