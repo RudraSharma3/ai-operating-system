@@ -545,4 +545,35 @@ This document tracks the current development milestones and task state for the m
 - **Not Verified**:
   - Merging PR #1 (strictly prohibited by user task instructions).
 
+---
+
+### Step 7: Final Consistency Fixes, MCP Tooling & Headless Verification
+- **What Changed**:
+  - **Step 1: MCP Server Pinned Parity & Verification**:
+    - Verified exact pinned versions against package registries:
+      - npm: `@modelcontextprotocol/server-filesystem@2.0.1` (raw version `2.0.1`, published `2026-10-25T00:05:17Z`), `@modelcontextprotocol/server-memory@2.0.0` (raw version `2.0.0`, published `2026-10-19T06:50:52Z`).
+      - uvx / PyPI: `mcp-server-git==2026.10.19` (raw version `2026.10.19`, published `2026-10-19T06:48:45`), `mcp-server-fetch==2026.10.24` (raw version `2026.10.24`, published `2026-10-25T00:04:46`).
+    - Updated master `mcp.json` and synchronized `templates/project/mcp.json` via `build-templates.*`.
+    - Documented all 4 servers in `playbooks/multi-agent-orchestration.md`.
+    - Added unpinned version validation to Doctor Check 15 in both `scripts/doctor.sh` and `scripts/doctor.ps1`.
+    - Added unit test `test_doctor_mcp_playbook_matching_and_pinning` in `tests/test_installer.sh`.
+  - **Step 2: Headless Agent Command Verification**:
+    - Verified authoritative Claude Code CLI flags from official vendor docs (`https://code.claude.com/docs/en/cli-reference`, retrieved 2026-10-27). Confirmed `-p` / `--print` is the valid non-interactive print mode flag; confirmed `--non-interactive` does not exist in Claude Code CLI.
+    - Updated `docs/sources.md` Section 5 with official URL, retrieval date (2026-10-27), and verified flags (`-p`, `--print`, `--output-format`, etc.).
+    - Replaced all invalid or redundant command invocations across `evals/README.md` and `evals/results/2026-10-27.md` with verified `claude -p`.
+    - Implemented Doctor Check 22 in `scripts/doctor.sh` and `scripts/doctor.ps1` warning if documentation contains headless command strings not listed in `docs/sources.md`.
+    - Added unit test `test_doctor_headless_command_verification` in `tests/test_installer.sh`.
+  - **Version Bump & Release Synchronicity**:
+    - Bumped version `2.2.0` -> `2.3.0` across `VERSION`, `templates/project/.ai-os/manifest.json`, and `CHANGELOG.md`.
+    - Rebuilt template via `scripts/build-templates.ps1` (56 files indexed).
+- **What Was Verified**:
+  - `tests/test_installer.sh`: **17/17 tests PASSED**.
+  - `scripts/doctor.sh .`: **22/22 checks PASSED**.
+  - `scripts/doctor.ps1 .`: **22/22 checks PASSED**.
+  - `scripts/build-templates.sh --check`: **Zero drift detected**.
+  - `scripts/build-templates.ps1 -Check`: **Zero drift detected**.
+- **Not Verified**:
+  - Live Claude CLI API calls (no authenticated `claude` binary on local PATH).
+
+
 

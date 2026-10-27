@@ -10,6 +10,16 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory@2.0.0"],
       "description": "Verified Model Context Protocol knowledge graph memory server"
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git==2026.10.19", "--repository", "./"],
+      "description": "Verified Model Context Protocol git repository tool"
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch==2026.10.24"],
+      "description": "Verified Model Context Protocol web content fetch server"
     }
   }
 }

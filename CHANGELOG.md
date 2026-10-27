@@ -5,6 +5,22 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-10-27
+
+### Added
+- **22-Point Diagnostic Doctor**: Expanded health diagnostics (`scripts/doctor.sh`, `scripts/doctor.ps1`) to 22 checks, adding Check 20 (privacy deny-list enforcement against `.ai/private-names.txt`), Check 21 (status reporting for optional Claude Code lifecycle hooks), and Check 22 (headless agent command verification against `docs/sources.md`).
+- **macOS CI Matrix Runner**: Added native `macos-latest` runner to GitHub Actions CI workflow (`.github/workflows/ci.yml`), validating Bash test suites and BSD/POSIX toolchain portability alongside Ubuntu and Windows Server.
+- **Opt-in Claude Code Lifecycle Hooks**: Implemented transparent, opt-in lifecycle hooks (`.ai-os/optional/claude-hooks/` installed via `--with-claude-hooks` / `-WithClaudeHooks`) supporting `SessionStart` (task state & budget summaries), `PreCompact` (task state persistence checkpointing), and `PreToolUse` (blocking unauthorized governance file edits and destructive commands).
+- **Anti-Gaming Eval Suite & Deterministic Stub Harness**: Hardened evaluation tasks 01–05 with negative controls (`negative_solution.sh/.ps1`) and strict verification assertions, ensuring 100% negative control rejection; added deterministic stub agents (`evals/stub_agent.sh/.ps1`) and harness integration test (`evals/test_eval_harness.sh`).
+- **Privacy Deny-List Scanning**: Added tracked file deny-list scanner (`.ai/private-names.txt`) preventing accidental leakage or tracking of private partner or sibling repository names.
+- **Verified Pinned MCP Tooling**: Configured and pinned exact package versions for all MCP servers (`mcp.json`): `@modelcontextprotocol/server-filesystem@2.0.1`, `@modelcontextprotocol/server-memory@2.0.0` (npm), and `mcp-server-git==2026.10.19`, `mcp-server-fetch==2026.10.24` (uvx / PyPI); enforced in Doctor Check 15 and documented in `playbooks/multi-agent-orchestration.md`.
+- **Verified Headless CLI Flags**: Documented authoritative Claude Code CLI flags (`-p`, `--print`) in `docs/sources.md` (retrieved 2026-10-27 from `https://code.claude.com/docs/en/cli-reference`), removing invalid `--non-interactive` flags across eval documentation and runners.
+- **Server-Side Branch Protection**: Documented server-side protection on `main` enforcing 3 required status checks (`Linux Verification`, `macOS Verification`, `Windows Verification`), mandatory CODEOWNERS review, and force push blocking in `docs/branch-protection.md`.
+
+### Changed
+- **Placeholder-Aware Secret Scanning**: Upgraded `.githooks/pre-commit` to recognize standard placeholder values (e.g., `<your-api-key>`, `your_key_here`, `TODO`, `EXAMPLE`, `xxx`) while strictly intercepting live secrets across all supported token formats.
+- **Template Synchronization**: Upgraded `scripts/build-templates.sh` and `scripts/build-templates.ps1` to mirror `mcp.json` and `.ai-os/optional/claude-hooks/` into `templates/project/` with cryptographic manifest tracking.
+
 ## [2.2.0] - 2026-10-27
 
 ### Added

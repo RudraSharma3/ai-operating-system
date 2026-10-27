@@ -71,6 +71,10 @@ for ad in "CLAUDE.md" "GEMINI.md" "CODEX.md"; do
     cp "$ROOT_DIR/$ad" "$TARGET_DIR/$ad"
 done
 
+if [ -f "$ROOT_DIR/mcp.json" ]; then
+    cp "$ROOT_DIR/mcp.json" "$TARGET_DIR/mcp.json"
+fi
+
 # 4. Compile rules for template
 "$SCRIPT_DIR/compile-rules.sh" --project "$TARGET_DIR"
 

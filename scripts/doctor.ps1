@@ -254,6 +254,33 @@ if ((Test-Path $playbookPath) -and (Test-Path $mcpJsonPath)) {
             }
         }
     }
+
+    if ($mcpOk) {
+        try {
+            $mcpData = $mcpContent | ConvertFrom-Json
+            if ($mcpData.mcpServers) {
+                foreach ($prop in $mcpData.mcpServers.PSObject.Properties) {
+                    $srvName = $prop.Name
+                    $srvArgs = $prop.Value.args
+                    $isPinned = $false
+                    if ($srvArgs) {
+                        foreach ($arg in $srvArgs) {
+                            if ($arg -match '@(\d+[\w\.-]*)' -and $arg -notmatch '@latest') { $isPinned = $true }
+                            elseif ($arg -match '==(\d+[\w\.-]*)' -and $arg -notmatch '==latest') { $isPinned = $true }
+                        }
+                    }
+                    if (-not $isPinned) {
+                        $mcpOk = $false
+                        $mcpError = "Server '$srvName' in mcp.json has unpinned version specification"
+                        break
+                    }
+                }
+            }
+        } catch {
+            $mcpOk = $false
+            $mcpError = "Failed to parse mcp.json: $_"
+        }
+    }
 }
 
 if ($mcpOk) {
@@ -321,9 +348,9 @@ if (Test-Path $readmePath) {
     }
     if ($readmeContent -match '(\d+)-point diagnostic doctor') {
         $claimedDoctor = [int]$matches[1]
-        if ($claimedDoctor -ne 21) {
+        if ($claimedDoctor -ne 22) {
             $docCountsOk = $false
-            $docErr = "README claims $claimedDoctor-point doctor, expected 21"
+            $docErr = "README claims $claimedDoctor-point doctor, expected 22"
         }
     }
 }
@@ -332,16 +359,16 @@ if (Test-Path $userGuidePath) {
     $ugContent = Get-Content $userGuidePath -Raw
     if ($ugContent -match '(\d+)-point diagnostic') {
         $ugClaimedDoctor = [int]$matches[1]
-        if ($ugClaimedDoctor -ne 21) {
+        if ($ugClaimedDoctor -ne 22) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 21"
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 22"
         }
     }
     if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
         $ugClaimedChecks = [int]$matches[1]
-        if ($ugClaimedChecks -ne 21) {
+        if ($ugClaimedChecks -ne 22) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 21"
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 22"
         }
     }
 }
@@ -378,6 +405,63 @@ if (Test-Path $claudeSettings) {
     Record-Check 21 "Optional Claude Code hooks status" "WARN" "Opt-in Claude Code hooks are active (.claude/settings.json)"
 } else {
     Record-Check 21 "Optional Claude Code hooks status" "PASS"
+}
+
+# 22. Headless agent command documentation verification
+$sourcesFile = Join-Path $target "docs/sources.md"
+$unverifiedCmdErr = $null
+
+$docFiles = @()
+$readmeFile = Join-Path $target "README.md"
+if (Test-Path $readmeFile) { $docFiles += $readmeFile }
+$docsFolder = Join-Path $target "docs"
+if (Test-Path $docsFolder) {
+    Get-ChildItem -Path $docsFolder -Filter "*.md" -Recurse | ForEach-Object { $docFiles += $_.FullName }
+}
+$evalsFolder = Join-Path $target "evals"
+if (Test-Path $evalsFolder) {
+    Get-ChildItem -Path $evalsFolder -Filter "*.md" -Recurse | ForEach-Object { $docFiles += $_.FullName }
+}
+
+$sourcesContent = if (Test-Path $sourcesFile) { Get-Content $sourcesFile -Raw } else { "" }
+
+foreach ($df in $docFiles) {
+    if ((Resolve-Path $df 2>$null).Path -eq (Resolve-Path $sourcesFile 2>$null).Path) { continue }
+    $lines = Get-Content $df
+    foreach ($line in $lines) {
+        $foundCmd = $null
+        if ($line -match '`claude\s+([^`]+)`') {
+            $foundCmd = $matches[0].Trim('`')
+        } elseif ($line -match '"claude\s+([^"]+)"') {
+            $foundCmd = $matches[0].Trim('"')
+        } elseif ($line -match '\bclaude\s+(-[a-zA-Z0-9_ -]+)') {
+            $foundCmd = $matches[0]
+        }
+        if ($foundCmd) {
+            if (-not (Test-Path $sourcesFile)) {
+                $unverifiedCmdErr = "docs/sources.md missing; unverified command '$foundCmd' found in $(Split-Path $df -Leaf)"
+                break
+            }
+            $flags = [regex]::Matches($foundCmd, '(--[a-zA-Z0-9_-]+|-[a-zA-Z0-9])') | ForEach-Object { $_.Value }
+            foreach ($fl in $flags) {
+                if (-not $sourcesContent.Contains($fl)) {
+                    $unverifiedCmdErr = "Unverified flag '$fl' in '$foundCmd' in $(Split-Path $df -Leaf) (not listed in docs/sources.md)"
+                    break
+                }
+            }
+            if ($foundCmd -match '--non-interactive') {
+                $unverifiedCmdErr = "Unverified command '$foundCmd' in $(Split-Path $df -Leaf) (flag marked invalid/unverified in docs/sources.md)"
+                break
+            }
+        }
+    }
+    if ($unverifiedCmdErr) { break }
+}
+
+if ($unverifiedCmdErr) {
+    Record-Check 22 "Headless agent command documentation verification" "WARN" $unverifiedCmdErr
+} else {
+    Record-Check 22 "Headless agent command documentation verification" "PASS"
 }
 
 
