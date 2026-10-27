@@ -425,8 +425,11 @@ if (Test-Path $evalsFolder) {
 
 $sourcesContent = if (Test-Path $sourcesFile) { Get-Content $sourcesFile -Raw } else { "" }
 
+$sourcesResolved = if (Test-Path $sourcesFile) { (Resolve-Path $sourcesFile -ErrorAction SilentlyContinue).Path } else { $null }
+
 foreach ($df in $docFiles) {
-    if ((Resolve-Path $df 2>$null).Path -eq (Resolve-Path $sourcesFile 2>$null).Path) { continue }
+    $dfResolved = (Resolve-Path $df -ErrorAction SilentlyContinue).Path
+    if ($sourcesResolved -and $dfResolved -eq $sourcesResolved) { continue }
     $lines = Get-Content $df
     foreach ($line in $lines) {
         $foundCmd = $null
