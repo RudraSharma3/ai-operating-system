@@ -1,0 +1,132 @@
+[CmdletBinding()]
+param(
+    [string]$Task = "all",
+    [ValidateSet("with", "without")]
+    [string]$Mode = "with",
+    [string]$AgentCmd = "",
+    [switch]$Reference,
+    [switch]$CheckOnly,
+    [string]$TargetDir = ""
+)
+
+$ErrorActionPreference = "Stop"
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RootDir = Split-Path -Parent $ScriptDir
+$TasksDir = Join-Path $ScriptDir "tasks"
+
+function Run-SingleTask([string]$tDir) {
+    $tName = Split-Path -Leaf $tDir
+    Write-Host "============================================================" -ForegroundColor Cyan
+    Write-Host " Running Eval Task: $tName (Mode: $Mode)" -ForegroundColor Cyan
+    Write-Host "============================================================" -ForegroundColor Cyan
+
+    $sandbox = $TargetDir
+    $cleanupNeeded = $false
+    if (-not $sandbox) {
+        $sandbox = Join-Path ([System.IO.Path]::GetTempPath()) ("aios_eval_" + [System.Guid]::NewGuid().ToString("N"))
+        New-Item -ItemType Directory -Path $sandbox -Force | Out-Null
+        $cleanupNeeded = $true
+    }
+
+    $setupScript = Join-Path $tDir "setup.ps1"
+    $checkScript = Join-Path $tDir "check.ps1"
+    $refScript = Join-Path $tDir "reference_solution.ps1"
+    $promptFile = Join-Path $tDir "prompt.md"
+
+    if (-not $CheckOnly) {
+        Write-Host "Setting up fixture repository..." -ForegroundColor Gray
+        & $setupScript -TargetDir $sandbox
+
+        if ($Mode -eq "with") {
+            Write-Host "Installing AI-OS into fixture repository..." -ForegroundColor Gray
+            & (Join-Path $RootDir "scripts/install.ps1") -TargetPath $sandbox | Out-Null
+        }
+
+        if ($Reference) {
+            Write-Host "Applying reference solution..." -ForegroundColor Gray
+            & $refScript -TargetDir $sandbox
+        } elseif ($AgentCmd) {
+            Write-Host "Executing agent command: $AgentCmd..." -ForegroundColor Gray
+            $orig = Get-Location
+            try {
+                Set-Location $sandbox
+                Invoke-Expression "$AgentCmd `"$promptFile`""
+            } finally {
+                Set-Location $orig
+            }
+        } else {
+            Write-Host "Untouched fixture evaluation (no agent command or reference solution)." -ForegroundColor Gray
+        }
+    }
+
+    Write-Host "Running evaluation check..." -ForegroundColor Gray
+    $checkPassed = $false
+    $checkErr = ""
+    try {
+        powershell.exe -ExecutionPolicy Bypass -File $checkScript -TargetDir $sandbox
+        if ($LASTEXITCODE -eq 0) {
+            $checkPassed = $true
+        } else {
+            $checkPassed = $false
+            $checkErr = "Check script failed with exit code $LASTEXITCODE"
+        }
+    } catch {
+        $checkPassed = $false
+        $checkErr = $_.Exception.Message
+    }
+
+    if ($checkPassed) {
+        Write-Host "[OK] Task $tName Result: PASS" -ForegroundColor Green
+    } else {
+        Write-Host "[FAIL] Task $tName Result: FAIL" -ForegroundColor Red
+        if ($checkErr) {
+            Write-Host "   | $checkErr" -ForegroundColor Yellow
+        }
+    }
+
+    if ($cleanupNeeded -and (Test-Path $sandbox)) {
+        Remove-Item -Path $sandbox -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host ""
+    return $checkPassed
+}
+
+$tasksToRun = @()
+if ($Task -eq "all") {
+    $tasksToRun = Get-ChildItem -Path $TasksDir -Directory | Sort-Object Name
+} else {
+    $matched = Join-Path $TasksDir $Task
+    if (Test-Path $matched) {
+        $tasksToRun = @(Get-Item $matched)
+    } elseif (Test-Path $Task) {
+        $tasksToRun = @(Get-Item $Task)
+    } else {
+        Write-Error "Task '$Task' not found in $TasksDir"
+        exit 1
+    }
+}
+
+$total = 0
+$passed = 0
+$failed = 0
+
+foreach ($t in $tasksToRun) {
+    $total++
+    $result = Run-SingleTask $t.FullName
+    if ($result) {
+        $passed++
+    } else {
+        $failed++
+    }
+}
+
+Write-Host "============================================================" -ForegroundColor Gray
+Write-Host " Task Suite Summary: $passed Passed | $failed Failed (Total: $total)" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor Gray
+
+if ($failed -gt 0) {
+    exit 1
+}
+exit 0

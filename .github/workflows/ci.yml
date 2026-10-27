@@ -35,6 +35,9 @@ jobs:
       - name: Run Empirical Evals & Benchmarks
         run: bash evals/run_evals.sh
 
+      - name: Run Replayable Task Suite (Reference Validity)
+        run: bash evals/run_task.sh --task all --reference
+
   test-windows:
     name: Windows Verification (Windows Server)
     runs-on: windows-latest
@@ -60,10 +63,14 @@ jobs:
       - name: Run Empirical Evals & Benchmarks (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File evals/run_evals.ps1
 
+      - name: Run Replayable Task Suite (Reference Validity, PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Reference
+
       - name: Run Bootstrap (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
 
       - name: Run Test Harness (Git Bash on Windows)
         shell: bash
         run: bash tests/run_tests.sh
+
 

@@ -71,7 +71,7 @@ Whether you have an **existing repository** or are starting a **brand new projec
 - **Token Optimization & Prompt Caching**: Pinned static rule prefix layout maximizing provider server-side prompt cache hits (design target; see [playbooks/token-optimization.md](playbooks/token-optimization.md)).
 - **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating ([playbooks/testing.md](playbooks/testing.md)).
 - **Smart Pre-Commit Secret Armor & Actionable Remediation**: Real-time git hook that intercepts credential leaks, identifies offending files, and provides instant copy-paste resolution commands.
-- **Idempotent Non-Destructive Project Integrator**: Safe installer (`scripts/install.ps1`, `scripts/install.sh`) that preserves existing project files, arms git protection, and runs a 14-point diagnostic doctor.
+- **Idempotent Non-Destructive Project Integrator**: Safe installer (`scripts/install.ps1`, `scripts/install.sh`) that preserves existing project files, arms git protection, and runs a 19-point diagnostic doctor.
 - **Federated Global Learning & Gate**: Mechanical 10-point gate creating auditable proposals in `proposals/` instead of silent direct mutations ([scripts/sync-rules.sh](scripts/sync-rules.sh)).
 
 ---
@@ -97,7 +97,7 @@ ai-operating-system/
 │   ├── task-state.md                   # Active task progress tracker
 │   └── decisions/
 │       └── 001-ai-operating-system-architecture.md # Formal ADR 001
-├── playbooks/ (13 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
+├── playbooks/ (14 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
 │                              # testing, review, architecture-decisions,
 │                              # learning-loop, prompt-refinement,
 │                              # multi-agent-orchestration, stochastic-consensus,

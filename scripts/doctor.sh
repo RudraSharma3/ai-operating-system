@@ -287,6 +287,56 @@ else
     record_check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "FAIL" "$PS1_ERR"
 fi
 
+# 18. No hardcoded local user paths in tracked files
+LOCAL_HITS=$(git -C "$PROJECT_PATH" grep -iE "C:[/\\]Users" -- ":!scripts/doctor.*" 2>/dev/null || true)
+if [ -n "$LOCAL_HITS" ]; then
+    record_check 18 "No hardcoded local user paths in tracked files" "FAIL" "Found hardcoded local user path: $LOCAL_HITS"
+else
+    record_check 18 "No hardcoded local user paths in tracked files" "PASS" ""
+fi
+
+# 19. Documentation counts synchronicity
+DOC_COUNTS_OK=true
+DOC_ERR=""
+README_PATH="$PROJECT_PATH/README.md"
+UG_PATH="$PROJECT_PATH/docs/AI-OS-USER-GUIDE.md"
+PB_DIR="$PROJECT_PATH/playbooks"
+[ ! -d "$PB_DIR" ] && PB_DIR="$PROJECT_PATH/.ai-os/playbooks"
+
+if [ -f "$README_PATH" ]; then
+    actual_pb=0
+    [ -d "$PB_DIR" ] && actual_pb=$(find "$PB_DIR" -maxdepth 1 -name "*.md" 2>/dev/null | grep -c . || true)
+    claimed_pb=$(grep -E 'playbooks/[[:space:]]*\([0-9]+[[:space:]]+Playbooks\)' "$README_PATH" | sed -E 's/.*playbooks\/[[:space:]]*\(([0-9]+)[[:space:]]+Playbooks\).*/\1/' || true)
+    if [ -n "$claimed_pb" ] && [ "$claimed_pb" -ne "$actual_pb" ]; then
+        DOC_COUNTS_OK=false
+        DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
+    fi
+    claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 19 ]; then
+        DOC_COUNTS_OK=false
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 19"
+    fi
+fi
+
+if [ -f "$UG_PATH" ]; then
+    ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 19 ]; then
+        DOC_COUNTS_OK=false
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 19"
+    fi
+    ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 19 ]; then
+        DOC_COUNTS_OK=false
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 19"
+    fi
+fi
+
+if [ "$DOC_COUNTS_OK" = true ]; then
+    record_check 19 "Documentation counts match reality (playbooks, doctor checks)" "PASS" ""
+else
+    record_check 19 "Documentation counts match reality (playbooks, doctor checks)" "FAIL" "$DOC_ERR"
+fi
+
 
 if [ "$JSON_MODE" = true ]; then
     echo "{"

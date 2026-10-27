@@ -293,6 +293,65 @@ if ($ps1Ok) {
     Record-Check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "FAIL" $ps1Err
 }
 
+# 18. No hardcoded local user paths in tracked files
+$userPattern = "C:" + [char]92 + "Users"
+$localHits = (git -C $target grep -iE "C:[\\/]Users" -- ":!scripts/doctor.*" 2>$null)
+if ($localHits) {
+    Record-Check 18 "No hardcoded local user paths in tracked files" "FAIL" "Found hardcoded local user path: $localHits"
+} else {
+    Record-Check 18 "No hardcoded local user paths in tracked files" "PASS"
+}
+
+# 19. Documentation counts synchronicity
+$docCountsOk = $true
+$docErr = ""
+$readmePath = Join-Path $target "README.md"
+$userGuidePath = Join-Path $target "docs/AI-OS-USER-GUIDE.md"
+$playbooksDir = if (Test-Path (Join-Path $target "playbooks")) { Join-Path $target "playbooks" } else { Join-Path $target ".ai-os/playbooks" }
+
+if (Test-Path $readmePath) {
+    $readmeContent = Get-Content $readmePath -Raw
+    $actualPlaybooks = if (Test-Path $playbooksDir) { (Get-ChildItem -Path $playbooksDir -Filter "*.md").Count } else { 0 }
+    if ($readmeContent -match 'playbooks/\s*\((\d+)\s+Playbooks\)') {
+        $claimedPlaybooks = [int]$matches[1]
+        if ($claimedPlaybooks -ne $actualPlaybooks) {
+            $docCountsOk = $false
+            $docErr = "README claims $claimedPlaybooks playbooks, but $actualPlaybooks exist"
+        }
+    }
+    if ($readmeContent -match '(\d+)-point diagnostic doctor') {
+        $claimedDoctor = [int]$matches[1]
+        if ($claimedDoctor -ne 19) {
+            $docCountsOk = $false
+            $docErr = "README claims $claimedDoctor-point doctor, expected 19"
+        }
+    }
+}
+
+if (Test-Path $userGuidePath) {
+    $ugContent = Get-Content $userGuidePath -Raw
+    if ($ugContent -match '(\d+)-point diagnostic') {
+        $ugClaimedDoctor = [int]$matches[1]
+        if ($ugClaimedDoctor -ne 19) {
+            $docCountsOk = $false
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 19"
+        }
+    }
+    if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
+        $ugClaimedChecks = [int]$matches[1]
+        if ($ugClaimedChecks -ne 19) {
+            $docCountsOk = $false
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 19"
+        }
+    }
+}
+
+if ($docCountsOk) {
+    Record-Check 19 "Documentation counts match reality (playbooks, doctor checks)" "PASS"
+} else {
+    Record-Check 19 "Documentation counts match reality (playbooks, doctor checks)" "FAIL" $docErr
+}
+
 
 if ($Json) {
     $armor = if ($failures -eq 0) { "ARMED" } else { "UNARMED" }

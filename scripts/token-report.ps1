@@ -66,6 +66,17 @@ $agentsBytes = if (Test-Path $agentsPath) { (Get-Item $agentsPath).Length } else
 $budgetPass = $agentsBytes -le $BudgetBytes
 
 if ($Json) {
+    $evalResults = @()
+    $evalsResultsDir = Join-Path $RootDir "evals/results"
+    if (Test-Path $evalsResultsDir) {
+        Get-ChildItem -Path $evalsResultsDir -Filter "*.md" | ForEach-Object {
+            $evalResults += [PSCustomObject]@{
+                file = $_.Name
+                bytes = $_.Length
+            }
+        }
+    }
+
     $outObj = [PSCustomObject]@{
         budget_limit_bytes = $BudgetBytes
         canonical_agents_bytes = $agentsBytes
@@ -74,6 +85,7 @@ if ($Json) {
         total_bytes = $totalBytes
         total_lines = $totalLines
         total_est_tokens = $totalTokens
+        eval_results = $evalResults
         files = $report
     }
     Write-Output ($outObj | ConvertTo-Json -Depth 3)
@@ -89,6 +101,16 @@ if ($Json) {
     Write-Host "========================================================================================" -ForegroundColor Gray
     Write-Host ("{0,-45} | {1,7} | {2,6} | {3,6} | {4,11}" -f "TOTALS", $totalBytes, $totalLines, "-", $totalTokens) -ForegroundColor Yellow
     Write-Host "========================================================================================" -ForegroundColor Gray
+
+    $evalsResultsDir = Join-Path $RootDir "evals/results"
+    if (Test-Path $evalsResultsDir) {
+        $evalFiles = @(Get-ChildItem -Path $evalsResultsDir -Filter "*.md" | Sort-Object Name -Descending)
+        if ($evalFiles.Count -gt 0) {
+            $latest = $evalFiles[0]
+            Write-Host (" Latest Eval Results: {0} ({1} bytes)" -f $latest.Name, $latest.Length) -ForegroundColor Cyan
+            Write-Host "========================================================================================" -ForegroundColor Gray
+        }
+    }
 
     $statusStr = if ($budgetPass) { "[PASS]" } else { "[FAIL]" }
     $color = if ($budgetPass) { "Green" } else { "Red" }
