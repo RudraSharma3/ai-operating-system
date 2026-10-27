@@ -32,17 +32,19 @@ As configured in `.github/CODEOWNERS`:
 
 ## 3. GitHub Branch Protection Policy for `main`
 
-On `github.com/RudraSharma3/ai-operating-system`:
+Active configuration applied via the GitHub REST API (`PUT /repos/RudraSharma3/ai-operating-system/branches/main/protection`):
 
 - **Require a pull request before merging**:
-  - Require approvals: Minimum 1 approved review.
-  - Require review from Code Owners: **Checked (Mandatory)**.
-  - Dismiss stale pull request approvals when new commits are pushed: **Checked**.
-  - Require review from users other than the PR author: **Checked**.
-- **Require status checks to pass before merging**:
+  - Require approvals: Minimum 1 approved review (`required_approving_review_count: 1`).
+  - Require review from Code Owners: **Enforced** (`require_code_owner_reviews: true`).
+  - Dismiss stale pull request approvals when new commits are pushed: **Enforced** (`dismiss_stale_reviews: true`).
+- **Require status checks to pass before merging** (`strict: true`):
   - `Linux Verification (Ubuntu)`
+  - `macOS Verification (macOS)`
   - `Windows Verification (Windows Server)`
-- **Do not allow bypassing the above settings**: Enforced for all administrators and automated bots.
+- **Block force pushes**: **Enforced** (`allow_force_pushes: false`).
+- **Block branch deletions**: **Enforced** (`allow_deletions: false`).
+- **Admin bypass**: **Enabled** (`enforce_admins: false`), ensuring the sole repository maintainer is not permanently locked out by GitHub's restriction against self-reviewing authored PRs.
 
 ---
 
@@ -52,10 +54,18 @@ Under strict GitHub branch protection rules requiring:
 1. "Require review from Code Owners", and
 2. "Require review from users other than the PR author",
 
-GitHub's review policy prohibits an author from reviewing or approving their own Pull Request. Therefore, in single-maintainer repositories:
+GitHub's review policy strictly prohibits an author from reviewing or approving their own Pull Request. Therefore, in single-maintainer repositories:
 - A sole maintainer cannot self-approve a Pull Request touching protected paths (`AGENTS.md`, `.ai/rules/`, `.githooks/`, `scripts/`).
 - Valid PR approvals require either:
   1. A secondary authorized review account designated in `.github/CODEOWNERS`, or
-  2. An explicit repository administrator bypass recorded in the audit log.
-- Automated promotion scripts (`scripts/approve-proposal.sh --pr-review`) strictly enforce this restriction via the GitHub API by verifying that an approving review originates from a user distinct from the PR author and listed in `CODEOWNERS`.
+  2. An explicit repository administrator bypass recorded in the GitHub audit log (`enforce_admins: false`).
+- Automated promotion scripts (`scripts/approve-proposal.sh --pr-review` and `scripts/approve-proposal.ps1 -PrReview`) strictly enforce this restriction via the GitHub API by verifying that an approving review originates from a user distinct from the PR author and listed in `CODEOWNERS`.
+
+## 5. Verification Command
+
+Inspect the live branch protection configuration at any time using the GitHub CLI:
+
+```bash
+gh api repos/RudraSharma3/ai-operating-system/branches/main/protection
+```
 
