@@ -5,6 +5,20 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-10-27
+
+### Added
+- **19-Point Diagnostic Doctor**: Expanded health diagnostics (`scripts/doctor.sh`, `scripts/doctor.ps1`) adding local path sanitation validation (local user home directories) and documentation count synchronicity verification (playbooks, doctor checks, test suites).
+- **Verified CI Promotion Gate**: Cryptographic GitHub API review gate in `scripts/approve-proposal.sh` and `scripts/approve-proposal.ps1` enforcing non-author PR approval by designated CODEOWNER before candidate rule promotion in automated CI workflows.
+- **Replayable Evaluation Task Suite**: 5 standardized behavioral benchmark fixtures (`evals/tasks/`) with pass/fail validation, prompt contract adherence, secret avoidance, and prompt injection resistance, proved with 100% sensitivity (0/5 untouched vs 5/5 reference).
+- **Contract Integrity Verification Suite**: Added `tests/test_agents_contract.sh` checking safety gates, secret rules, 4-part prompt contract, priority hierarchy, and reverse prompting escapes in both master and shipped templates.
+- **External Documentation Registry**: Added `docs/sources.md` establishing authoritative URL citations and verification dates for `AGENTS.md` ecosystem support across Cursor and GitHub Copilot.
+
+### Changed
+- **Token Budget Footprint Reduction**: Reduced canonical master `AGENTS.md` (4,760 bytes) and template `AGENTS.md` (3,601 bytes) safely beneath the strict 8,192-byte limit while preserving all safety invariants.
+- **Doctor Check Synchronicity**: Aligned all diagnostic counts (19 points) across `README.md` and `docs/AI-OS-USER-GUIDE.md`.
+- **Cross-Platform CI Hardening**: Green multi-platform GitHub Actions workflow covering Ubuntu and Windows Server runners with native PowerShell and Bash test suites.
+
 ## [2.1.0] - 2026-10-09
 
 ### Added

@@ -90,6 +90,15 @@ for rel in target_files:
 agents_bytes = os.path.getsize(os.path.join(root_dir, 'AGENTS.md')) if os.path.isfile(os.path.join(root_dir, 'AGENTS.md')) else 0
 budget_pass = agents_bytes <= budget_bytes
 
+eval_results_dir = os.path.join(root_dir, 'evals', 'results')
+eval_results = []
+if os.path.isdir(eval_results_dir):
+    for f in sorted(glob.glob(os.path.join(eval_results_dir, '*.md')), reverse=True):
+        eval_results.append({
+            'file': os.path.basename(f),
+            'bytes': os.path.getsize(f)
+        })
+
 if json_mode:
     output = {
         'budget_limit_bytes': budget_bytes,
@@ -99,6 +108,7 @@ if json_mode:
         'total_bytes': total_bytes,
         'total_lines': total_lines,
         'total_est_tokens': total_tokens,
+        'eval_results': eval_results,
         'files': report
     }
     print(json.dumps(output, indent=2))
@@ -113,6 +123,10 @@ else:
     print('========================================================================================')
     print(f'{"TOTALS":<45} | {total_bytes:>7} | {total_lines:>6} | {"-":>6} | {total_tokens:>11}')
     print('========================================================================================')
+
+    if eval_results:
+        print(f' Latest Eval Results: {eval_results[0]["file"]} ({eval_results[0]["bytes"]} bytes)')
+        print('========================================================================================')
     
     status_str = '[PASS]' if budget_pass else '[FAIL]'
     print(f' {status_str} Canonical AGENTS.md Budget Check: {agents_bytes:,} bytes / limit {budget_bytes:,} bytes (~{int(round(agents_bytes/4.0))} est. tokens)')

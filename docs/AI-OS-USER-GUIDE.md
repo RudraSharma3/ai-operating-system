@@ -97,7 +97,7 @@ Now, let the automated AI-OS installer configure your repository. It will copy t
    ```
 2. Run the installer (replace with the actual path to your `Project-X`):
    ```powershell
-   powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -TargetPath "C:\Users\YourUsername\Projects\Project-X"
+   powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 -TargetPath "C:\path\to\Project-X"
    ```
    > 💡 **Tip:** The `-ExecutionPolicy Bypass` flag ensures Windows runs the script cleanly without permission blocks.
 
@@ -134,7 +134,7 @@ If you prefer to copy the template files manually:
 
 ### 🔹 Step 3: Verify the Confirmation & Health Diagnostic
 
-When the integrator finishes, it runs a 14-point diagnostic and displays your personalized confirmation banner:
+When the integrator finishes, it runs a 19-point diagnostic and displays your personalized confirmation banner:
 
 ```
 ========================================================================
@@ -320,7 +320,7 @@ Anytime you want to verify your repository's AI-OS configuration:
 ```powershell
 powershell -File "scripts/doctor.ps1"
 ```
-It tests 14 key integrity checks across rules, documentation, hooks, and security.
+It tests 19 key integrity checks across rules, documentation, hooks, and security.
 
 ---
 
