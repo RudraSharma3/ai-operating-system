@@ -230,26 +230,113 @@ EOF
     assert_contains "$output" "approve-proposal requires interactive human confirmation" "approve-proposal must fail in non-interactive mode without human confirmation"
 }
 
-test_approve_proposal_promotes_with_pr_review() {
-    local test_prop="$REPO_ROOT/proposals/test-pr-review-prop.md"
+create_mock_gh_api() {
+    local scenario="$1"
+    local mock_script="$REPO_ROOT/scratch/mock_gh_api_$scenario.sh"
+    mkdir -p "$REPO_ROOT/scratch"
+    cat << EOF > "$mock_script"
+#!/usr/bin/env bash
+endpoint="\$1"
+if [[ "\$endpoint" == pulls/* && "\$endpoint" != */reviews ]]; then
+    echo '{"user": {"login": "pr_author_alice"}}'
+elif [[ "\$endpoint" == */reviews ]]; then
+    case "$scenario" in
+        no_approval)
+            echo '[{"state": "COMMENTED", "user": {"login": "reviewer_bob"}}]'
+            ;;
+        author_approval)
+            echo '[{"state": "APPROVED", "user": {"login": "pr_author_alice"}}]'
+            ;;
+        non_owner_approval)
+            echo '[{"state": "APPROVED", "user": {"login": "unauthorized_user"}}]'
+            ;;
+        valid_approval)
+            echo '[{"state": "APPROVED", "user": {"login": "RudraSharma3"}}]'
+            ;;
+    esac
+fi
+EOF
+    chmod +x "$mock_script"
+    echo "$mock_script"
+}
+
+test_approve_proposal_rejects_no_approval() {
+    local test_prop="$REPO_ROOT/proposals/test-no-approval-prop.md"
     cat << 'EOF' > "$test_prop"
-# Rule Proposal: Test PR Review
+# Rule Proposal: Test No Approval
+- **Category**: [CODE]
+## Proposed Rule Content
+`[CODE] Always lint before test — catches syntax errors early.`
+EOF
+
+    local mock_api
+    mock_api=$(create_mock_gh_api "no_approval")
+    local output
+    output=$(CI=true GITHUB_ACTIONS=true AI_OS_MOCK_GH_API="$mock_api" "$REPO_ROOT/scripts/approve-proposal.sh" --pr-review "$test_prop" 2>&1 || true)
+    rm -f "$test_prop" "$mock_api"
+
+    assert_contains "$output" "has no approved reviews" "approve-proposal must reject PR with no approved reviews"
+}
+
+test_approve_proposal_rejects_author_approval() {
+    local test_prop="$REPO_ROOT/proposals/test-author-approval-prop.md"
+    cat << 'EOF' > "$test_prop"
+# Rule Proposal: Test Author Approval
+- **Category**: [CODE]
+## Proposed Rule Content
+`[CODE] Always lint before test — catches syntax errors early.`
+EOF
+
+    local mock_api
+    mock_api=$(create_mock_gh_api "author_approval")
+    local output
+    output=$(CI=true GITHUB_ACTIONS=true AI_OS_MOCK_GH_API="$mock_api" "$REPO_ROOT/scripts/approve-proposal.sh" --pr-review "$test_prop" 2>&1 || true)
+    rm -f "$test_prop" "$mock_api"
+
+    assert_contains "$output" "cannot approve their own rule promotion" "approve-proposal must reject author self-approval"
+}
+
+test_approve_proposal_rejects_non_owner_approval() {
+    local test_prop="$REPO_ROOT/proposals/test-non-owner-approval-prop.md"
+    cat << 'EOF' > "$test_prop"
+# Rule Proposal: Test Non Owner Approval
+- **Category**: [CODE]
+## Proposed Rule Content
+`[CODE] Always lint before test — catches syntax errors early.`
+EOF
+
+    local mock_api
+    mock_api=$(create_mock_gh_api "non_owner_approval")
+    local output
+    output=$(CI=true GITHUB_ACTIONS=true AI_OS_MOCK_GH_API="$mock_api" "$REPO_ROOT/scripts/approve-proposal.sh" --pr-review "$test_prop" 2>&1 || true)
+    rm -f "$test_prop" "$mock_api"
+
+    assert_contains "$output" "is not an authorized CODEOWNER" "approve-proposal must reject approval by non-CODEOWNER"
+}
+
+test_approve_proposal_promotes_with_valid_owner_approval() {
+    local test_prop="$REPO_ROOT/proposals/test-valid-approval-prop.md"
+    cat << 'EOF' > "$test_prop"
+# Rule Proposal: Test Valid Approval
 - **Category**: [CODE]
 ## Proposed Rule Content
 `[CODE] Always run typecheck before building — prevents broken releases.`
 EOF
 
+    local mock_api
+    mock_api=$(create_mock_gh_api "valid_approval")
     local output
-    output=$(CI=true GITHUB_ACTIONS=true "$REPO_ROOT/scripts/approve-proposal.sh" --pr-review "$test_prop" 2>&1 || true)
+    output=$(CI=true GITHUB_ACTIONS=true AI_OS_MOCK_GH_API="$mock_api" "$REPO_ROOT/scripts/approve-proposal.sh" --pr-review "$test_prop" 2>&1 || true)
     
     # Clean up generated rule and archive so working tree remains pristine
     rm -f "$REPO_ROOT/.ai/rules/"*always-run-typecheck* 2>/dev/null || true
-    rm -f "$REPO_ROOT/proposals/approved/test-pr-review-prop.md" 2>/dev/null || true
+    rm -f "$REPO_ROOT/proposals/approved/test-valid-approval-prop.md" 2>/dev/null || true
+    rm -f "$mock_api"
     # Recompile to restore original AGENTS.md
     "$REPO_ROOT/scripts/compile-rules.sh" --project "$REPO_ROOT" >/dev/null 2>&1
     "$REPO_ROOT/scripts/build-templates.sh" >/dev/null 2>&1
 
-    assert_contains "$output" "approved via verified GitHub PR review" "approve-proposal --pr-review must succeed and promote rule in CI"
+    assert_contains "$output" "approved via verified GitHub API PR review by CODEOWNER '@RudraSharma3'" "approve-proposal --pr-review must succeed when approved by CODEOWNER"
 }
 
 # Run all gate tests
@@ -267,7 +354,10 @@ run_test "sync-rules: Rejects Unicode tag block characters (U+E0000-E007F)" test
 run_test "sync-rules: Rejects case variants and injection paraphrases" test_gate_rejects_case_variants_and_paraphrases
 run_test "approve-proposal: Agent passes --pr-review flag locally -> rejected" test_approve_proposal_rejects_pr_review_locally
 run_test "approve-proposal: Non-TTY interactive gate -> rejected" test_approve_proposal_fails_in_non_interactive_mode
-run_test "approve-proposal: Promotes rule when approved via --pr-review in CI" test_approve_proposal_promotes_with_pr_review
+run_test "approve-proposal: Rejects PR with no approval" test_approve_proposal_rejects_no_approval
+run_test "approve-proposal: Rejects author self-approval" test_approve_proposal_rejects_author_approval
+run_test "approve-proposal: Rejects non-CODEOWNER approval" test_approve_proposal_rejects_non_owner_approval
+run_test "approve-proposal: Promotes rule when approved by CODEOWNER in CI" test_approve_proposal_promotes_with_valid_owner_approval
 
 echo ""
 echo "Sync Gate Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
