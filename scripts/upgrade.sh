@@ -68,6 +68,8 @@ if os.path.isfile(target_manifest_path):
             old_manifest = json.load(fp)
     except Exception:
         old_manifest = None
+else:
+    print(' [LEGACY] No prior manifest found (pre-manifest legacy install detected). Migrating cleanly to manifest tracking...')
 
 text_extensions = {'.md', '.mdc', '.txt', '.json', '.sh', '.ps1', '.gitattributes', '.gitignore', ''}
 

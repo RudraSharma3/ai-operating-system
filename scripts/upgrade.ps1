@@ -25,6 +25,8 @@ if (Test-Path $targetManifestPath) {
     } catch {
         $oldManifest = $null
     }
+} else {
+    Write-Host " [LEGACY] No prior manifest found (pre-manifest legacy install detected). Migrating cleanly to manifest tracking..." -ForegroundColor Yellow
 }
 
 Write-Host " AI-OS Safe Upgrade Engine" -ForegroundColor Cyan

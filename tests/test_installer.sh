@@ -295,6 +295,33 @@ test_doctor_private_names_denylist() {
     assert_contains "$doc_output" "private deny-listed names" "doctor.sh output must cite private deny-listed names check"
 }
 
+test_upgrade_legacy_pre_manifest() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    # Simulate a pre-manifest install: install files present, but no .ai-os/manifest.json
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+    rm -rf "$sandbox/.ai-os/manifest.json"
+
+    # Add custom user content to an existing file
+    echo "# Custom User Legacy Architecture Notes" >> "$sandbox/docs/architecture.md"
+
+    # Run upgrade.sh
+    local upgrade_output upgrade_status=0
+    upgrade_output=$("$REPO_ROOT/scripts/upgrade.sh" --target "$sandbox" 2>&1) || upgrade_status=$?
+
+    local manifest_created=false
+    [ -f "$sandbox/.ai-os/manifest.json" ] && manifest_created=true
+    local content_after=""
+    [ -f "$sandbox/docs/architecture.md" ] && content_after=$(cat "$sandbox/docs/architecture.md")
+
+    cleanup_sandbox "$sandbox"
+
+    assert_eq 0 "$upgrade_status" "upgrade.sh must succeed on legacy pre-manifest install"
+    assert_contains "$upgrade_output" "pre-manifest legacy install detected" "upgrade.sh must output clear message when no manifest exists"
+    assert_eq "true" "$manifest_created" "upgrade.sh must create .ai-os/manifest.json afterwards"
+    assert_contains "$content_after" "Custom User Legacy Architecture Notes" "upgrade.sh must preserve existing files without data loss"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -305,6 +332,7 @@ run_test "install.ps1: Merges .gitignore without overwriting" test_ps1_merges_gi
 run_test "install.ps1: Preserves and chains existing core.hooksPath" test_ps1_preserves_and_chains_hookspath
 run_test "upgrade.sh: Upgrades template and preserves customizations" test_sh_upgrade_preserves_customizations
 run_test "upgrade.sh: Preserves customized file on conflict with side-by-side update" test_upgrade_conflict_preserves_both
+run_test "upgrade.sh: Upgrades legacy pre-manifest install without data loss" test_upgrade_legacy_pre_manifest
 run_test "build-templates.sh: Zero drift between master and templates" test_template_drift_check
 run_test "compile-rules.sh: Rules in AGENTS.md match .ai/rules/" test_rule_compiler_check
 run_test "compile-rules.sh: Compiles nested packages in a monorepo" test_compile_rules_monorepo
