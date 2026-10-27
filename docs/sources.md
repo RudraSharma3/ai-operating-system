@@ -88,3 +88,28 @@ This document records the official documentation URLs, retrieval dates, and veri
   ```
 - **Security Notice**:
   Hook commands run with the permissions of the local user. All AI-OS Claude Code hooks are provided as transparent, reviewable plain scripts in `.ai-os/optional/claude-hooks/` and are strictly opt-in via `--with-claude-hooks` / `-WithClaudeHooks`. Hook scripts never evaluate or execute arbitrary content taken from tool inputs.
+
+---
+
+## 5. Claude Code CLI Headless & Scripting Flags
+
+- **Official Source**: `https://code.claude.com/docs/en/cli-reference` (Markdown: `https://code.claude.com/docs/en/cli-reference.md`)
+- **Retrieval Date**: 2026-10-27
+- **Verification Status**: **VERIFIED**
+- **Verified Headless Flags**:
+  - `-p`, `--print`: Print response without interactive mode / query via SDK, then exit.
+  - `--output-format <text|json|stream-json>`: Specify output format for print mode.
+  - `--allowedTools <tools>`, `--allowed-tools <tools>`: Tools that execute without prompting for permission.
+  - `--permission-mode <mode>`: Permission mode for session (`default`, `plan`, `auto`, `bypassPermissions`).
+  - `--dangerously-skip-permissions`: Skip permission prompts (equivalent to `--permission-mode bypassPermissions`).
+  - `--permission-prompts <host|none>`: Set who answers permission prompts in print mode (`none` denies in unattended runs).
+  - `--max-turns <n>`: Limit number of agentic turns in print mode.
+  - `--tools <tools>`: Restrict which built-in tools Claude can use.
+- **Unverified / Invalid Flags**:
+  - `--non-interactive`: Invalid; does not exist in Claude Code CLI. (Verified non-interactive flag is `-p` / `--print`).
+- **Verified Headless Command Strings**:
+  - `claude -p`
+  - `claude --print`
+  - `claude -p --output-format json`
+  - `claude --dangerously-skip-permissions -p`
+

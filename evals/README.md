@@ -15,7 +15,7 @@ This directory contains automated, reproducible benchmark evaluations measuring 
    - Verifies 100% true-positive blocking rate and 0% false positives on allowed template patterns.
 
 3. **Diagnostic Doctor Latency**:
-   - Benchmarks `scripts/doctor.sh` and `scripts/doctor.ps1` execution time across 21 health checks.
+   - Benchmarks `scripts/doctor.sh` and `scripts/doctor.ps1` execution time across 22 health checks.
    - Enforces a <3.0s latency budget for local developer workflows.
 
 4. **Replayable Task Evaluation Suite (`tasks/`)**:
@@ -50,6 +50,16 @@ bash evals/run_task.sh --task all --negative
 # PowerShell
 powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Negative
 ```
+
+### Run with Headless Agent CLI (Verified Flags):
+```bash
+# Bash (Claude Code CLI verified headless mode)
+bash evals/run_task.sh --task all --mode with --agent-cmd "claude -p"
+
+# PowerShell
+powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Mode with -AgentCmd "claude -p"
+```
+*(Verified headless flags and documentation sources are recorded in `docs/sources.md`)*
 
 ### Run Stub-Agent Harness Plumbing Tests:
 ```bash

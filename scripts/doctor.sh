@@ -246,6 +246,43 @@ if [ -n "$PLAYBOOK_FILE" ] && [ -f "$MCP_JSON" ]; then
             break
         fi
     done
+
+    if [ "$MCP_OK" = true ]; then
+        PY_CMD="python3"
+        command -v python3 >/dev/null 2>&1 || PY_CMD="python"
+        PIN_CHECK=$(cat "$MCP_JSON" | $PY_CMD -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    servers = data.get('mcpServers', {})
+    if not servers:
+        print('No mcpServers defined in mcp.json')
+        sys.exit(1)
+    for name, srv in servers.items():
+        args = srv.get('args', [])
+        pinned = False
+        for a in args:
+            if '@' in a:
+                parts = a[1:].split('@', 1) if a.startswith('@') else a.split('@', 1)
+                if len(parts) == 2 and parts[1] != 'latest' and any(c.isdigit() for c in parts[1]):
+                    pinned = True
+            elif '==' in a:
+                parts = a.split('==', 1)
+                if len(parts) == 2 and parts[1] != 'latest' and any(c.isdigit() for c in parts[1]):
+                    pinned = True
+        if not pinned:
+            print(f'Server \"{name}\" in mcp.json has unpinned version specification')
+            sys.exit(1)
+    sys.exit(0)
+except Exception as e:
+    print(f'mcp.json validation error: {e}')
+    sys.exit(1)
+" 2>&1)
+        if [ $? -ne 0 ]; then
+            MCP_OK=false
+            MCP_ERROR="$PIN_CHECK"
+        fi
+    fi
 fi
 
 if [ "$MCP_OK" = true ]; then
@@ -312,22 +349,22 @@ if [ -f "$README_PATH" ]; then
         DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
     fi
     claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 21 ]; then
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 22 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="README claims $claimed_doc-point doctor, expected 21"
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 22"
     fi
 fi
 
 if [ -f "$UG_PATH" ]; then
     ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 21 ]; then
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 22 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 21"
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 22"
     fi
     ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 21 ]; then
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 22 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 21"
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 22"
     fi
 fi
 
@@ -365,6 +402,48 @@ if [ -f "$CLAUDE_SETTINGS" ]; then
     record_check 21 "Optional Claude Code hooks status" "WARN" "Opt-in Claude Code hooks are active (.claude/settings.json)"
 else
     record_check 21 "Optional Claude Code hooks status" "PASS" ""
+fi
+
+# 22. Headless agent command documentation verification
+SOURCES_FILE="$PROJECT_PATH/docs/sources.md"
+UNVERIFIED_CMD_ERR=""
+
+DOC_FILES=()
+[ -f "$PROJECT_PATH/README.md" ] && DOC_FILES+=("$PROJECT_PATH/README.md")
+while IFS= read -r f; do
+    [ -n "$f" ] && DOC_FILES+=("$f")
+done < <(find "$PROJECT_PATH/docs" "$PROJECT_PATH/evals" -type f -name "*.md" 2>/dev/null || true)
+
+for df in "${DOC_FILES[@]}"; do
+    [ "$df" = "$SOURCES_FILE" ] && continue
+    while IFS= read -r line; do
+        cmd=$(echo "$line" | grep -oE '`claude [^`]+`' | tr -d '`' || true)
+        [ -z "$cmd" ] && cmd=$(echo "$line" | grep -oE '"claude [^"]+"' | tr -d '"' || true)
+        [ -z "$cmd" ] && cmd=$(echo "$line" | grep -oE 'claude[[:space:]]+-[a-zA-Z0-9_ -]+' || true)
+        if [ -n "$cmd" ]; then
+            if [ ! -f "$SOURCES_FILE" ]; then
+                UNVERIFIED_CMD_ERR="docs/sources.md missing; unverified command '$cmd' found in $(basename "$df")"
+                break 2
+            fi
+            flags=$(echo "$cmd" | grep -oE '\-\-[a-zA-Z0-9_-]+|\-[a-zA-Z0-9]' || true)
+            for fl in $flags; do
+                if ! grep -F -q -e "$fl" "$SOURCES_FILE"; then
+                    UNVERIFIED_CMD_ERR="Unverified flag '$fl' in '$cmd' in $(basename "$df") (not listed in docs/sources.md)"
+                    break 3
+                fi
+            done
+            if echo "$cmd" | grep -qE -- '--non-interactive'; then
+                UNVERIFIED_CMD_ERR="Unverified command '$cmd' in $(basename "$df") (flag marked invalid/unverified in docs/sources.md)"
+                break 2
+            fi
+        fi
+    done < "$df"
+done
+
+if [ -n "$UNVERIFIED_CMD_ERR" ]; then
+    record_check 22 "Headless agent command documentation verification" "WARN" "$UNVERIFIED_CMD_ERR"
+else
+    record_check 22 "Headless agent command documentation verification" "PASS" ""
 fi
 
 

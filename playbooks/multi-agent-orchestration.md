@@ -15,12 +15,12 @@ Before engaging multiple agents, verify against `.ai/routing.md`:
 
 ## 2. MCP Tool Providers (`mcp.json`)
 
-All agent tooling must map directly to verifiable servers declared in `mcp.json`:
+All agent tooling must map directly to verifiable, pinned servers declared in `mcp.json`:
 
-- **`filesystem`** (`@modelcontextprotocol/server-filesystem@2.0.1`): Sandboxed file tree reads, scoped modifications, and workspace inspection (Node.js/npm).
-- **`memory`** (`@modelcontextprotocol/server-memory@2.0.0`): Structured graph-based state tracking across long-horizon architectural evaluations (Node.js/npm).
-
-*(Note: Reference MCP servers like `mcp-server-git` and `mcp-server-fetch` are official Python packages managed via `uvx`/`pipx`, rather than JavaScript packages published on npm. When configuring Python MCP servers in `mcp.json`, specify `uvx` command execution rather than `npx`)*.
+- **`filesystem`** (`@modelcontextprotocol/server-filesystem@2.0.1` via `npx`): Sandboxed file tree reads, scoped modifications, and workspace inspection (Node.js/npm).
+- **`memory`** (`@modelcontextprotocol/server-memory@2.0.0` via `npx`): Structured graph-based state tracking across long-horizon architectural evaluations (Node.js/npm).
+- **`git`** (`mcp-server-git==2026.10.19` via `uvx`): Git repository reads, commit inspection, and history analysis (Python/PyPI).
+- **`fetch`** (`mcp-server-fetch==2026.10.24` via `uvx`): Web content fetching, API documentation conversion, and URL reading (Python/PyPI).
 
 
 ---

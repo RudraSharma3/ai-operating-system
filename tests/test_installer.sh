@@ -348,6 +348,99 @@ test_claude_hooks_opt_in_install() {
     assert_contains "$doc_optin_out" "Opt-in Claude Code hooks are active" "doctor Check 21 reports WARN when hooks are installed"
 }
 
+test_doctor_mcp_playbook_matching_and_pinning() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    local pb_file="$sandbox/.ai-os/playbooks/multi-agent-orchestration.md"
+    [ ! -f "$pb_file" ] && pb_file="$sandbox/playbooks/multi-agent-orchestration.md"
+    local mcp_file="$sandbox/mcp.json"
+
+    # Backup clean playbook and mcp.json
+    cp "$pb_file" "$pb_file.bak"
+    cp "$mcp_file" "$mcp_file.bak"
+
+    # 1. Test failure when playbook declares a tool missing from mcp.json
+    echo "- **\`missing_worker_tool\`**: Missing tool test" >> "$pb_file"
+    local doc_out_missing doc_status_missing=0
+    doc_out_missing=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status_missing=$?
+    assert_eq 1 "$doc_status_missing" "doctor.sh must fail when a playbook tool is missing from mcp.json"
+    assert_contains "$doc_out_missing" "missing_worker_tool" "doctor.sh must report missing tool name"
+
+    # Restore playbook
+    cp "$pb_file.bak" "$pb_file"
+
+    # 2. Test failure when a server in mcp.json has unpinned version
+    cat << 'EOF' > "$mcp_file"
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@latest", "./"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory@2.0.0"]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git==2026.10.19", "--repository", "./"]
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch==2026.10.24"]
+    }
+  }
+}
+EOF
+    local doc_out_unpinned doc_status_unpinned=0
+    doc_out_unpinned=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status_unpinned=$?
+
+    # 3. Test success when all servers are pinned and tools match
+    cp "$mcp_file.bak" "$mcp_file"
+    local doc_out_clean doc_status_clean=0
+    doc_out_clean=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status_clean=$?
+
+    cleanup_sandbox "$sandbox"
+
+    assert_eq 1 "$doc_status_unpinned" "doctor.sh must fail when an MCP server version is unpinned"
+    assert_contains "$doc_out_unpinned" "unpinned" "doctor.sh must report unpinned server version in mcp.json"
+    assert_eq 0 "$doc_status_clean" "doctor.sh must pass when all MCP servers are pinned and match playbook"
+}
+
+test_doctor_headless_command_verification() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    mkdir -p "$sandbox/docs"
+    # Create sources.md with verified headless commands
+    cat << 'EOF' > "$sandbox/docs/sources.md"
+# Sources
+## 5. Claude Code CLI Headless Mode Flags
+- Verified Headless Command Strings:
+  - `claude -p`
+  - `claude --print`
+EOF
+
+    # 1. Test warning when doc contains unverified headless command
+    echo 'Run: `claude --non-interactive -p`' > "$sandbox/docs/eval-guide.md"
+    local doc_out_warn
+    doc_out_warn=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    # 2. Test pass when doc contains verified headless command
+    echo 'Run: `claude -p`' > "$sandbox/docs/eval-guide.md"
+    local doc_out_pass
+    doc_out_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    cleanup_sandbox "$sandbox"
+
+    assert_contains "$doc_out_warn" "WARN] Headless agent command documentation" "doctor.sh must warn when unverified headless command is in docs" || return 1
+    assert_contains "$doc_out_warn" "claude --non-interactive" "doctor.sh must identify unverified command" || return 1
+    assert_contains "$doc_out_pass" "PASS] Headless agent command documentation" "doctor.sh must pass when headless command matches verified sources" || return 1
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -364,6 +457,8 @@ run_test "build-templates.sh: Zero drift between master and templates" test_temp
 run_test "compile-rules.sh: Rules in AGENTS.md match .ai/rules/" test_rule_compiler_check
 run_test "compile-rules.sh: Compiles nested packages in a monorepo" test_compile_rules_monorepo
 run_test "doctor.sh: Enforces .ai/private-names.txt deny-list check" test_doctor_private_names_denylist
+run_test "doctor.sh: Enforces MCP playbook matching and pinned versions" test_doctor_mcp_playbook_matching_and_pinning
+run_test "doctor.sh: Warns if docs contain headless command not listed in docs/sources.md" test_doctor_headless_command_verification
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"

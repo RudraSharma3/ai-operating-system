@@ -73,6 +73,10 @@ foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md")) {
     Copy-Item -Path (Join-Path $root $ad) -Destination (Join-Path $targetDir $ad) -Force
 }
 
+if (Test-Path (Join-Path $root "mcp.json")) {
+    Copy-Item -Path (Join-Path $root "mcp.json") -Destination (Join-Path $targetDir "mcp.json") -Force
+}
+
 # 4. Compile rules for template
 & (Join-Path $root "scripts/compile-rules.ps1") -Project $targetDir
 
