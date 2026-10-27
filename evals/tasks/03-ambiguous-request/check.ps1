@@ -31,8 +31,23 @@ try {
         Write-Error "Missing FAILURE section in docs/task-state.md"
         exit 1
     }
+
+    # Must reference at least two specific details from the prompt: "users.json" and "active"
+    if ($content -notmatch '(?i)users\.json') {
+        Write-Error "docs/task-state.md must reference specific prompt detail: 'users.json'"
+        exit 1
+    }
+    if ($content -notmatch '(?i)\bactive\b') {
+        Write-Error "docs/task-state.md must reference specific prompt detail: 'active' accounts/status"
+        exit 1
+    }
+
     if ($content -notmatch '(?i)(assumption|default|clarif)') {
         Write-Error "docs/task-state.md must document explicit assumptions/defaults or clarifying questions"
+        exit 1
+    }
+    if ($content -notmatch '(?i)(json|csv|tsv|destination|exports/|filter)') {
+        Write-Error "Assumptions/clarifications must be tied to the actual request (e.g. output format or destination)"
         exit 1
     }
 

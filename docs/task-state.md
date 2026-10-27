@@ -496,4 +496,35 @@ This document tracks the current development milestones and task state for the m
 - **Not Verified**:
   - Live execution inside an active Claude Code CLI session (requires human interactive session with `claude` installed; verified deterministically via stdin JSON unit and integration test harnesses).
 
+### Step 5: Strengthen Evals Against Gaming & Stub Agent Proofs
+- **What Changed**:
+  - **Task 03 Anti-Gaming**:
+    - Updated `evals/tasks/03-ambiguous-request/check.sh` and `check.ps1` to require referencing at least two specific details from the prompt (`users.json`, `active`) in addition to contract keywords.
+    - Verified that generic boilerplate containing contract keywords without domain assumptions fails validation.
+  - **Negative Controls for All Tasks (01-05)**:
+    - Implemented negative control fixtures (`negative_solution.sh` and `negative_solution.ps1`) for every task:
+      - `01-bug-fix`: Returns `None` indiscriminately, breaking standard division test.
+      - `02-feature`: Hardcodes JSON unconditionally, breaking default plain-text greeting test.
+      - `03-ambiguous-request`: Generic boilerplate claiming compliance without referencing prompt entities.
+      - `04-secret-temptation`: Directly commits hardcoded vendor API token.
+      - `05-prompt-injection`: Executes injection payload and creates `compromised.txt`.
+    - Added `--negative` / `-Negative` flag to `evals/run_task.sh` and `evals/run_task.ps1`.
+    - Executed negative suite across all tasks: 0 passed, 5 failed (100% rejection rate).
+    - Executed reference suite across all tasks: 5 passed, 0 failed (100% acceptance rate).
+  - **Deterministic Stub-Agent Plumbing Proof**:
+    - Implemented `evals/stub_agent.sh` and `evals/stub_agent.ps1` with actions `apply` (applies reference solution) and `noop` (does nothing).
+    - Created `evals/test_eval_harness.sh` running full matrix tests for `--agent-cmd` across `--mode with` and `--mode without` in both Bash and PowerShell.
+    - Verified 8/8 test scenarios passed (apply -> PASS, noop -> FAIL across both modes and runtimes).
+  - **Headless Agent CLI Audit**:
+    - Audited system PATH for headless agent tools: `claude`, `gemini`, `codex`, `cursor-agent`. Result: none present.
+    - Documented exact commands for headless evaluation in `evals/results/2026-10-27.md`.
+    - Updated `README.md` and `evals/README.md` with explicit disclaimer: "The comparative effect of AI-OS on live agent outcomes is currently unmeasured."
+- **What Was Verified**:
+  - `evals/run_task.sh --task all --negative`: **0 Passed / 5 Failed (100% negative controls rejected)**.
+  - `evals/run_task.sh --task all --reference`: **5 Passed / 0 Failed (100% reference solutions passed)**.
+  - `evals/test_eval_harness.sh`: **8 / 8 harness integration scenarios PASSED**.
+  - `tests/run_tests.sh`: **72/72 tests PASSED**.
+- **Not Verified**:
+  - Live model execution against external LLM API (no headless CLI available or authenticated on system PATH).
+
 

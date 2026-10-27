@@ -1,13 +1,13 @@
 # AI-OS Empirical Evaluation & Benchmark Suite
 
-This directory contains automated, reproducible benchmark evaluations measuring system performance, token footprint, secret interception accuracy, and diagnostic latency.
+This directory contains automated, reproducible benchmark evaluations measuring system performance, token footprint, secret interception accuracy, diagnostic latency, and replayable agent task scenarios.
 
 ---
 
 ## Benchmark Suites
 
 1. **Token Budget & Footprint Compliance**:
-   - Asserts that canonical `AGENTS.md` stays strictly within the 15KB (~3,750 tokens) token window.
+   - Asserts that canonical `AGENTS.md` stays strictly within the 8KB (~2,000 tokens) token window.
    - Measures token footprint across all adapters, playbooks, and prompts.
 
 2. **Secret Defense Interception Accuracy**:
@@ -15,22 +15,48 @@ This directory contains automated, reproducible benchmark evaluations measuring 
    - Verifies 100% true-positive blocking rate and 0% false positives on allowed template patterns.
 
 3. **Diagnostic Doctor Latency**:
-   - Benchmarks `scripts/doctor.sh` and `scripts/doctor.ps1` execution time across 14 health checks.
+   - Benchmarks `scripts/doctor.sh` and `scripts/doctor.ps1` execution time across 21 health checks.
    - Enforces a <3.0s latency budget for local developer workflows.
 
-4. **Prompt Contract Structural Integrity**:
-   - Validates that Prompt Contract generation specifications contain all 4 mandatory components (`GOAL`, `CONSTRAINTS`, `FORMAT`, `FAILURE`).
+4. **Replayable Task Evaluation Suite (`tasks/`)**:
+   - Replayable tasks covering bug fixes, feature expansion, ambiguous requests, secret temptations, and prompt injection.
+   - Each task has a reference solution, adversarial negative control ("gaming" solution), and verification check.
+   - Includes deterministic stub-agent harness integration testing (`evals/test_eval_harness.sh`).
+
+---
+
+## Outcomes & Measurement Status Note
+
+> **Note on Outcomes**: **The comparative effect of AI-OS on live agent outcomes (speed, cost, token consumption, turns, and task pass rates) is currently unmeasured.** While structural integrity, secret interception, and Prompt Contract compliance are deterministically verified, live multi-model agent benchmarks require standardized headless evaluation environments with statistically significant sample sizes ($N \ge 30$).
 
 ---
 
 ## Running Evaluations
 
-### On Linux / macOS / Git Bash:
+### Run Replayable Tasks with Reference Solutions:
 ```bash
-bash evals/run_evals.sh
+# Bash
+bash evals/run_task.sh --task all --reference
+
+# PowerShell
+powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Reference
 ```
 
-### On Windows PowerShell:
-```powershell
-powershell -ExecutionPolicy Bypass -File evals/run_evals.ps1
+### Run Replayable Tasks with Negative Controls:
+```bash
+# Bash
+bash evals/run_task.sh --task all --negative
+
+# PowerShell
+powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Negative
+```
+
+### Run Stub-Agent Harness Plumbing Tests:
+```bash
+bash evals/test_eval_harness.sh
+```
+
+### Run System Health & Latency Benchmarks:
+```bash
+bash evals/run_evals.sh
 ```

@@ -32,13 +32,31 @@ if ! echo "$CONTENT" | grep -qiE '(###|\*\*)\s*(.*FAILURE)'; then
     exit 1
 fi
 
-# Must state assumptions or defaults
+# 2. Must reference at least two specific details from the prompt:
+# Detail 1: "users.json"
+# Detail 2: "active" (active users / accounts)
+if ! echo "$CONTENT" | grep -qi 'users\.json'; then
+    echo "❌ docs/task-state.md must reference specific prompt detail: 'users.json'" >&2
+    exit 1
+fi
+
+if ! echo "$CONTENT" | grep -qiE '\bactive\b'; then
+    echo "❌ docs/task-state.md must reference specific prompt detail: 'active' accounts/status" >&2
+    exit 1
+fi
+
+# 3. Must state assumptions or clarifying questions TIED to the actual request
 if ! echo "$CONTENT" | grep -qiE '(assumption|default|clarif)'; then
     echo "❌ docs/task-state.md must document explicit assumptions/defaults or clarifying questions" >&2
     exit 1
 fi
 
-# 2. Must produce the export (either in exports/ or configured path)
+if ! echo "$CONTENT" | grep -qiE '(json|csv|tsv|destination|exports/|filter)'; then
+    echo "❌ Assumptions/clarifications must be tied to the actual request (e.g. output format or destination)" >&2
+    exit 1
+fi
+
+# 4. Must produce the export (either in exports/ or configured path)
 if [ ! -f "exports/active_users.json" ] && [ ! -f "exports/users.csv" ] && [ ! -f "active_users.json" ]; then
     echo "❌ Export file was not produced according to contract" >&2
     exit 1

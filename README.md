@@ -71,8 +71,10 @@ Whether you have an **existing repository** or are starting a **brand new projec
 - **Token Optimization & Prompt Caching**: Pinned static rule prefix layout maximizing provider server-side prompt cache hits (design target; see [playbooks/token-optimization.md](playbooks/token-optimization.md)).
 - **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating ([playbooks/testing.md](playbooks/testing.md)).
 - **Smart Pre-Commit Secret Armor & Actionable Remediation**: Real-time git hook that intercepts credential leaks, identifies offending files, and provides instant copy-paste resolution commands.
-- **Idempotent Non-Destructive Project Integrator**: Safe installer (`scripts/install.ps1`, `scripts/install.sh`) that preserves existing project files, arms git protection, and runs a 21-point diagnostic doctor.
 - **Federated Global Learning & Gate**: Mechanical 10-point gate creating auditable proposals in `proposals/` instead of silent direct mutations ([scripts/sync-rules.sh](scripts/sync-rules.sh)).
+- **Replayable Evaluation & Anti-Gaming Benchmark Suite**: Replayable tasks (`evals/`) verifying bug fixes, features, prompt contracts, secret defense, and injection resilience with reference solutions, negative controls, and deterministic stub agents.
+
+> **Measurement Status Note**: The comparative effect of AI-OS on live agent outcomes (speed, cost, token efficiency, and task pass rates across large model samples) is currently unmeasured pending standardized multi-agent headless benchmarks.
 
 ---
 
