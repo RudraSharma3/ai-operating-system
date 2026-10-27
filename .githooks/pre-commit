@@ -101,6 +101,34 @@ if os.path.isfile(patterns_file):
                 except Exception:
                     pass
 
+def is_placeholder_token(tok):
+    if not tok:
+        return True
+    t = tok.strip().lower()
+    if t in ("changeme", "password", "example", "xxx", "pass", "your_password", "your_pass", "your_host", "user", "root", "admin", "null", "none"):
+        return True
+    if t.startswith("your_") or t.startswith("your-"):
+        return True
+    if re.search(r"^x+$", t):
+        return True
+    if (t.startswith("<") and t.endswith(">")) or (t.startswith("${") and t.endswith("}")):
+        return True
+    if re.search(r"<[^>]+>", t) or re.search(r"\$\{[^}]+\}", t):
+        return True
+    return False
+
+def is_db_url_placeholder(matched_str):
+    m = re.search(r"://([^:@\s]+):([^@\s]+)@([a-zA-Z0-9.-]+)", matched_str)
+    if not m:
+        return False
+    user, pwd, host = m.group(1), m.group(2), m.group(3)
+    if is_placeholder_token(pwd) or is_placeholder_token(host):
+        return True
+    if host.lower() in ("localhost", "127.0.0.1", "host"):
+        if user.lower() in ("user", "username", "root", "admin") and pwd.lower() in ("user", "pass", "password", "admin", "root"):
+            return True
+    return False
+
 violations = set()
 for line in sys.stdin:
     line = line.rstrip("\r\n")
@@ -109,8 +137,24 @@ for line in sys.stdin:
     if any(tok in line for tok in allowlist):
         continue
     for name, rx in patterns:
-        if rx.search(line):
-            violations.add(name)
+        is_pw_or_db = bool(re.search(r"(database.*url|password)", name, re.IGNORECASE))
+        if is_pw_or_db:
+            matches = list(rx.finditer(line))
+            for m in matches:
+                matched_text = m.group(0)
+                if "://" in matched_text:
+                    if not is_db_url_placeholder(matched_text):
+                        violations.add(name)
+                        break
+                else:
+                    parts = re.split(r"[:=]", matched_text, 1)
+                    val = parts[1].strip().strip("\"").strip(chr(39)) if len(parts) > 1 else matched_text
+                    if not is_placeholder_token(val):
+                        violations.add(name)
+                        break
+        else:
+            if rx.search(line):
+                violations.add(name)
 
 for v in sorted(violations):
     print(v)
@@ -155,6 +199,14 @@ else
             name="${pattern_entry%%|*}"
             regex="${pattern_entry#*|}"
             if echo "$diff_line" | grep -E -q -e "$regex"; then
+                if [[ "$name" =~ [Dd]atabase.*[Uu][Rr][Ll] ]] || [[ "$name" =~ [Pp]assword ]]; then
+                    if echo "$diff_line" | grep -E -i -q \
+                        -e '://[^:@[:space:]]+:(changeme|password|example|xxx|pass|your_[^@[:space:]]*|<[^>]+>|\$\{[^}]+\})@' \
+                        -e '://[^:@[:space:]]+:[^@[:space:]]+@(localhost|127\.0\.0\.1|example|host|<[^>]+>|\$\{[^}]+\})' \
+                        -e '://(user|admin|root):(user|pass|password|admin|root)@(localhost|127\.0\.0\.1)'; then
+                        continue
+                    fi
+                fi
                 DETECTED_NAMES+=("$name")
             fi
         done

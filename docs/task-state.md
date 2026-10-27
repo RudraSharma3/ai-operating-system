@@ -397,3 +397,30 @@ This document tracks the current development milestones and task state for the m
 - **Not Verified**:
   - Remote CI validation of Check 20 (pending Step 3 push).
 
+### Step 2: Placeholder-Aware Secret Scanning
+- **What Changed**:
+  - Updated `.githooks/pre-commit` and `templates/project/.githooks/pre-commit`:
+    - Added placeholder exemption for `Database URL with Credentials` and generic password patterns:
+      - Does not flag obvious placeholder password or host values: `changeme`, `password`, `example`, `xxx`, `pass`, `your_*`, `<...>`, `${...}`, and `localhost` with user:pass literals (`user`, `pass`, `admin`, `root`).
+      - Strictly preserves all vendor-token patterns (OpenAI, Anthropic, AWS, GitHub, Stripe, Google, Slack, Private Keys, JWT).
+      - Implemented in both Python batch scanner and POSIX shell fallback.
+    - Added 3 new tests in `tests/test_hook.sh`:
+      - `test_allowed_placeholder_db_url`: Obvious placeholder database URLs in `.env.example` and `README.md` are allowed (Exit 0). Demonstrated test failure before fix and passing after fix.
+      - `test_blocked_realistic_db_url`: Realistic database URL with random-looking password is blocked (Exit 1).
+      - `test_blocked_vendor_token_in_env_example`: Vendor token in `.env.example` is still blocked (Exit 1).
+    - Assembled test URL fixtures dynamically at runtime so zero secret-shaped strings are committed into git.
+    - Updated `scratch/scan_cross_repos.ps1` with `Test-IsPlaceholderDbUrl` and anonymized labels.
+  - Re-ran cross-repo read-only scan across 3 sibling repositories:
+    - Sibling Repo 1: Skipped (not a git repo).
+    - Sibling Repo 2: 0 matches (CLEAN).
+    - Sibling Repo 3: 0 matches (CLEAN - placeholder database URLs in `.env.example` and `README.md` exempted).
+    - Total matches across all repos: **0 matches (0 false positives, 0 true positives)**.
+- **What Was Verified**:
+  - `tests/test_hook.sh`: **22/22 tests PASSED** (including all 3 new placeholder & vendor-token tests).
+  - `tests/run_tests.sh`: **56/56 tests PASSED**.
+  - `scratch/scan_cross_repos.ps1`: **0 false positives across 3 sibling repositories**.
+  - `scripts/doctor.ps1`: **20/20 checks PASSED**.
+  - `scripts/doctor.sh`: **20/20 checks PASSED**.
+  - `scripts/build-templates.ps1 -Check`: **Zero drift**.
+- **Not Verified**:
+  - None.
