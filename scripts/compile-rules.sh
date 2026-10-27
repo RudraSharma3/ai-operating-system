@@ -70,7 +70,7 @@ compile_single_target() {
     fi
 
     local compiled_rules=""
-    declare -A seen_ids=()
+    local seen_ids=" "
 
     for rf in "${rule_files[@]}"; do
         local rule_content
@@ -88,11 +88,11 @@ compile_single_target() {
         
         local actual_id
         actual_id=$(echo "$rule_content" | sed -E 's/^([a-zA-Z0-9_-]+)\..*/\1/')
-        if [ -n "${seen_ids[$actual_id]:-}" ]; then
-            echo "❌ Error in $(basename "$rf"): duplicate rule ID '$actual_id' detected (collision with ${seen_ids[$actual_id]})" >&2
+        if [[ "$seen_ids" == *" $actual_id "* ]]; then
+            echo "❌ Error in $(basename "$rf"): duplicate rule ID '$actual_id' detected" >&2
             exit 1
         fi
-        seen_ids["$actual_id"]="$(basename "$rf")"
+        seen_ids="${seen_ids}${actual_id} "
         
         local full_rule_block
         full_rule_block=$(cat "$rf" | sed -e 's/[[:space:]]*$//')

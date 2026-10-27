@@ -172,7 +172,7 @@ RULES_OK=true
 RULE_ERROR=""
 if [ -f "$PROJECT_PATH/AGENTS.md" ]; then
     IN_LEARNED=false
-    declare -A SEEN_RULES=()
+    SEEN_RULES=" "
     while IFS= read -r line || [ -n "$line" ]; do
         if [[ "$line" =~ ^##.*Learned[[:space:]]+Rules ]]; then
             IN_LEARNED=true
@@ -181,12 +181,12 @@ if [ -f "$PROJECT_PATH/AGENTS.md" ]; then
         if [ "$IN_LEARNED" = true ]; then
             if [[ "$line" =~ ^([a-zA-Z0-9_-]+)\.[[:space:]]*\[[A-Z]+\] ]]; then
                 rid="${BASH_REMATCH[1]}"
-                if [ -n "${SEEN_RULES[$rid]:-}" ]; then
+                if [[ "$SEEN_RULES" == *" $rid "* ]]; then
                     RULES_OK=false
                     RULE_ERROR="Duplicate rule ID '$rid' detected"
                     break
                 fi
-                SEEN_RULES["$rid"]=1
+                SEEN_RULES="${SEEN_RULES}${rid} "
             fi
         fi
     done < "$PROJECT_PATH/AGENTS.md"
