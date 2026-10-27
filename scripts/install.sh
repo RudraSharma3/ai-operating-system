@@ -62,6 +62,7 @@ if [ -f "$GITIGNORE_DEST" ]; then
         echo "!.env.sample" >> "$GITIGNORE_DEST"
         echo "!.env.template" >> "$GITIGNORE_DEST"
         echo "!.env.dist" >> "$GITIGNORE_DEST"
+        echo ".ai/private-names.txt" >> "$GITIGNORE_DEST"
         echo "# --- AI-OS END ---" >> "$GITIGNORE_DEST"
         echo "  + Merged AI-OS secret rules into existing .gitignore"
     else
@@ -71,6 +72,9 @@ else
     cp "$GITIGNORE_SRC" "$GITIGNORE_DEST"
     echo "  + Created .gitignore with AI-OS rules"
 fi
+
+mkdir -p "$TARGET_PATH/.ai"
+[ ! -f "$TARGET_PATH/.ai/private-names.txt" ] && touch "$TARGET_PATH/.ai/private-names.txt"
 
 echo ""
 echo "[2/3] Configuring secret protection and Git hooks..."

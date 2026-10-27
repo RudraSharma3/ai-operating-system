@@ -273,6 +273,28 @@ test_upgrade_conflict_preserves_both() {
     assert_contains "$upgrade_output" "Preserved customized" "upgrade.sh must output clear conflict/preserved message"
 }
 
+test_doctor_private_names_denylist() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # Put a private name into tracked file
+    echo "This is confidential_client_project_xyz internal" > "$sandbox/internal.txt"
+    git -C "$sandbox" add internal.txt
+    git -C "$sandbox" commit -qm "add internal file"
+
+    # Add deny-list rule
+    echo "confidential_client_project_xyz" > "$sandbox/.ai/private-names.txt"
+
+    # Run doctor --ci
+    local doc_output doc_status=0
+    doc_output=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status=$?
+
+    cleanup_sandbox "$sandbox"
+    assert_eq 1 "$doc_status" "doctor.sh must fail when tracked files match .ai/private-names.txt"
+    assert_contains "$doc_output" "private deny-listed names" "doctor.sh output must cite private deny-listed names check"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -286,6 +308,7 @@ run_test "upgrade.sh: Preserves customized file on conflict with side-by-side up
 run_test "build-templates.sh: Zero drift between master and templates" test_template_drift_check
 run_test "compile-rules.sh: Rules in AGENTS.md match .ai/rules/" test_rule_compiler_check
 run_test "compile-rules.sh: Compiles nested packages in a monorepo" test_compile_rules_monorepo
+run_test "doctor.sh: Enforces .ai/private-names.txt deny-list check" test_doctor_private_names_denylist
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
