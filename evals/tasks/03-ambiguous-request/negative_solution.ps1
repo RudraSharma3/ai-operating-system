@@ -14,16 +14,16 @@ $content = @"
 - Assumed standard defaults.
 
 ## Prompt Contract
-### 🎯 GOAL:
+### GOAL:
 Perform the requested operation.
 
-### ⛓️ CONSTRAINTS:
+### CONSTRAINTS:
 - Do not fail.
 
-### 📁 FORMAT:
+### FORMAT:
 Standard format.
 
-### ❌ FAILURE:
+### FAILURE:
 - Failure to complete.
 "@
 
