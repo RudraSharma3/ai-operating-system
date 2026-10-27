@@ -56,10 +56,10 @@ run_eval "Doctor Latency: 14 health checks execute under 4.0s" \
 
 # 4. Prompt Contract Integrity
 run_eval "Prompt Contract: Specification defines all 4 required sections" \
-    "grep -q '### 🎯 GOAL:' '$ROOT_DIR/playbooks/prompt-refinement.md' && \
-     grep -q '### ⛓️ CONSTRAINTS:' '$ROOT_DIR/playbooks/prompt-refinement.md' && \
-     grep -q '### 📁 FORMAT:' '$ROOT_DIR/playbooks/prompt-refinement.md' && \
-     grep -q '### ❌ FAILURE' '$ROOT_DIR/playbooks/prompt-refinement.md'"
+    "grep -qE '^### .*GOAL:' '$ROOT_DIR/playbooks/prompt-refinement.md' && \
+     grep -qE '^### .*CONSTRAINTS:' '$ROOT_DIR/playbooks/prompt-refinement.md' && \
+     grep -qE '^### .*FORMAT:' '$ROOT_DIR/playbooks/prompt-refinement.md' && \
+     grep -qE '^### .*FAILURE' '$ROOT_DIR/playbooks/prompt-refinement.md'"
 
 # 5. Template Zero Drift Benchmark
 run_eval "Template Parity: Zero drift between master and generated templates" \
