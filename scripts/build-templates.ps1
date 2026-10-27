@@ -42,6 +42,13 @@ if (-not (Test-Path $aiOsPrompts)) { New-Item -ItemType Directory -Path $aiOsPro
 Copy-Item -Path (Join-Path $root "playbooks/*") -Destination $aiOsPlaybooks -Recurse -Force
 Copy-Item -Path (Join-Path $root "prompts/*") -Destination $aiOsPrompts -Recurse -Force
 
+$optDest = Join-Path $targetDir ".ai-os/optional/claude-hooks"
+if (-not (Test-Path $optDest)) { New-Item -ItemType Directory -Path $optDest -Force | Out-Null }
+$optSrc = Join-Path $root ".ai-os/optional/claude-hooks"
+if (Test-Path $optSrc) {
+    Copy-Item -Path (Join-Path $optSrc "*") -Destination $optDest -Recurse -Force
+}
+
 # 2. Sync security filters and githooks
 $aiDir = Join-Path $targetDir ".ai"
 $hooksDir = Join-Path $targetDir ".githooks"

@@ -47,6 +47,10 @@ mkdir -p "$TARGET_DIR/.ai-os/playbooks"
 mkdir -p "$TARGET_DIR/.ai-os/prompts"
 cp -r "$ROOT_DIR/playbooks/"* "$TARGET_DIR/.ai-os/playbooks/"
 cp -r "$ROOT_DIR/prompts/"* "$TARGET_DIR/.ai-os/prompts/"
+mkdir -p "$TARGET_DIR/.ai-os/optional/claude-hooks"
+if [ -d "$ROOT_DIR/.ai-os/optional/claude-hooks" ]; then
+    cp -r "$ROOT_DIR/.ai-os/optional/claude-hooks/"* "$TARGET_DIR/.ai-os/optional/claude-hooks/"
+fi
 
 # 2. Sync security filters and githooks
 mkdir -p "$TARGET_DIR/.ai"

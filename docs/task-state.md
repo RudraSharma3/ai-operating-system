@@ -451,6 +451,49 @@ This document tracks the current development milestones and task state for the m
   - `tests/run_tests.sh`: **57/57 tests PASSED**.
   - `scripts/doctor.ps1`: **20/20 checks PASSED**.
   - `scripts/doctor.sh`: **20/20 checks PASSED**.
+  - GitHub Actions Workflow Run (Pull Request #1): [https://github.com/RudraSharma3/ai-operating-system/actions/runs/40483285124](https://github.com/RudraSharma3/ai-operating-system/actions/runs/40483285124)
+    - `Linux Verification (Ubuntu)` (ID `122118673941`): **SUCCESS (PASS)** in 18s
+    - `macOS Verification (macOS)` (ID `122118673775`): **SUCCESS (PASS)** in 32s
+    - `Windows Verification (Windows Server)` (ID `122118673370`): **SUCCESS (PASS)** in 2m0s
+  - GitHub Actions Workflow Run (Push to `hardening`): [https://github.com/RudraSharma3/ai-operating-system/actions/runs/40483277642](https://github.com/RudraSharma3/ai-operating-system/actions/runs/40483277642)
+    - `Linux Verification (Ubuntu)` (ID `122118647900`): **SUCCESS (PASS)** in 17s
+    - `macOS Verification (macOS)` (ID `122118647380`): **SUCCESS (PASS)** in 24s
+    - `Windows Verification (Windows Server)` (ID `122118647848`): **SUCCESS (PASS)** in 1m44s
 - **Not Verified**:
-  - Remote CI execution across Linux, Windows, macOS runners (pending push).
+  - None.
+
+### Step 4: Phase 7 Done Properly (Claude Code Opt-In Lifecycle Hooks)
+- **What Changed**:
+  - Fetched official vendor documentation from `https://code.claude.com/docs/en/hooks` and `https://code.claude.com/docs/en/hooks.md`.
+  - Updated `docs/sources.md` with:
+    - Official documentation URL, retrieval date (2026-10-27).
+    - Lifecycle events documented: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `SubagentStart`, `SubagentStop`, `Stop`.
+    - Exact JSON settings schema (`.claude/settings.json`), matcher regex, exit codes, and stdout decision schema (`permissionDecision: "deny"`).
+    - Security notes: hooks run with user permissions, plain reviewable scripts, never execute untrusted tool input content.
+  - Implemented opt-in hooks in `.ai-os/optional/claude-hooks/`:
+    - `README.md`: Security notices, hook documentation, opt-in installation flags.
+    - `settings.json`: Configuration mapping `SessionStart`, `PreCompact`, and `PreToolUse`.
+    - `session-start.sh` & `session-start.ps1`: Prints `docs/task-state.md` summary and token budget metrics.
+    - `pre-compact.sh` & `pre-compact.ps1`: Writes durable pre-compaction state checkpoint into `docs/task-state.md`.
+    - `pre-tool-use.sh` & `pre-tool-use.ps1`: Intercepts `Write`/`Edit` and `Bash`/`PowerShell`. Blocks direct edits to governance files (`AGENTS.md`, `.ai/rules/`, `.githooks/`, `scripts/`) unless `AI_OS_ALLOW_GOVERNANCE_EDIT=1`; blocks subversive commands (`git commit --no-verify`, `git push --force`). Never executes tool input content; relies on stdin JSON parsing and safe regex. Uses `$CLAUDE_PROJECT_DIR` for paths.
+  - Updated `scripts/install.sh` and `scripts/install.ps1`:
+    - Added `--with-claude-hooks` (Bash) and `-WithClaudeHooks` (PowerShell) flags.
+    - Opt-in only: not installed by default.
+  - Updated `scripts/build-templates.sh` and `scripts/build-templates.ps1` to mirror `.ai-os/optional/claude-hooks/` into template.
+  - Added Check 21 to `scripts/doctor.sh` and `scripts/doctor.ps1`:
+    - Warns (`WARN`) if opt-in Claude Code hooks are installed (`.claude/settings.json` present), passes (`PASS`) if clean.
+  - Added unit test suite `tests/test_claude_hooks.sh` testing `SessionStart`, `PreCompact`, and all `PreToolUse` blocking/allowing cases plus input injection defense (14 tests).
+  - Added installer integration test `test_claude_hooks_opt_in_install` in `tests/test_installer.sh`.
+  - Updated doctor check counts to 21 across `scripts/doctor.sh`, `scripts/doctor.ps1`, `README.md`, and `docs/AI-OS-USER-GUIDE.md`.
+- **What Was Verified**:
+  - `tests/test_claude_hooks.sh`: **14/14 tests PASSED** (0 failed).
+  - `tests/test_installer.sh`: **15/15 tests PASSED** (including `test_claude_hooks_opt_in_install`).
+  - `tests/run_tests.sh`: **72/72 tests PASSED** across all 5 test suites.
+  - `scripts/doctor.ps1`: **21/21 checks PASSED**.
+  - `scripts/doctor.sh`: **21/21 checks PASSED**.
+  - `scripts/build-templates.ps1 -Check`: **Zero drift**.
+  - `scripts/build-templates.sh --check`: **Zero drift**.
+- **Not Verified**:
+  - Live execution inside an active Claude Code CLI session (requires human interactive session with `claude` installed; verified deterministically via stdin JSON unit and integration test harnesses).
+
 
