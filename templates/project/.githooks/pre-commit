@@ -66,8 +66,14 @@ fi
 DETECTED_NAMES=()
 
 if command -v python3 >/dev/null 2>&1; then
+    PY_ALLOWLIST="$ALLOWLIST_FILE"
+    PY_PATTERNS="$PATTERNS_FILE"
+    if command -v cygpath >/dev/null 2>&1; then
+        PY_ALLOWLIST=$(cygpath -w "$ALLOWLIST_FILE" 2>/dev/null || echo "$ALLOWLIST_FILE")
+        PY_PATTERNS=$(cygpath -w "$PATTERNS_FILE" 2>/dev/null || echo "$PATTERNS_FILE")
+    fi
     # High-performance batch scanner
-    PYTHON_OUTPUT=$(printf '%s\n' "$ADDED_DIFF" | python3 - "$ALLOWLIST_FILE" "$PATTERNS_FILE" << 'EOF'
+    PYTHON_OUTPUT=$(printf '%s\n' "$ADDED_DIFF" | python3 -c '
 import sys, re, os
 
 allowlist_file = sys.argv[1]
@@ -75,19 +81,19 @@ patterns_file = sys.argv[2]
 
 allowlist = []
 if os.path.isfile(allowlist_file):
-    with open(allowlist_file, 'r', encoding='utf-8') as f:
+    with open(allowlist_file, "r", encoding="utf-8") as f:
         for line in f:
-            clean = line.split('#')[0].strip()
+            clean = line.split("#")[0].strip()
             if clean:
                 allowlist.append(clean)
 
 patterns = []
 if os.path.isfile(patterns_file):
-    with open(patterns_file, 'r', encoding='utf-8') as f:
+    with open(patterns_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#'):
-                parts = line.split('|', 1)
+            if line and not line.startswith("#"):
+                parts = line.split("|", 1)
                 name = parts[0].strip()
                 pat = parts[1].strip() if len(parts) > 1 else parts[0].strip()
                 try:
@@ -97,7 +103,7 @@ if os.path.isfile(patterns_file):
 
 violations = set()
 for line in sys.stdin:
-    line = line.rstrip('\r\n')
+    line = line.rstrip("\r\n")
     if not line:
         continue
     if any(tok in line for tok in allowlist):
@@ -108,8 +114,8 @@ for line in sys.stdin:
 
 for v in sorted(violations):
     print(v)
-EOF
-)
+' "$PY_ALLOWLIST" "$PY_PATTERNS")
+
     if [ -n "$PYTHON_OUTPUT" ]; then
         while IFS= read -r vname; do
             [ -n "$vname" ] && DETECTED_NAMES+=("$vname")

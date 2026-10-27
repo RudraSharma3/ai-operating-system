@@ -1,4 +1,4 @@
-# AI-OS Team Clone Bootstrap Script (PowerShell)
+﻿# AI-OS Team Clone Bootstrap Script (PowerShell)
 # Configures local git hooks and verifies system dependencies after fresh checkout.
 
 $ErrorActionPreference = "Stop"

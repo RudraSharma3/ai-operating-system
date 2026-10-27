@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Position=0, Mandatory=$true)]
     [string]$ProposalFile,
@@ -16,9 +16,16 @@ $proposalItem = Get-Item $ProposalFile
 $proposalBasename = $proposalItem.BaseName
 
 # HUMAN CONFIRMATION GATE
-if (-not $PrReview) {
+# Note: A pseudo-terminal wrapper can satisfy interactive checks. The true security boundary is server-side branch protection.
+if ($PrReview) {
+    if (($env:GITHUB_ACTIONS -ne "true") -and [string]::IsNullOrEmpty($env:CI)) {
+        Write-Error "-PrReview flag can only be used inside CI automation with verified pull request reviews.`nLocal agents cannot bypass human confirmation by passing -PrReview."
+        exit 1
+    }
+    Write-Host "✅ Proposal approved via verified GitHub PR review in CI." -ForegroundColor Green
+} else {
     if (-not [Environment]::UserInteractive) {
-        Write-Error "approve-proposal requires interactive human confirmation or -PrReview flag.`nAutomated agents cannot approve proposals silently without human verification."
+        Write-Error "approve-proposal requires interactive human confirmation in a terminal.`nAutomated agents cannot approve proposals silently without human verification."
         exit 1
     }
 
@@ -26,6 +33,7 @@ if (-not $PrReview) {
     Write-Host " 🚨 PROPOSAL PROMOTION HUMAN APPROVAL GATE" -ForegroundColor Yellow
     Write-Host " Proposal File: $ProposalFile" -ForegroundColor Yellow
     Write-Host " Proposal ID:   $proposalBasename" -ForegroundColor Yellow
+    Write-Host " (Notice: Terminal interactive checks can be simulated; server-side PR review is the real security gate)" -ForegroundColor Yellow
     Write-Host "====================================================" -ForegroundColor Yellow
 
     $confirmInput = Read-Host "Type '$proposalBasename' to confirm promotion"
@@ -34,8 +42,6 @@ if (-not $PrReview) {
         exit 1
     }
     Write-Host "✅ Human confirmation verified." -ForegroundColor Green
-} else {
-    Write-Host "✅ Proposal approved via verified GitHub PR review." -ForegroundColor Green
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

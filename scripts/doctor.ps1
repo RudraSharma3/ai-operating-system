@@ -262,6 +262,37 @@ if ($mcpOk) {
     Record-Check 15 "Playbook MCP worker tools exist in mcp.json" "FAIL" $mcpError
 }
 
+# 16. Pending *.ai-os-update conflict files
+$conflictFiles = Get-ChildItem -Path $target -Filter "*.ai-os-update" -Recurse -File -ErrorAction SilentlyContinue
+if ($conflictFiles -and $conflictFiles.Count -gt 0) {
+    Record-Check 16 "Side-by-side upgrade conflict files" "WARN" "$($conflictFiles.Count) pending *.ai-os-update file(s) found. Review preserved differences."
+} else {
+    Record-Check 16 "Side-by-side upgrade conflict files" "PASS"
+}
+
+# 17. PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)
+$ps1Files = Get-ChildItem -Path $target -Filter "*.ps1" -Recurse -File -ErrorAction SilentlyContinue
+$ps1Ok = $true
+$ps1Err = ""
+foreach ($psf in $ps1Files) {
+    $bytes = [System.IO.File]::ReadAllBytes($psf.FullName)
+    $hasBom = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
+    $isAscii = $true
+    foreach ($b in $bytes) {
+        if ($b -ge 128) { $isAscii = $false; break }
+    }
+    if (-not $hasBom -and -not $isAscii) {
+        $ps1Ok = $false
+        $ps1Err = "Non-ASCII without UTF-8 BOM: $($psf.Name)"
+        break
+    }
+}
+if ($ps1Ok) {
+    Record-Check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "PASS"
+} else {
+    Record-Check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "FAIL" $ps1Err
+}
+
 
 if ($Json) {
     $armor = if ($failures -eq 0) { "ARMED" } else { "UNARMED" }

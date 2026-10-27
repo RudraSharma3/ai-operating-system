@@ -254,6 +254,39 @@ else
     record_check 15 "Playbook MCP worker tools exist in mcp.json" "FAIL" "$MCP_ERROR"
 fi
 
+# 16. Pending *.ai-os-update conflict files
+CONFLICT_FILES=$(find "$PROJECT_PATH" -name "*.ai-os-update" 2>/dev/null || true)
+if [ -n "$CONFLICT_FILES" ]; then
+    CONFLICT_COUNT=$(echo "$CONFLICT_FILES" | grep -c . || true)
+    record_check 16 "Side-by-side upgrade conflict files" "WARN" "$CONFLICT_COUNT pending *.ai-os-update file(s) found. Review preserved differences."
+else
+    record_check 16 "Side-by-side upgrade conflict files" "PASS" ""
+fi
+
+# 17. PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)
+PS1_OK=true
+PS1_ERR=""
+while IFS= read -r psfile; do
+    [ -z "$psfile" ] && continue
+    if ! python3 -c '
+import sys
+data = open(sys.argv[1], "rb").read()
+if data.startswith(b"\xef\xbb\xbf") or all(b < 128 for b in data):
+    sys.exit(0)
+sys.exit(1)
+' "$psfile" 2>/dev/null; then
+        PS1_OK=false
+        PS1_ERR="Non-ASCII without UTF-8 BOM: $(basename "$psfile")"
+        break
+    fi
+done < <(find "$PROJECT_PATH" -name "*.ps1" 2>/dev/null || true)
+
+if [ "$PS1_OK" = true ]; then
+    record_check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "PASS" ""
+else
+    record_check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "FAIL" "$PS1_ERR"
+fi
+
 
 if [ "$JSON_MODE" = true ]; then
     echo "{"

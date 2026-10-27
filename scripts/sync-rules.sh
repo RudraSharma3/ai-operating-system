@@ -113,13 +113,25 @@ if os.path.isdir(master_rules_dir):
                     master_rules.append(txt)
 
 def evaluate_rule(rule_str):
-    # 0. Zero-width / hidden unicode characters check
-    zero_width_pattern = r'[\u200B-\u200D\uFEFF\u202A-\u202E\u2060-\u206F]'
-    if re.search(zero_width_pattern, rule_str):
-        return False, 'Contains hidden unicode or zero-width directional characters', [('FAIL', 'Hidden unicode / zero-width characters detected')]
+    import unicodedata
+
+    # 0. Zero-width, bidi override, and Unicode Tag Block (U+E0000 - U+E007F) detection
+    for ch in rule_str:
+        cp = ord(ch)
+        if cp in (0x200B, 0x200C, 0x200D, 0xFEFF, 0x00A0):
+            return False, 'Contains hidden unicode or zero-width formatting characters', [('FAIL', 'Zero-width characters detected')]
+        if 0x202A <= cp <= 0x202E:
+            return False, 'Contains bidirectional text override characters', [('FAIL', 'Bidi override detected')]
+        if 0x2060 <= cp <= 0x206F:
+            return False, 'Contains invisible formatting characters', [('FAIL', 'Invisible formatting detected')]
+        if 0xE0000 <= cp <= 0xE007F:
+            return False, 'Contains Unicode tag block characters (U+E0000 - U+E007F)', [('FAIL', 'Unicode tag block detected')]
+
+    # Normalize unicode to NFKD for consistent inspection
+    normalized_rule = unicodedata.normalize('NFKD', rule_str)
 
     # Rule syntax: <ID>. [CATEGORY] Description — rationale.
-    match = re.match(r'^([a-zA-Z0-9_-]+)\.\s+\[([A-Z]+)\]\s+(.*)', rule_str)
+    match = re.match(r'^([a-zA-Z0-9_-]+)\.\s+\[([A-Z]+)\]\s+(.*)', normalized_rule)
     if not match:
         return False, 'Fails format syntax (<ID>. [CATEGORY] Description — rationale.)', []
     
@@ -169,27 +181,30 @@ def evaluate_rule(rule_str):
     else:
         return False, 'Rule already present in master ruleset', checks
     
-    # 6. Safe source & anti-injection / privilege escalation
-    injection_words = [
-        'ignore previous',
-        'disable the pre-commit',
-        'disable pre-commit',
-        '--no-verify',
-        'do not ask the user',
-        "don't ask the user",
-        'never ask the user',
-        'edit agents.md directly',
-        'modify agents.md directly',
-        'write to agents.md',
-        'system prompt',
-        'api key sk-',
-        'bypass guard'
+    # 6. Safe source & anti-injection / privilege escalation (Case-insensitive & regex paraphrases)
+    injection_regexes = [
+        r'ignore\s+(all\s+)?previous',
+        r'disregard\s+(all\s+)?previous',
+        r'forget\s+(all\s+)?previous',
+        r'disable\s+(the\s+)?pre-commit',
+        r'skip\s+(the\s+)?pre-commit',
+        r'--no-verify',
+        r'do\s+not\s+ask\s+(the\s+)?user',
+        r"don't\s+ask\s+(the\s+)?user",
+        r'never\s+ask\s+(the\s+)?user',
+        r'bypass\s+(the\s+)?user',
+        r'edit\s+agents\.md\s+directly',
+        r'modify\s+agents\.md\s+directly',
+        r'write\s+to\s+agents\.md\s+directly',
+        r'system\s+prompt',
+        r'api\s+key\s+sk-',
+        r'bypass\s+guard'
     ]
-    has_inj = any(iw in body.lower() for iw in injection_words)
+    has_inj = any(re.search(rx, body, re.IGNORECASE) for rx in injection_regexes)
     if not has_inj:
         checks.append(('PASS', 'Clean instruction source'))
     else:
-        return False, 'Contains prompt injection or security-subverting phrases', checks
+        return False, 'Contains prompt injection, security-subverting instructions, or forbidden directives', checks
     
     # 7. Zero secrets
     has_secret = any(rx.search(rule_str) for rx in secret_regexes)
