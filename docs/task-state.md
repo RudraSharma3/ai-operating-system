@@ -527,4 +527,22 @@ This document tracks the current development milestones and task state for the m
 - **Not Verified**:
   - Live model execution against external LLM API (no headless CLI available or authenticated on system PATH).
 
+### Step 6: Server-Side Branch Protection Settings on `main`
+- **What Changed**:
+  - Audited GitHub CLI authentication and token permissions using `gh auth status` and `gh api repos/RudraSharma3/ai-operating-system --jq ".permissions"`. Confirmed token has administrator permissions (`admin: true`).
+  - Applied strict branch protection policy to `main` via `gh api --method PUT repos/RudraSharma3/ai-operating-system/branches/main/protection`:
+    - `required_status_checks`: Strict (`strict: true`), requiring all 3 CI jobs: `Linux Verification (Ubuntu)`, `macOS Verification (macOS)`, `Windows Verification (Windows Server)`.
+    - `required_pull_request_reviews`: Enforces minimum 1 approving review (`required_approving_review_count: 1`), mandatory CODEOWNERS review (`require_code_owner_reviews: true`), and stale review dismissal (`dismiss_stale_reviews: true`).
+    - Force pushes and branch deletion strictly blocked (`allow_force_pushes: false`, `allow_deletions: false`).
+    - Admin bypass enabled (`enforce_admins: false`) to avoid locking out the sole maintainer due to GitHub's restriction against self-reviewing authored PRs.
+  - Demonstrated and verified the active configuration with `gh api repos/RudraSharma3/ai-operating-system/branches/main/protection`.
+  - Updated `docs/branch-protection.md` to reflect the active configuration and live verification command.
+  - Kept PR #1 unmerged and preserved the hard rule forbidding pushes to `main`.
+- **What Was Verified**:
+  - `gh auth status`: Token authenticated with scopes `'gist', 'read:org', 'repo', 'workflow'`.
+  - `gh api repos/RudraSharma3/ai-operating-system --jq ".permissions"`: Verified `admin: true`.
+  - `gh api repos/RudraSharma3/ai-operating-system/branches/main/protection`: Active branch protection verified with 3 required status checks, CODEOWNERS enforcement, and blocked force pushes.
+- **Not Verified**:
+  - Merging PR #1 (strictly prohibited by user task instructions).
+
 
