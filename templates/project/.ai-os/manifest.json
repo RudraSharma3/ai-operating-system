@@ -1,6 +1,6 @@
 {
     "ai_os_version": "2.1.0",
-    "generated_at": "2026-10-27T07:41:07Z",
+    "generated_at": "2026-10-27T08:02:42Z",
     "file_count": 48,
     "files": {
         ".ai-os/playbooks/architecture-decisions.md": "32c7af2cbca3520d114d90881ad369e83bac85f11b44af9d8e0b0c53541e1910",
@@ -35,7 +35,7 @@
         ".claude/commands/feature.md": "75783737c927d69e98ea1ad6d3d90ccff37a6ad4657eef0190375fb627f4331b",
         ".claude/commands/interview.md": "015e163aca1f215647ab0bc2f475a6e74f01e05db25cfdb2c16e5e408b54963a",
         ".claude/commands/sync-state.md": "1892747121991159698d95d1b85fbb9191c15df0f5250134a53d2d19d7f59138",
-        ".cursor/rules/agents.mdc": "4b27137558c02a0f37fd865ebfa61274c0694dfc9d10c3217342fa5ffbabb2b5",
+        ".cursor/rules/agents.mdc": "85262834af1736fe8a66b308808ae4d6d90e2f6866ad5228cae5d06c4b8263d2",
         ".gitattributes": "4559807333eee868a4ccea54e70520ff9ed8247edbc36143481b1c927a5aca02",
         ".githooks/pre-commit": "83d4bc5977fc11f8c23c660d35f6079a8073b162aa2166aa9fda67559f5a05a8",
         ".github/copilot-instructions.md": "1a0d713f4d0fb85ec3251f8e4f86c96fa35eaf926d4fbd8d73728ea724b1931a",

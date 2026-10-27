@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param()
 
 $ErrorActionPreference = "Stop"
@@ -14,7 +14,7 @@ $passed = 0
 $failed = 0
 
 function Run-Eval($Name, [scriptblock]$Action) {
-    Write-Host -NoNewline "  • [BENCHMARK] $Name ... "
+    Write-Host -NoNewline "  * [BENCHMARK] $Name ... "
     try {
         & $Action
         Write-Host "PASS" -ForegroundColor Green
@@ -42,11 +42,11 @@ Run-Eval "Doctor Latency: 14 health checks execute under 4.0s" {
 }
 
 Run-Eval "Prompt Contract: Specification defines all 4 required sections" {
-    $content = Get-Content (Join-Path $RootDir "playbooks/prompt-refinement.md") -Raw
-    if ($content -notmatch '### 🎯 GOAL:' -or
-        $content -notmatch '### ⛓️ CONSTRAINTS:' -or
-        $content -notmatch '### 📁 FORMAT:' -or
-        $content -notmatch '### ❌ FAILURE') {
+    $content = [System.IO.File]::ReadAllText((Join-Path $RootDir "playbooks/prompt-refinement.md"), [System.Text.Encoding]::UTF8)
+    if ($content -notmatch '(?m)^### .*GOAL:' -or
+        $content -notmatch '(?m)^### .*CONSTRAINTS:' -or
+        $content -notmatch '(?m)^### .*FORMAT:' -or
+        $content -notmatch '(?m)^### .*FAILURE') {
         throw "Missing one or more required Prompt Contract sections"
     }
 }
