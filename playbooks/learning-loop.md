@@ -28,11 +28,14 @@ Instead, append a candidate entry to `.ai/mistakes-candidates.md`:
 Before any candidate rule is proposed or promoted to canonical rules, it is evaluated across mechanical and model/human criteria:
 
 ### Mechanical Quality Checks (Automated deterministically by `sync-rules`)
+> [!IMPORTANT]
+> **Security Boundary Notice**: The mechanical injection and keyword filter in `sync-rules` is a best-effort heuristic scanner (inspecting case variants, paraphrases, zero-width formatting, and Unicode tag blocks U+E0000–U+E007F); **it is NOT a formal security boundary**. Client-side checks can be bypassed or paraphrased; the true, non-bypassable security boundary is human CODEOWNER review and server-side branch protection enforced on Pull Requests (see `docs/branch-protection.md`).
+
 1. **Format Syntax**: Enforces strict format `<ID>. [CATEGORY] Statement — rationale.` via AST/regex.
 2. **Category Validation**: Must match one of the 10 approved tags (`STYLE`, `CODE`, `ARCH`, `TOOL`, `PROCESS`, `DATA`, `UX`, `SECURITY`, `TEST`, `OTHER`).
 3. **Rationale Separator**: Must contain explicit evidence separator (` — ` or ` - `).
 4. **Zero Secrets**: Scans against multi-vendor credential patterns from `.ai/secret-patterns.txt`.
-5. **Anti-Injection & Security Defense**: Mechanically rejects prompt injection phrases (`ignore previous`, `system prompt`), security-subverting instructions (`disable the pre-commit`, `--no-verify`, `do not ask the user`), self-modification tampering (`edit AGENTS.md directly`), and hidden zero-width / bidi unicode characters.
+5. **Anti-Injection & Security Defense**: Mechanically rejects prompt injection phrases (`ignore previous`, `disregard previous`, `system prompt`), security-subverting instructions (`disable the pre-commit`, `--no-verify`, `do not ask the user`, `bypass user`), self-modification tampering (`edit AGENTS.md directly`), and hidden zero-width / bidi / Unicode tag characters.
 6. **No Local Machine Paths**: Rejects project-specific local user paths (`/Users/`, `C:\`, `/home/`, `node_modules`).
 7. **Deduplication**: Mechanically blocks duplicate rules already present in master ruleset.
 8. **Actionable Statement Length**: Rejects brief or vague instructions under 20 characters.

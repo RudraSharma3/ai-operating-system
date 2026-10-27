@@ -17,10 +17,11 @@ Before engaging multiple agents, verify against `.ai/routing.md`:
 
 All agent tooling must map directly to verifiable servers declared in `mcp.json`:
 
-- **`filesystem`** (`@modelcontextprotocol/server-filesystem@2.0.1`): Sandboxed file tree reads, scoped modifications, and workspace inspection.
-- **`memory`** (`@modelcontextprotocol/server-memory@2.0.0`): Structured graph-based state tracking across long-horizon architectural evaluations.
+- **`filesystem`** (`@modelcontextprotocol/server-filesystem@2.0.1`): Sandboxed file tree reads, scoped modifications, and workspace inspection (Node.js/npm).
+- **`memory`** (`@modelcontextprotocol/server-memory@2.0.0`): Structured graph-based state tracking across long-horizon architectural evaluations (Node.js/npm).
 
-*(Unverified or fantasy servers without backing implementations are strictly prohibited).*
+*(Note: Reference MCP servers like `mcp-server-git` and `mcp-server-fetch` are official Python packages managed via `uvx`/`pipx`, rather than JavaScript packages published on npm. When configuring Python MCP servers in `mcp.json`, specify `uvx` command execution rather than `npx`)*.
+
 
 ---
 

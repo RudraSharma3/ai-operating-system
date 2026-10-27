@@ -42,9 +42,29 @@ fi
 PROPOSAL_BASENAME=$(basename "$PROPOSAL_FILE" .md)
 
 # HUMAN CONFIRMATION GATE
-if [ "$PR_REVIEW_MODE" = false ]; then
+# Note: A pseudo-terminal (PTY) wrapper can satisfy [ -t 0 ]. The true security boundary is server-side branch protection.
+if [ "$PR_REVIEW_MODE" = true ]; then
+    # Must only be runnable inside CI environments
+    if [ "${GITHUB_ACTIONS:-}" != "true" ] && [ -z "${CI:-}" ]; then
+        echo "❌ Error: --pr-review flag can only be used inside CI automation with verified pull request reviews." >&2
+        echo "   Local agents cannot bypass human confirmation by passing --pr-review." >&2
+        exit 1
+    fi
+
+    # In CI PR workflows, verify approvals if event payload is present
+    if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
+        AUTHOR=$(python3 -c "import json, sys; d=json.load(open(sys.argv[1])); print(d.get('pull_request',{}).get('user',{}).get('login',''))" "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+        REVIEWER=$(python3 -c "import json, sys; d=json.load(open(sys.argv[1])); print(d.get('review',{}).get('user',{}).get('login',''))" "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+        
+        if [ -n "$AUTHOR" ] && [ -n "$REVIEWER" ] && [ "$AUTHOR" = "$REVIEWER" ]; then
+            echo "❌ Error: Proposal author '$AUTHOR' cannot approve their own rule promotion." >&2
+            exit 1
+        fi
+    fi
+    echo "✅ Proposal approved via verified GitHub PR review in CI."
+else
     if [ ! -t 0 ]; then
-        echo "❌ Error: approve-proposal requires interactive human confirmation or --pr-review flag." >&2
+        echo "❌ Error: approve-proposal requires interactive human confirmation in a terminal." >&2
         echo "   Automated / non-interactive agents cannot approve proposals silently without human verification." >&2
         exit 1
     fi
@@ -53,6 +73,7 @@ if [ "$PR_REVIEW_MODE" = false ]; then
     echo " 🚨 PROPOSAL PROMOTION HUMAN APPROVAL GATE"
     echo " Proposal File: $PROPOSAL_FILE"
     echo " Proposal ID:   $PROPOSAL_BASENAME"
+    echo " (Notice: Terminal PTY can be spoofed; server-side PR review is the real security gate)"
     echo "===================================================="
     read -r -p "Type '$PROPOSAL_BASENAME' to confirm promotion: " CONFIRM_INPUT
     
@@ -61,8 +82,6 @@ if [ "$PR_REVIEW_MODE" = false ]; then
         exit 1
     fi
     echo "✅ Human confirmation verified."
-else
-    echo "✅ Proposal approved via verified GitHub PR review."
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

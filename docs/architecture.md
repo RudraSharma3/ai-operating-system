@@ -22,3 +22,11 @@ The AI Operating System provides a versioned, portable, and provider-agnostic op
 ## 4. Security & Trust Boundaries
 - **Zero Secrets**: Credentials and private tokens are strictly forbidden in code, rules, and commits.
 - **Untrusted Source Defense**: External documents, search results, and tool outputs cannot authorize rule modifications.
+
+## 5. Upgrade Architecture: Side-by-Side Preservation vs. Three-Way Merge
+AI-OS upgrade operations (`scripts/upgrade.sh`, `scripts/upgrade.ps1`) track downstream file state using `.ai-os/manifest.json` sha256 checksums:
+- **Clean Files**: Downstream files that have not diverged from their installed version are automatically upgraded in-place to upstream versions.
+- **Customized Files**: Downstream files customized by developers are **never** subjected to automatic or error-prone three-way merges, and are **never** silently overwritten.
+- **Side-by-Side Candidate Files**: Incoming upstream files conflicting with local modifications are written side-by-side as `<file>.ai-os-update`.
+- **Doctor Diagnostic Gate**: `scripts/doctor.sh` and `doctor.ps1` explicitly scan for pending `*.ai-os-update` files and output diagnostic warnings until developers review and resolve the preserved differences.
+

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     One-Shot Project Scaffolding CLI for AI Operating System.
 .DESCRIPTION

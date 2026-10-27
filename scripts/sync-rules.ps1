@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$ProjectPath = ".",
     [switch]$DryRun
@@ -76,13 +76,15 @@ $stats = @{ proposed = 0; rejected = 0; duplicate = 0 }
 $validCategories = @("STYLE", "CODE", "ARCH", "TOOL", "PROCESS", "DATA", "UX", "SECURITY", "TEST", "OTHER")
 
 foreach ($r in $candidateRules) {
-    if ($r -match '[\u200B-\u200D\uFEFF\u202A-\u202E\u2060-\u206F]') {
-        Write-Host " [REJECTED] Contains hidden unicode or zero-width directional characters: $r" -ForegroundColor Red
+    if ($r -match '[\u200B-\u200D\uFEFF\u00A0\u202A-\u202E\u2060-\u206F]|\uDB40[\uDC00-\uDC7F]') {
+        Write-Host " [REJECTED] Contains hidden unicode, zero-width, or tag block characters: $r" -ForegroundColor Red
         $stats.rejected++
         continue
     }
 
-    if ($r -notmatch '^([a-zA-Z0-9_-]+)\.\s+\[([A-Z]+)\]\s+(.*)') {
+    $normalized = $r.Normalize([System.Text.NormalizationForm]::FormKD)
+
+    if ($normalized -notmatch '^([a-zA-Z0-9_-]+)\.\s+\[([A-Z]+)\]\s+(.*)') {
         Write-Host " [REJECTED] Fails format syntax: $r" -ForegroundColor Red
         $stats.rejected++
         continue
@@ -138,24 +140,27 @@ foreach ($r in $candidateRules) {
     }
     $checks += "5. [PASS] Non-conflicting and not already present in master"
 
-    $injectionWords = @(
-        'ignore previous',
-        'disable the pre-commit',
-        'disable pre-commit',
-        '--no-verify',
-        'do not ask the user',
-        "don't ask the user",
-        'never ask the user',
-        'edit agents.md directly',
-        'modify agents.md directly',
-        'write to agents.md',
-        'system prompt',
-        'api key sk-',
-        'bypass guard'
+    $injectionPatterns = @(
+        '(?i)ignore\s+(all\s+)?previous',
+        '(?i)disregard\s+(all\s+)?previous',
+        '(?i)forget\s+(all\s+)?previous',
+        '(?i)disable\s+(the\s+)?pre-commit',
+        '(?i)skip\s+(the\s+)?pre-commit',
+        '(?i)--no-verify',
+        '(?i)do\s+not\s+ask\s+(the\s+)?user',
+        "(?i)don't\s+ask\s+(the\s+)?user",
+        '(?i)never\s+ask\s+(the\s+)?user',
+        '(?i)bypass\s+(the\s+)?user',
+        '(?i)edit\s+agents\.md\s+directly',
+        '(?i)modify\s+agents\.md\s+directly',
+        '(?i)write\s+to\s+agents\.md\s+directly',
+        '(?i)system\s+prompt',
+        '(?i)api\s+key\s+sk-',
+        '(?i)bypass\s+guard'
     )
     $hasInj = $false
-    foreach ($iw in $injectionWords) {
-        if ($body.ToLower().Contains($iw.ToLower())) { $hasInj = $true; break }
+    foreach ($p in $injectionPatterns) {
+        if ($body -match $p) { $hasInj = $true; break }
     }
     if ($hasInj) {
         Write-Host " [REJECTED] Contains prompt injection or security-subverting phrases: $r" -ForegroundColor Red
