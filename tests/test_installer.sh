@@ -203,8 +203,12 @@ test_sh_upgrade_preserves_customizations() {
 }
 
 test_template_drift_check() {
-    "$REPO_ROOT/scripts/build-templates.sh" --check >/dev/null 2>&1
+    local output
+    output=$("$REPO_ROOT/scripts/build-templates.sh" --check 2>&1)
     local ret=$?
+    if [ "$ret" -ne 0 ]; then
+        echo "$output" >&2
+    fi
     assert_eq "0" "$ret" "build-templates.sh --check must verify zero drift between master and templates"
 }
 

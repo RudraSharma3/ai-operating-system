@@ -12,7 +12,7 @@ echo ""
 run_suite() {
     local suite_script="$1"
     echo "▶️ Running Suite: $(basename "$suite_script")"
-    if ! "$suite_script"; then
+    if ! bash "$suite_script"; then
         TOTAL_FAILED=$((TOTAL_FAILED + 1))
     fi
     echo ""

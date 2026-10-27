@@ -88,7 +88,7 @@ for root, dirs, files in os.walk(target_dir):
         full_path = os.path.join(root, f)
         if full_path == manifest_path:
             continue
-        rel_path = os.path.relpath(full_path, target_dir).replace('\\\\', '/')
+        rel_path = os.path.relpath(full_path, target_dir).replace(os.sep, '/').replace(chr(92), '/')
         
         with open(full_path, 'rb') as fp:
             data = fp.read()
