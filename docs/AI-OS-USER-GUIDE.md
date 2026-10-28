@@ -134,7 +134,7 @@ If you prefer to copy the template files manually:
 
 ### 🔹 Step 3: Verify the Confirmation & Health Diagnostic
 
-When the integrator finishes, it runs a 23-point diagnostic and displays your personalized confirmation banner:
+When the integrator finishes, it runs a 24-point diagnostic and displays your personalized confirmation banner:
 
 ```
 ========================================================================
@@ -320,7 +320,7 @@ Anytime you want to verify your repository's AI-OS configuration:
 ```powershell
 powershell -File "scripts/doctor.ps1"
 ```
-It tests 23 key integrity checks across rules, documentation, hooks, and security.
+It tests 24 key integrity checks across rules, documentation, hooks, and security.
 
 ---
 

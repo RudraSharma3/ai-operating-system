@@ -435,6 +435,7 @@ EOF
     assert_eq 1 "$doc_status_range" "doctor.sh must fail when an MCP server version has a range (^, ~, >=)"
     assert_contains "$doc_out_range" "range" "doctor.sh must report range version specification in mcp.json"
     assert_eq 0 "$doc_status_clean" "doctor.sh must pass when all MCP servers are pinned and match playbook"
+    assert_contains "$doc_out_clean" "PASS" "doctor.sh output must show passed checks"
 }
 
 test_doctor_headless_command_verification() {
@@ -453,16 +454,19 @@ test_doctor_headless_command_verification() {
 EOF
 
     # 1. Test warning when doc contains unverified headless command
+    # shellcheck disable=SC2016 # literal backticks in documentation fixture
     echo 'Run: `claude --non-interactive -p`' > "$sandbox/docs/eval-guide.md"
     local doc_out_warn
     doc_out_warn=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
 
     # 2. Test pass when doc contains verified headless command
+    # shellcheck disable=SC2016 # literal backticks in documentation fixture
     echo 'Run: `claude -p`' > "$sandbox/docs/eval-guide.md"
     local doc_out_pass
     doc_out_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
 
     # 3. Test warning when doc contains unverified permission-mode value
+    # shellcheck disable=SC2016 # literal backticks in documentation fixture
     echo 'Run: `claude --permission-mode unverifiedmode -p`' > "$sandbox/docs/eval-guide.md"
     local doc_out_mode_warn
     doc_out_mode_warn=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
@@ -572,6 +576,66 @@ test_offline_test_and_doctor_scripts_no_network_invocations() {
     assert_eq "" "$repo_hits" "tests, doctor scripts, and evals must not invoke network tools (npm, npx, uvx, pip, curl, wget, Invoke-WebRequest, gh api)" || return 1
 }
 
+test_doctor_workflow_pinning_and_permissions() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    mkdir -p "$sandbox/.github/workflows"
+    local wf_file="$sandbox/.github/workflows/test.yml"
+
+    # 1. Test failure/warn when workflow lacks top-level permissions block
+    cat << 'EOF' > "$wf_file"
+name: Test
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+EOF
+    local doc_out_no_perm
+    doc_out_no_perm=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    # 2. Test failure/warn when workflow uses unpinned action tag
+    cat << 'EOF' > "$wf_file"
+name: Test
+permissions:
+  contents: read
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+EOF
+    local doc_out_unpinned
+    doc_out_unpinned=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    # 3. Test pass when workflow has top-level permissions and pinned action SHA
+    cat << 'EOF' > "$wf_file"
+name: Test
+permissions:
+  contents: read
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+EOF
+    local doc_out_pass
+    doc_out_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    cleanup_sandbox "$sandbox"
+
+    assert_contains "$doc_out_no_perm" "WARN] GitHub Actions workflow" "doctor.sh must warn when workflow lacks top-level permissions block" || return 1
+    assert_contains "$doc_out_no_perm" "lacks a top-level permissions block" "doctor.sh must identify missing permissions block" || return 1
+    assert_contains "$doc_out_unpinned" "WARN] GitHub Actions workflow" "doctor.sh must warn when workflow uses unpinned action" || return 1
+    assert_contains "$doc_out_unpinned" "unpinned action" "doctor.sh must identify unpinned action" || return 1
+    assert_contains "$doc_out_pass" "PASS] GitHub Actions workflow" "doctor.sh must pass when workflow has permissions and pinned SHA" || return 1
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -591,6 +655,7 @@ run_test "doctor.sh: Enforces .ai/private-names.txt deny-list check" test_doctor
 run_test "doctor.sh: Enforces MCP playbook matching and pinned versions" test_doctor_mcp_playbook_matching_and_pinning
 run_test "doctor.sh: Warns if docs contain headless command not listed in docs/sources.md" test_doctor_headless_command_verification
 run_test "doctor.sh: Warns if mcp-pins.json contains young pin or stale record" test_doctor_mcp_pins_maturity_and_freshness
+run_test "doctor.sh: Warns if workflows lack permissions or use unpinned action SHAs" test_doctor_workflow_pinning_and_permissions
 run_test "offline: Default tests, doctor scripts, and evals do not invoke network tools" test_offline_test_and_doctor_scripts_no_network_invocations
 
 echo ""

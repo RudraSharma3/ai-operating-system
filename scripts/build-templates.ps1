@@ -120,7 +120,9 @@ if (-not $Check -and (Test-Path $realManifestPath)) {
             Write-Host " [SUCCESS] Manifest .ai-os/manifest.json already up-to-date ($($fileHashes.Count) files indexed)" -ForegroundColor Green
             exit 0
         }
-    } catch {}
+    } catch {
+        Write-Verbose "Could not load or compare existing manifest: $_"
+    }
 }
 
 $manifest = [ordered]@{
