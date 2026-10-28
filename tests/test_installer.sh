@@ -462,10 +462,17 @@ EOF
     local doc_out_pass
     doc_out_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
 
+    # 3. Test warning when doc contains unverified permission-mode value
+    echo 'Run: `claude --permission-mode unverifiedmode -p`' > "$sandbox/docs/eval-guide.md"
+    local doc_out_mode_warn
+    doc_out_mode_warn=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
     cleanup_sandbox "$sandbox"
 
     assert_contains "$doc_out_warn" "WARN] Headless agent command documentation" "doctor.sh must warn when unverified headless command is in docs" || return 1
     assert_contains "$doc_out_warn" "claude --non-interactive" "doctor.sh must identify unverified command" || return 1
+    assert_contains "$doc_out_mode_warn" "WARN] Headless agent command documentation" "doctor.sh must warn when unverified permission-mode is in docs" || return 1
+    assert_contains "$doc_out_mode_warn" "unverifiedmode" "doctor.sh must identify unverified permission mode" || return 1
     assert_contains "$doc_out_pass" "PASS] Headless agent command documentation" "doctor.sh must pass when headless command matches verified sources" || return 1
 }
 

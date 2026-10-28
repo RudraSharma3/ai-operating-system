@@ -93,13 +93,21 @@ This document records the official documentation URLs, retrieval dates, and veri
 
 ## 5. Claude Code CLI Headless & Scripting Flags
 
-- **Official Source**: `https://code.claude.com/docs/en/cli-reference` (Markdown: `https://code.claude.com/docs/en/cli-reference.md`)
+- **Official Source**: `https://code.claude.com/docs/en/cli-reference` (Markdown: `https://code.claude.com/docs/en/cli-reference.md`), `https://code.claude.com/docs/en/permission-modes` (Markdown: `https://code.claude.com/docs/en/permission-modes.md`)
 - **Retrieval Date**: 2026-10-28
 - **Verification Status**: **VERIFIED**
+- **Documented Permission Modes (`--permission-mode <mode>`)**:
+  - `default`: Reads only without asking; prompts for edits/commands. Built-in starting permission mode for `claude -p` and SDK runs (narrowest baseline mode).
+  - `manual`: Config alias for `default`.
+  - `dontAsk`: File reads inside working directories and pre-approved tools only; anything that would prompt is denied. Narrowest mode for locked-down unattended CI and scripts.
+  - `acceptEdits`: Reads, file edits, and common filesystem commands (`mkdir`, `touch`, `mv`, `cp`) run without asking.
+  - `plan`: Reads and planning commands without edits before approval.
+  - `auto`: Autonomous execution with background safety classifier checks.
+  - `bypassPermissions`: Skips all checks (equivalent to `--dangerously-skip-permissions`; isolated containers/VMs only).
 - **Verified Headless & Permission Flags**:
   - `-p`, `--print`: Print response without interactive mode / query via SDK, then exit.
   - `--output-format <text|json|stream-json>`: Specify output format for print mode.
-  - `--permission-mode <mode>`: Permission mode for session (`default`, `plan`, `auto`, `bypassPermissions`).
+  - `--permission-mode <mode>`: Permission mode for session (`default`, `manual`, `dontAsk`, `acceptEdits`, `plan`, `auto`, `bypassPermissions`).
   - `--allowedTools <tools>`, `--allowed-tools <tools>`: Narrowly restrict tools that execute without prompting for permission (e.g. `--allowedTools "Bash,Read,Edit"`).
   - `--permission-prompts <host|none>`: Set who answers permission prompts in print mode (`none` denies in unattended runs).
   - `--max-turns <n>`: Limit number of agentic turns in print mode.
@@ -111,12 +119,13 @@ This document records the official documentation URLs, retrieval dates, and veri
   - `claude -p`
   - `claude --print`
   - `claude -p --output-format json`
-  - `claude --permission-mode auto -p`
+  - `claude --permission-mode default -p`
+  - `claude --permission-mode dontAsk --allowedTools "Bash,Read,Edit" -p`
   - `claude --allowedTools "Bash,Read,Edit" -p`
   - `claude --dangerously-skip-permissions -p`
 
 > ⚠️ **SECURITY WARNING on `--dangerously-skip-permissions`**:
-> The `--dangerously-skip-permissions` flag bypasses all interactive confirmation prompts and allows autonomous file modification and command execution. It must NEVER be used on developer workstations or unisolated repositories. In AI-OS evaluation suites, `--dangerously-skip-permissions` is blocked by default and permitted ONLY inside isolated ephemeral sandboxes created outside the repository tree when `AI_OS_EVAL_SANDBOX=1` is explicitly set. In all documented workflows and CI pipelines, prefer the narrowest permission option: `claude -p`, `claude --permission-mode auto -p`, or `claude --allowedTools "Bash,Read,Edit" -p`.
+> The `--dangerously-skip-permissions` flag bypasses all interactive confirmation prompts and allows autonomous file modification and command execution. It must NEVER be used on developer workstations or unisolated repositories. In AI-OS evaluation suites, `--dangerously-skip-permissions` is blocked by default and permitted ONLY inside isolated ephemeral sandboxes created outside the repository tree when `AI_OS_EVAL_SANDBOX=1` is explicitly set. In all documented workflows and CI pipelines, prefer the narrowest permission option: `claude -p`, `claude --permission-mode default -p`, or `claude --allowedTools "Bash,Read,Edit" -p`.
 
 ---
 
