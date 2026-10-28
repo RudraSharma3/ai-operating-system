@@ -5,6 +5,18 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-10-28
+
+### Added
+- **14-Day MCP Pin Maturity & Doctor Verification**: Pinned all MCP tool servers (`@modelcontextprotocol/server-filesystem@1.0.0`, `@modelcontextprotocol/server-memory@1.0.0`, `mcp-server-git==2026.10.10`, `mcp-server-fetch==2026.10.10`) to stable releases published >= 14 days ago. Added 23-point Doctor Check 23 (`docs/mcp-pins.json`) verifying pin age and record freshness offline without network calls.
+- **Dedicated Scheduled Registry Check Workflow**: Moved live npm and PyPI registry lookups into `scripts/registry-check.sh`, `scripts/registry-check.ps1`, and a weekly workflow (`.github/workflows/registry-check.yml`) triggered by `workflow_dispatch` and weekly schedule, keeping default test, doctor, and eval execution 100% offline.
+- **Offline Network Guard Verification**: Added `test_offline_test_and_doctor_scripts_no_network_invocations` enforcing that default test, doctor, and eval scripts never invoke outbound network tools (`npm`, `npx`, `uvx`, `pip`, `curl`, `wget`, `Invoke-WebRequest`, `gh api`), with an explicit allowlist strictly limited to `scripts/registry-check.*`.
+- **Eval Sandbox Security & Credential Stripping**: Hardened evaluation runners (`evals/run_task.sh`, `evals/run_task.ps1`) to run exclusively in temporary directories outside the repository tree and outside any parent repository, strip environment variables matching sensitive patterns (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, cloud provider credentials) before launching agents, and refuse `--dangerously-skip-permissions` unless `AI_OS_EVAL_SANDBOX=1` is explicitly set in an isolated sandbox.
+- **Negative Control Verification Mode (`--expect-fail`)**: Added `--expect-fail` / `-ExpectFail` flag exiting 0 only when all negative controls are rejected and 1 if any passes, integrated into CI and documentation.
+
+### Changed
+- **Windows CI Performance Optimization**: Replaced line-by-line subprocess loops in `doctor.sh` with bulk pattern extraction, eliminating subshell process spawning overhead in Git Bash on Windows and cutting test harness runtime from 14m18s to ~2m30s.
+
 ## [2.3.0] - 2026-10-27
 
 ### Added
