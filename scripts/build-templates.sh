@@ -110,9 +110,20 @@ for root, dirs, files in os.walk(target_dir):
 
 sorted_hashes = {k: file_hashes[k] for k in sorted(file_hashes.keys())}
 
+gen_at = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+if not check_mode and os.path.isfile(manifest_path):
+    try:
+        with open(manifest_path, 'r', encoding='utf-8') as efp:
+            prev = json.load(efp)
+            if prev.get('ai_os_version') == version and prev.get('files') == sorted_hashes:
+                print(f' [SUCCESS] Manifest .ai-os/manifest.json already up-to-date ({len(sorted_hashes)} files indexed)')
+                sys.exit(0)
+    except Exception:
+        pass
+
 manifest = {
     'ai_os_version': version,
-    'generated_at': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'generated_at': gen_at,
     'file_count': len(sorted_hashes),
     'files': sorted_hashes
 }
