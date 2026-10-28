@@ -719,5 +719,48 @@ This document tracks the current development milestones and task state for the m
   - `scripts/doctor.ps1 -Ci`: 24/24 Passed (0 Warnings, 0 Failures).
   - `scripts/build-templates.sh --check`: PASS (0 drift).
   - `scripts/compile-rules.sh --check`: PASS (in sync).
+  - GitHub Actions CI (PR #2, Run ID `40751787356`):
+    * Linux Verification (Ubuntu): **SUCCESS (PASS)** in 54s.
+    * macOS Verification (macOS): **SUCCESS (PASS)** in 1m21s.
+    * Windows Verification (Windows Server): **SUCCESS (PASS)** in 5m14s.
 - **Not Verified**:
-  - CI execution on PR (pending push and PR creation).
+  - None.
+
+---
+
+### Step 12: Review Findings Resolution, Pin Verification & Release v2.4.3
+- **What Changed**:
+  - **Action Pin Tag vs Commit SHA Verification**:
+    - Querying `gh api repos/actions/checkout/git/ref/tags/v4.2.2` revealed the commit SHA for `v4.2.2` is `11bd71901bbe5b1630ceea73d27597364c9af683`.
+    - Identified why previous SHA differed: `11d5960a326750d5838078e36cf38b85af677262` was the commit of the floating major tag `refs/tags/v4`, not the point release tag `v4.2.2`.
+    - Updated `.github/workflows/ci.yml`, `.github/workflows/registry-check.yml`, and `tests/test_installer.sh` to pin `11bd71901bbe5b1630ceea73d27597364c9af683`.
+    - Added scheduled action pin verification to `scripts/registry-check.sh` and `scripts/registry-check.ps1` (verifying all 4 third-party actions online against GitHub API; default doctor remains offline).
+  - **Linter Strictness Proof**:
+    - Created throwaway scripts outside repository tree in temp directory with known warnings.
+    - Verified `shellcheck --severity=warning` exited 1 on unused variable / unquoted arguments.
+    - Verified `Invoke-ScriptAnalyzer -Severity Error, Warning -ExcludeRule PSAvoidUsingWriteHost` flagged unused variable and exited 1.
+    - Demonstrated real repository passes both linters with 0 errors, 0 warnings, and 0 suppressions.
+  - **Repository Security Settings (Dependabot Alerts & Updates)**:
+    - Enabled Dependabot vulnerability alerts via API: `PUT /repos/RudraSharma3/ai-operating-system/vulnerability-alerts` (status: 204 No Content).
+    - Enabled Dependabot security fixes via API: `PUT /repos/RudraSharma3/ai-operating-system/automated-security-fixes` (status: `{"enabled":true,"paused":false}`).
+    - Corrected previous documentation: enabling Dependabot does NOT require manual UI intervention; it is fully configurable via the GitHub REST API.
+  - **SECURITY.md Policy Alignment**:
+    - Replaced SLA timelines with best-effort wording (solo-maintained project, no guaranteed SLAs).
+    - Removed alternative reporting methods, directing reporters exclusively to GitHub Private Vulnerability Reporting.
+    - Updated supported version table to match `VERSION` (`2.4.3`).
+  - **CI Duration Trend (Last 5 Runs)**:
+    | Run ID | Branch | Event | Linux (Ubuntu) | macOS | Windows (Server) | Status |
+    | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+    | `40751787356` | `hygiene` | `pull_request` | 0m 54s | 1m 21s | 5m 14s | All Green (0 > 8m) |
+    | `40751723524` | `hygiene` | `push` | 0m 49s | 1m 40s | 4m 46s | All Green (0 > 8m) |
+    | `40682118547` | `main` | `push` | 1m 00s | 1m 27s | 4m 24s | All Green (0 > 8m) |
+    | `40681420119` | `hardening` | `pull_request` | 0m 48s | 1m 25s | 4m 39s | All Green (0 > 8m) |
+    | `40681412514` | `hardening` | `push` | 0m 55s | 1m 37s | 4m 45s | All Green (0 > 8m) |
+    * Windows run duration trend: 4m45s -> 4m39s -> 4m24s -> 4m46s -> 5m14s (averaging ~4m45s; 0 jobs above 8 minutes).
+- **What Was Verified**:
+  - `scripts/registry-check.sh`: PASS (verified all MCP servers and 4 workflow action commit SHAs online).
+  - `scripts/registry-check.ps1`: PASS (verified all MCP servers and 4 workflow action commit SHAs online).
+  - Throwaway linter strictness test: PASS (both tools exit non-zero on warnings).
+  - Real repository linting: PASS (0 warnings, exit 0 on both tools).
+  - Dependabot API endpoints: PASS (vulnerability alerts 204 No Content, automated security fixes `enabled: true`).
+

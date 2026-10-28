@@ -181,10 +181,56 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
+Write-Host "============================================================"
+Write-Host " [ACTIONS] AI-OS GitHub Actions Workflow Pin Verification (Online)"
+Write-Host "============================================================"
+
+function Test-ActionPin {
+    param([string]$action, [string]$tag, [string]$expectedSha)
+    Write-Host -NoNewline "Checking GitHub Action $action@$tag ... "
+    try {
+        $resolvedSha = $null
+        if (Get-Command gh -ErrorAction SilentlyContinue) {
+            $resolvedSha = (& gh api "repos/$action/commits/$tag" --jq .sha 2>$null)
+            if ($resolvedSha) { $resolvedSha = $resolvedSha.Trim() }
+        }
+        if (-not $resolvedSha) {
+            $headers = @{ "User-Agent" = "AI-OS-Registry-Check" }
+            if ($env:GITHUB_TOKEN) {
+                $headers["Authorization"] = "Bearer $env:GITHUB_TOKEN"
+            }
+            $resp = Invoke-RestMethod -Uri "https://api.github.com/repos/$action/commits/$tag" -Headers $headers -TimeoutSec 15
+            $resolvedSha = $resp.sha
+        }
+
+        if (-not $resolvedSha) {
+            Write-Host "FAIL: Could not resolve commit for tag $tag from GitHub API" -ForegroundColor Red
+            $script:failures++
+            return
+        }
+
+        if ($resolvedSha -eq $expectedSha) {
+            Write-Host "PASS (SHA matches $expectedSha)" -ForegroundColor Green
+        } else {
+            Write-Host "FAIL: Pinned SHA $expectedSha != resolved commit SHA $resolvedSha" -ForegroundColor Red
+            $script:failures++
+        }
+    } catch {
+        Write-Host "FAIL: Exception checking action pin: $_" -ForegroundColor Red
+        $script:failures++
+    }
+}
+
+Test-ActionPin "actions/checkout" "v4.2.2" "11bd71901bbe5b1630ceea73d27597364c9af683"
+Test-ActionPin "actions/setup-python" "v5.6.0" "a26af69be951a213d495a4c3e4e4022e16d87065"
+Test-ActionPin "actions/setup-node" "v4.4.0" "49933ea5288caeca8642d1e84afbd3f7d6820020"
+Test-ActionPin "astral-sh/setup-uv" "v5.4.2" "d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86"
+
+Write-Host ""
 if ($failures -eq 0) {
-    Write-Host " [PASS] All MCP pins verified against upstream registries and passed stdio initialize smoke tests." -ForegroundColor Green
+    Write-Host " [PASS] All MCP pins and workflow action pins verified against upstream registries." -ForegroundColor Green
     exit 0
 } else {
-    Write-Host " [FAIL] Registry & smoke check failed with $failures error(s)." -ForegroundColor Red
+    Write-Host " [FAIL] Registry & action pin check failed with $failures error(s)." -ForegroundColor Red
     exit 1
 }

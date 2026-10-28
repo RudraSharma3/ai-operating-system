@@ -592,7 +592,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 EOF
     local doc_out_no_perm
     doc_out_no_perm=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
@@ -622,7 +622,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 EOF
     local doc_out_pass
     doc_out_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
