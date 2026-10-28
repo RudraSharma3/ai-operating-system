@@ -498,6 +498,45 @@ EOF
     assert_contains "$doc_out_pass" "PASS] MCP pin maturity and freshness" "doctor.sh must pass when pin is mature and fresh" || return 1
 }
 
+test_offline_test_and_doctor_scripts_no_network_invocations() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    mkdir -p "$sandbox/tests"
+    echo "#!/usr/bin/env bash" > "$sandbox/tests/leaky_test.sh"
+    echo "c""url -sSf https://api.example.com/check" >> "$sandbox/tests/leaky_test.sh"
+
+    local net_pattern='^[[:space:]]*(&[[:space:]]+)?([c]url|[w]get|[I]nvoke-WebRequest|[n]pm|[n]px|[u]vx|[p]ip|gh[[:space:]]+api)\b|(\||\&\&|\;|\$\()[[:space:]]*([c]url|[w]get|[I]nvoke-WebRequest|[n]pm|[n]px|[u]vx|[p]ip|gh[[:space:]]+api)\b'
+
+    # Verify detection of forbidden network tool invocation
+    local fake_hits
+    fake_hits=$(grep -nE "$net_pattern" "$sandbox/tests/leaky_test.sh" 2>/dev/null || true)
+    cleanup_sandbox "$sandbox"
+    assert_contains "$fake_hits" "curl" "offline scanner must detect network tool invocations in test scripts" || return 1
+
+    # Scan all test, doctor, and eval scripts in repo
+    local repo_hits=""
+    local files_to_scan=()
+    while IFS= read -r f; do
+        [ -n "$f" ] && files_to_scan+=("$f")
+    done < <(find "$REPO_ROOT/tests" "$REPO_ROOT/evals" -type f \( -name "*.sh" -o -name "*.ps1" \) 2>/dev/null || true)
+    [ -f "$REPO_ROOT/scripts/doctor.sh" ] && files_to_scan+=("$REPO_ROOT/scripts/doctor.sh")
+    [ -f "$REPO_ROOT/scripts/doctor.ps1" ] && files_to_scan+=("$REPO_ROOT/scripts/doctor.ps1")
+
+    for sf in "${files_to_scan[@]}"; do
+        # Explicit allowlist: only scripts/registry-check.* is allowed to make network calls
+        case "$sf" in
+            *registry-check*) continue ;;
+        esac
+        local match
+        match=$(grep -nE "$net_pattern" "$sf" 2>/dev/null || true)
+        if [ -n "$match" ]; then
+            repo_hits+="$sf:$match"$'\n'
+        fi
+    done
+
+    assert_eq "" "$repo_hits" "tests, doctor scripts, and evals must not invoke network tools (npm, npx, uvx, pip, curl, wget, Invoke-WebRequest, gh api)" || return 1
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -517,6 +556,7 @@ run_test "doctor.sh: Enforces .ai/private-names.txt deny-list check" test_doctor
 run_test "doctor.sh: Enforces MCP playbook matching and pinned versions" test_doctor_mcp_playbook_matching_and_pinning
 run_test "doctor.sh: Warns if docs contain headless command not listed in docs/sources.md" test_doctor_headless_command_verification
 run_test "doctor.sh: Warns if mcp-pins.json contains young pin or stale record" test_doctor_mcp_pins_maturity_and_freshness
+run_test "offline: Default tests, doctor scripts, and evals do not invoke network tools" test_offline_test_and_doctor_scripts_no_network_invocations
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
