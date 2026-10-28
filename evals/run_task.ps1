@@ -190,10 +190,10 @@ if ($ExpectFail) {
     Write-Host " Negative Control Expectation: Expecting all tasks to FAIL" -ForegroundColor Gray
     Write-Host "============================================================" -ForegroundColor Gray
     if ($passed -eq 0 -and $failed -eq $total) {
-        Write-Host "✅ Negative Control Suite: All $total negative controls correctly rejected (exit 0)." -ForegroundColor Green
+        Write-Host " [PASS] Negative Control Suite: All $total negative controls correctly rejected (exit 0)." -ForegroundColor Green
         exit 0
     } else {
-        Write-Host "❌ Negative Control Suite: Expected all negative controls to fail, but $passed passed!" -ForegroundColor Red
+        Write-Host " [FAIL] Negative Control Suite: Expected all negative controls to fail, but $passed passed!" -ForegroundColor Red
         exit 1
     }
 }

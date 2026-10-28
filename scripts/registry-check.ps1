@@ -14,7 +14,7 @@ if (-not (Test-Path $mcpJson)) {
 }
 
 Write-Host "============================================================"
-Write-Host " 🌐 AI-OS MCP Server Registry & Maturity Verification"
+Write-Host " [REGISTRY] AI-OS MCP Server Registry & Maturity Verification"
 Write-Host "============================================================"
 
 $now = [DateTime]::UtcNow
@@ -88,9 +88,9 @@ Check-PyPiPackage "mcp-server-fetch" "2026.10.10"
 
 Write-Host ""
 if ($failures -eq 0) {
-    Write-Host "✅ All MCP pins verified against upstream registries and satisfy 14-day maturity requirement." -ForegroundColor Green
+    Write-Host " [PASS] All MCP pins verified against upstream registries and satisfy 14-day maturity requirement." -ForegroundColor Green
     exit 0
 } else {
-    Write-Host "❌ Registry check failed with $failures error(s)." -ForegroundColor Red
+    Write-Host " [FAIL] Registry check failed with $failures error(s)." -ForegroundColor Red
     exit 1
 }
