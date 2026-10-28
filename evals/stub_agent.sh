@@ -25,6 +25,12 @@ if [ "$MODE" = "noop" ]; then
     exit 0
 fi
 
+if [ "$MODE" = "print-env" ]; then
+    echo "StubAgent: Writing environment variables to stub_env.txt..."
+    env > stub_env.txt
+    exit 0
+fi
+
 if [ -z "$PROMPT_FILE" ] || [ ! -f "$PROMPT_FILE" ]; then
     echo "StubAgent Error: Prompt file not found: '$PROMPT_FILE'" >&2
     exit 1

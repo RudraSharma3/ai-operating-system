@@ -44,22 +44,22 @@ powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Reference
 
 ### Run Replayable Tasks with Negative Controls:
 ```bash
-# Bash
-bash evals/run_task.sh --task all --negative
+# Bash (verify all negative controls are rejected)
+bash evals/run_task.sh --task all --negative --expect-fail
 
 # PowerShell
-powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Negative
+powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Negative -ExpectFail
 ```
 
 ### Run with Headless Agent CLI (Verified Flags):
 ```bash
-# Bash (Claude Code CLI verified headless mode)
-bash evals/run_task.sh --task all --mode with --agent-cmd "claude -p"
+# Bash (Claude Code CLI verified headless mode with narrow permission)
+bash evals/run_task.sh --task all --mode with --agent-cmd "claude --permission-mode auto -p"
 
 # PowerShell
-powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Mode with -AgentCmd "claude -p"
+powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Mode with -AgentCmd "claude --permission-mode auto -p"
 ```
-*(Verified headless flags and documentation sources are recorded in `docs/sources.md`)*
+*(Verified headless flags and narrow permission options are recorded in `docs/sources.md`. The dangerous bypass flag `--dangerously-skip-permissions` is restricted as a last resort and blocked unless `AI_OS_EVAL_SANDBOX=1` is set in an isolated sandbox).*
 
 ### Run Stub-Agent Harness Plumbing Tests:
 ```bash

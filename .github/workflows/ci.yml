@@ -38,6 +38,12 @@ jobs:
       - name: Run Replayable Task Suite (Reference Validity)
         run: bash evals/run_task.sh --task all --reference
 
+      - name: Run Replayable Task Suite (Negative Controls with Expect-Fail)
+        run: bash evals/run_task.sh --task all --negative --expect-fail
+
+      - name: Run Eval Harness Stub-Agent Integration Tests
+        run: bash evals/test_eval_harness.sh
+
   test-macos:
     name: macOS Verification (macOS)
     runs-on: macos-latest
@@ -65,6 +71,12 @@ jobs:
 
       - name: Run Replayable Task Suite (Reference Validity)
         run: bash evals/run_task.sh --task all --reference
+
+      - name: Run Replayable Task Suite (Negative Controls with Expect-Fail)
+        run: bash evals/run_task.sh --task all --negative --expect-fail
+
+      - name: Run Eval Harness Stub-Agent Integration Tests
+        run: bash evals/test_eval_harness.sh
 
   test-windows:
     name: Windows Verification (Windows Server)
@@ -94,11 +106,18 @@ jobs:
       - name: Run Replayable Task Suite (Reference Validity, PowerShell)
         run: powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Reference
 
+      - name: Run Replayable Task Suite (Negative Controls with Expect-Fail, PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Negative -ExpectFail
+
       - name: Run Bootstrap (PowerShell)
         run: powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
 
       - name: Run Test Harness (Git Bash on Windows)
         shell: bash
         run: bash tests/run_tests.sh
+
+      - name: Run Eval Harness Stub-Agent Integration Tests
+        shell: bash
+        run: bash evals/test_eval_harness.sh
 
 
