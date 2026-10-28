@@ -35,7 +35,9 @@ if ($PrReview) {
             if ($eventData.pull_request -and $eventData.pull_request.number) {
                 $prNumber = $eventData.pull_request.number
             }
-        } catch {}
+        } catch {
+            Write-Verbose "Could not parse pull request number from GITHUB_EVENT_PATH: $_"
+        }
     }
     if (-not $prNumber) { $prNumber = "1" }
 

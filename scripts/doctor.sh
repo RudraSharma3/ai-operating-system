@@ -238,6 +238,7 @@ fi
 
 MCP_JSON="$PROJECT_PATH/mcp.json"
 if [ -n "$PLAYBOOK_FILE" ] && [ -f "$MCP_JSON" ]; then
+    # shellcheck disable=SC2016 # sed backreference
     tools=$(grep -E '^\- \*\*`[a-zA-Z0-9_-]+`\*\*' "$PLAYBOOK_FILE" | sed -E 's/^- \*\*`([a-zA-Z0-9_-]+)`\*\*.*$/\1/' || true)
     for tool in $tools; do
         if ! grep -q "\"$tool\":" "$MCP_JSON"; then
@@ -287,8 +288,8 @@ try:
 except Exception as e:
     print(f'mcp.json validation error: {e}')
     sys.exit(1)
-" 2>&1)
-        if [ $? -ne 0 ]; then
+" 2>&1) || PIN_STATUS=$?
+        if [ "${PIN_STATUS:-0}" -ne 0 ]; then
             MCP_OK=false
             MCP_ERROR="$PIN_CHECK"
         fi
@@ -359,22 +360,22 @@ if [ -f "$README_PATH" ]; then
         DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
     fi
     claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 23 ]; then
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 24 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="README claims $claimed_doc-point doctor, expected 23"
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 24"
     fi
 fi
 
 if [ -f "$UG_PATH" ]; then
     ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 23 ]; then
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 24 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 23"
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 24"
     fi
     ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 23 ]; then
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 24 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 23"
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 24"
     fi
 fi
 
@@ -425,6 +426,7 @@ while IFS= read -r f; do
 done < <(find "$PROJECT_PATH/docs" "$PROJECT_PATH/evals" -type f -name "*.md" 2>/dev/null || true)
 
 if [ ${#DOC_FILES[@]} -gt 0 ]; then
+    # shellcheck disable=SC2016 # literal backtick matching in markdown regex
     while IFS= read -r match_line; do
         [ -z "$match_line" ] && continue
         df="${match_line%%:*}"
@@ -521,6 +523,46 @@ else
     record_check 23 "MCP pin maturity and freshness" "PASS" ""
 fi
 
+# 24. GitHub Actions workflow security (pinned action SHAs and permissions block)
+WORKFLOWS_DIR="$PROJECT_PATH/.github/workflows"
+WORKFLOW_WARN=""
+if [ -d "$WORKFLOWS_DIR" ]; then
+    while IFS= read -r wf; do
+        [ ! -f "$wf" ] && continue
+        wf_name="$(basename "$wf")"
+        
+        # Check 1: Top-level permissions block
+        if ! grep -qE '^permissions:' "$wf"; then
+            WORKFLOW_WARN="Workflow '$wf_name' lacks a top-level permissions block"
+            break
+        fi
+        
+        # Check 2: All third-party action 'uses:' must be pinned to full 40-hex commit SHA
+        while IFS= read -r uses_line; do
+            [ -z "$uses_line" ] && continue
+            clean_uses=$(echo "$uses_line" | sed -E 's/[[:space:]]*#.*$//' | sed -E 's/^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*//' | tr -d '"'"'")
+            case "$clean_uses" in
+                ./*|docker://*) continue ;;
+            esac
+            if [[ "$clean_uses" == *"@"* ]]; then
+                ref="${clean_uses##*@}"
+                if ! [[ "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+                    WORKFLOW_WARN="Workflow '$wf_name' uses unpinned action '$clean_uses' (expected 40-character commit SHA)"
+                    break 2
+                fi
+            else
+                WORKFLOW_WARN="Workflow '$wf_name' uses unpinned action '$clean_uses' (missing @<commit-sha>)"
+                break 2
+            fi
+        done < <(grep -E '^[[:space:]]*(-[[:space:]]*)?uses:[[:space:]]*' "$wf" 2>/dev/null || true)
+    done < <(find "$WORKFLOWS_DIR" -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null || true)
+fi
+
+if [ -n "$WORKFLOW_WARN" ]; then
+    record_check 24 "GitHub Actions workflow action pinning and permissions" "WARN" "$WORKFLOW_WARN"
+else
+    record_check 24 "GitHub Actions workflow action pinning and permissions" "PASS" ""
+fi
 
 if [ "$JSON_MODE" = true ]; then
     echo "{"
@@ -547,6 +589,7 @@ else
 fi
 
 if [ "$FAILURES" -gt 0 ]; then
+    [ "$CI_MODE" = true ] && exit 1
     exit 1
 fi
 exit 0

@@ -26,7 +26,9 @@ if (Test-Path $secretPatternsFile) {
         $pat = if ($parts.Count -eq 2) { $parts[1] } else { $parts[0] }
         try {
             $secretRegexes += [regex]$pat
-        } catch { }
+        } catch {
+            Write-Verbose "Skipping regex pattern that failed .NET compilation: $pat"
+        }
     }
 }
 
@@ -90,7 +92,6 @@ foreach ($r in $candidateRules) {
         continue
     }
 
-    $ruleId = $Matches[1]
     $category = $Matches[2]
     $body = $Matches[3]
     $checks = @()

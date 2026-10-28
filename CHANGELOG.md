@@ -5,6 +5,15 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2026-10-29
+
+### Added
+- **Security Policy & Threat Model**: Added canonical `SECURITY.md` establishing GitHub Private Vulnerability Reporting procedures, supported release series (`2.4.x`), and explicit in-scope / out-of-scope boundaries. Added `docs/threat-model.md` detailing assets, threat actors (careless agent, prompt-injected agent, malicious dependency, compromised contributor), defense-in-depth controls, and honest operational limits (injection filters are heuristic/best-effort; human review is the true boundary; sandboxes are directory-isolated rather than microVMs).
+- **Workflow Security & Full Action SHA Pinning**: Added top-level `permissions: contents: read` to all GitHub Actions workflows (`.github/workflows/ci.yml`, `.github/workflows/registry-check.yml`). Pinned all third-party GitHub actions to full immutable commit SHAs with version comments (`actions/checkout@11d5960a326750d5838078e36cf38b85af677262` # v4.2.2, `actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065` # v5.6.0, `actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020` # v4.4.0, `astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86` # v5.4.2). Added `.github/dependabot.yml` for automated weekly GitHub Actions dependency updates.
+- **Static Analysis CI Integration**: Integrated `shellcheck` for all shell scripts in Linux CI (`test-linux`) and `PSScriptAnalyzer` for all PowerShell scripts in Windows CI (`test-windows`). Resolved all static analysis defects across shell and PowerShell codebases without rule suppressions.
+- **24-Point Diagnostic Doctor**: Added Doctor Check 24 (`GitHub Actions workflow action pinning and permissions`) to `scripts/doctor.sh` and `scripts/doctor.ps1`, verifying top-level `permissions:` blocks and full SHA action pinning offline.
+- **Repository Security Activation**: Enabled GitHub secret scanning, secret scanning push protection, and private vulnerability reporting via the GitHub API.
+
 ## [2.4.2] - 2026-10-28
 
 ### Changed

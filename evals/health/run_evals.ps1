@@ -13,7 +13,7 @@ Write-Host ""
 $passed = 0
 $failed = 0
 
-function Run-Eval($Name, [scriptblock]$Action) {
+function Invoke-Eval($Name, [scriptblock]$Action) {
     Write-Host -NoNewline "  * [BENCHMARK] $Name ... "
     try {
         & $Action
@@ -28,11 +28,11 @@ function Run-Eval($Name, [scriptblock]$Action) {
     }
 }
 
-Run-Eval "Token Budget: AGENTS.md within 15KB budget" {
+Invoke-Eval "Token Budget: AGENTS.md within 15KB budget" {
     & (Join-Path $RootDir "scripts/token-report.ps1") -BudgetBytes 15360 | Out-Null
 }
 
-Run-Eval "Doctor Latency: 14 health checks execute under 4.0s" {
+Invoke-Eval "Doctor Latency: 14 health checks execute under 4.0s" {
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     & (Join-Path $RootDir "scripts/doctor.ps1") -Ci -ProjectPath $RootDir | Out-Null
     $sw.Stop()
@@ -41,7 +41,7 @@ Run-Eval "Doctor Latency: 14 health checks execute under 4.0s" {
     }
 }
 
-Run-Eval "Prompt Contract: Specification defines all 4 required sections" {
+Invoke-Eval "Prompt Contract: Specification defines all 4 required sections" {
     $content = [System.IO.File]::ReadAllText((Join-Path $RootDir "playbooks/prompt-refinement.md"), [System.Text.Encoding]::UTF8)
     if ($content -notmatch '(?m)^### .*GOAL:' -or
         $content -notmatch '(?m)^### .*CONSTRAINTS:' -or
@@ -51,7 +51,7 @@ Run-Eval "Prompt Contract: Specification defines all 4 required sections" {
     }
 }
 
-Run-Eval "Template Parity: Zero drift between master and generated templates" {
+Invoke-Eval "Template Parity: Zero drift between master and generated templates" {
     & (Join-Path $RootDir "scripts/build-templates.ps1") -Check | Out-Null
 }
 

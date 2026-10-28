@@ -37,8 +37,6 @@ if [ ! -f "$UPSTREAM_MANIFEST" ]; then
     "$SCRIPT_DIR/build-templates.sh"
 fi
 
-TARGET_MANIFEST="$TARGET_DIR/.ai-os/manifest.json"
-
 echo "🔄 AI-OS Upgrade Engine"
 echo " Target Project: $TARGET_DIR"
 
