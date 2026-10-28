@@ -636,8 +636,17 @@ This document tracks the current development milestones and task state for the m
   - `evals/test_eval_harness.sh`: **16/16 tests PASSED**.
   - `scripts/registry-check.sh`: **PASS** (all 4 registries verified and 4 servers passed stdio initialize smoke tests).
   - `scripts/registry-check.ps1`: **PASS** (all 4 registries verified and 4 servers passed stdio initialize smoke tests).
+  - `bash tests/run_tests.sh`: **PASS** (`🎉 ALL TEST SUITES PASSED!`).
+  - `bash scripts/doctor.sh --ci .`: **PASS** (`📊 Health Summary: 23 Passed | 0 Warnings | 0 Failures`).
+  - `powershell doctor -Ci`: **PASS** (`Health Summary: 23 Passed | 0 Warnings | 0 Failures`).
+  - `bash evals/run_evals.sh`: **PASS** (`Benchmark Summary: 5 Passed | 0 Failed`).
+  - `bash evals/run_task.sh --task all --reference`: **PASS** (`Task Suite Summary: 5 Passed | 0 Failed (Total: 5)`).
+  - `bash evals/run_task.sh --task all --negative --expect-fail`: **PASS** (`✅ Negative Control Suite: All 5 negative controls correctly rejected (exit 0)`).
+  - `bash scripts/build-templates.sh --check`: **PASS** (`[PASS] Zero drift detected between master and templates/project.`).
+  - `bash scripts/compile-rules.sh --check`: **PASS** (`[PASS] ./AGENTS.md is in sync with .ai/rules/`).
 - **Not Verified**:
-  - PyPI dedicated release notes/changelogs for `mcp-server-git` and `mcp-server-fetch` (no separate changelog files hosted on PyPI).
+  - PyPI dedicated release notes/changelogs for `mcp-server-git` and `mcp-server-fetch` (no separate changelog files hosted on PyPI; marked NOT VERIFIED per instructions).
+
 
 
 
