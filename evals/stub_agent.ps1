@@ -3,7 +3,7 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet("apply", "noop")]
+    [ValidateSet("apply", "noop", "print-env")]
     [string]$Action = "apply",
     [Parameter(Position=0, ValueFromRemainingArguments=$true)]
     [string[]]$RemainingArgs
@@ -18,6 +18,12 @@ if ($RemainingArgs -and $RemainingArgs.Count -gt 0) {
 
 if ($Action -eq "noop") {
     Write-Host "StubAgent: No-op stub invoked on $promptFile. Doing nothing."
+    exit 0
+}
+
+if ($Action -eq "print-env") {
+    Write-Host "StubAgent: Writing environment variables to stub_env.txt..."
+    Get-ChildItem Env: | ForEach-Object { "$($_.Name)=$($_.Value)" } | Out-File -FilePath "stub_env.txt" -Encoding ascii
     exit 0
 }
 

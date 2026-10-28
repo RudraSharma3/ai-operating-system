@@ -98,6 +98,50 @@ if command -v powershell.exe >/dev/null 2>&1 || command -v pwsh >/dev/null 2>&1;
     assert_eq 1 "$status_ps_without_noop" "run_task.ps1 with noop-stub in -Mode without must FAIL"
 fi
 
+# --- 3. Sandbox Isolation & Safety Tests ---
+
+# Test 9: Refusal when --agent-cmd contains --dangerously-skip-permissions without AI_OS_EVAL_SANDBOX=1
+echo "▶️ Testing refusal of --dangerously-skip-permissions without env var..."
+status_danger_refused=0
+out_danger_refused=$(AI_OS_EVAL_SANDBOX=0 bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "claude --dangerously-skip-permissions -p" 2>&1) || status_danger_refused=$?
+assert_eq 1 "$status_danger_refused" "run_task.sh must refuse --dangerously-skip-permissions when AI_OS_EVAL_SANDBOX is unset/0"
+
+# Test 10: Refusal when sandbox directory is under repository tree
+echo "▶️ Testing refusal when target directory is located under repository tree..."
+mkdir -p "$ROOT_DIR/scratch/illegal_sandbox"
+status_tree_refused=0
+out_tree_refused=$(bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --target "$ROOT_DIR/scratch/illegal_sandbox" 2>&1) || status_tree_refused=$?
+rm -rf "$ROOT_DIR/scratch/illegal_sandbox" 2>/dev/null || true
+assert_eq 1 "$status_tree_refused" "run_task.sh must refuse sandbox located inside repository tree"
+
+# Test 11: Secret environment stripping before launching agent command
+echo "▶️ Testing secret environment stripping with stub agent..."
+SAFE_TMP=$(mktemp -d 2>/dev/null || mktemp -d -t 'safe_tmp')
+export SECRET_KEY_TEST="leaked_secret_val"
+export AWS_ACCESS_KEY_ID="leaked_aws_id"
+export GITHUB_TOKEN="leaked_gh_token"
+export DB_PASSWORD_TEST="leaked_db_pwd"
+
+status_env_strip=0
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "bash $SCRIPT_DIR/stub_agent.sh --mode print-env" --target "$SAFE_TMP" >/dev/null 2>&1 || status_env_strip=$?
+
+ENV_LEAKS=0
+if [ -f "$SAFE_TMP/stub_env.txt" ]; then
+    if grep -E 'SECRET_KEY_TEST|AWS_ACCESS_KEY_ID|GITHUB_TOKEN|DB_PASSWORD_TEST' "$SAFE_TMP/stub_env.txt" >/dev/null 2>&1; then
+        ENV_LEAKS=1
+    fi
+else
+    ENV_LEAKS=1
+fi
+rm -rf "$SAFE_TMP" 2>/dev/null || true
+assert_eq 0 "$ENV_LEAKS" "run_task.sh must strip secret environment variables before executing agent command"
+
+# Test 12: Negative control suite with --expect-fail exits 0
+echo "▶️ Testing negative-control suite with --expect-fail (exits 0 on all rejections)..."
+status_expect_fail=0
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --negative --expect-fail >/dev/null 2>&1 || status_expect_fail=$?
+assert_eq 0 "$status_expect_fail" "run_task.sh with --negative --expect-fail must exit 0 when all controls rejected"
+
 echo ""
 echo "Harness Test Summary: $PASS_COUNT/$TEST_COUNT passed, $FAIL_COUNT failed."
 [ "$FAIL_COUNT" -eq 0 ] || exit 1
