@@ -113,3 +113,19 @@ This document records the official documentation URLs, retrieval dates, and veri
   - `claude -p --output-format json`
   - `claude --dangerously-skip-permissions -p`
 
+---
+
+## 6. Model Context Protocol (MCP) Server Registries & Pin Maturity
+
+- **Canonical Specification**: `https://modelcontextprotocol.io`
+- **Retrieval Date**: 2026-10-28
+- **Verification Status**: **VERIFIED**
+- **14-Day Maturity Policy**:
+  All MCP servers declared in `mcp.json` must be pinned to immutable, exact package versions that were published at least 14 days prior to pinning. This mitigates supply-chain risks and ensures upstream releases are stable.
+- **Tracked MCP Packages & Upstream Sources**:
+  - `@modelcontextprotocol/server-filesystem`: npm registry (`https://registry.npmjs.org/@modelcontextprotocol/server-filesystem`). Pinned to `1.0.0` (published `2026-10-11T02:44:10Z`, 17 days old).
+  - `@modelcontextprotocol/server-memory`: npm registry (`https://registry.npmjs.org/@modelcontextprotocol/server-memory`). Pinned to `1.0.0` (published `2026-10-11T02:42:27Z`, 17 days old).
+  - `mcp-server-git`: PyPI repository (`https://pypi.org/pypi/mcp-server-git/json`). Pinned to `2026.10.10` (published `2026-10-11T02:41:46Z`, 17 days old).
+  - `mcp-server-fetch`: PyPI repository (`https://pypi.org/pypi/mcp-server-fetch/json`). Pinned to `2026.10.10` (published `2026-10-11T02:41:50Z`, 17 days old).
+
+

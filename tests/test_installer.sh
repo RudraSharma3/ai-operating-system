@@ -381,15 +381,15 @@ test_doctor_mcp_playbook_matching_and_pinning() {
     },
     "memory": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory@2.0.0"]
+      "args": ["-y", "@modelcontextprotocol/server-memory@1.0.0"]
     },
     "git": {
       "command": "uvx",
-      "args": ["mcp-server-git==2026.10.19", "--repository", "./"]
+      "args": ["mcp-server-git==2026.10.10", "--repository", "./"]
     },
     "fetch": {
       "command": "uvx",
-      "args": ["mcp-server-fetch==2026.10.24"]
+      "args": ["mcp-server-fetch==2026.10.10"]
     }
   }
 }
@@ -441,6 +441,63 @@ EOF
     assert_contains "$doc_out_pass" "PASS] Headless agent command documentation" "doctor.sh must pass when headless command matches verified sources" || return 1
 }
 
+test_doctor_mcp_pins_maturity_and_freshness() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    mkdir -p "$sandbox/docs"
+    # 1. Test warning when a pin is younger than 14 days at checked_at time
+    cat << 'EOF' > "$sandbox/docs/mcp-pins.json"
+[
+  {
+    "package": "@modelcontextprotocol/server-filesystem",
+    "version": "2.0.1",
+    "published_at": "2026-10-25T00:00:00Z",
+    "checked_at": "2026-10-28T00:00:00Z"
+  }
+]
+EOF
+    local doc_out_young
+    doc_out_young=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    # 2. Test warning when record is older than 90 days
+    cat << 'EOF' > "$sandbox/docs/mcp-pins.json"
+[
+  {
+    "package": "@modelcontextprotocol/server-filesystem",
+    "version": "1.0.0",
+    "published_at": "2025-01-01T00:00:00Z",
+    "checked_at": "2025-01-20T00:00:00Z"
+  }
+]
+EOF
+    local doc_out_old
+    doc_out_old=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    # 3. Test pass when pin is >= 14 days old and checked < 90 days ago
+    cat << 'EOF' > "$sandbox/docs/mcp-pins.json"
+[
+  {
+    "package": "@modelcontextprotocol/server-filesystem",
+    "version": "1.0.0",
+    "published_at": "2026-10-11T00:00:00Z",
+    "checked_at": "2026-10-28T00:00:00Z"
+  }
+]
+EOF
+    local doc_out_pass
+    doc_out_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    cleanup_sandbox "$sandbox"
+
+    assert_contains "$doc_out_young" "WARN] MCP pin maturity and freshness" "doctor.sh must warn when pin is younger than 14 days" || return 1
+    assert_contains "$doc_out_young" "younger than 14 days" "doctor.sh must explain pin is too young" || return 1
+    assert_contains "$doc_out_old" "WARN] MCP pin maturity and freshness" "doctor.sh must warn when record is older than 90 days" || return 1
+    assert_contains "$doc_out_old" "older than 90 days" "doctor.sh must explain record is stale" || return 1
+    assert_contains "$doc_out_pass" "PASS] MCP pin maturity and freshness" "doctor.sh must pass when pin is mature and fresh" || return 1
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -459,6 +516,7 @@ run_test "compile-rules.sh: Compiles nested packages in a monorepo" test_compile
 run_test "doctor.sh: Enforces .ai/private-names.txt deny-list check" test_doctor_private_names_denylist
 run_test "doctor.sh: Enforces MCP playbook matching and pinned versions" test_doctor_mcp_playbook_matching_and_pinning
 run_test "doctor.sh: Warns if docs contain headless command not listed in docs/sources.md" test_doctor_headless_command_verification
+run_test "doctor.sh: Warns if mcp-pins.json contains young pin or stale record" test_doctor_mcp_pins_maturity_and_freshness
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
