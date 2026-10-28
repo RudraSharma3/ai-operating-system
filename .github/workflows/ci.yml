@@ -1,0 +1,123 @@
+name: AI-OS CI
+
+on:
+  push:
+    branches: [ main, hardening ]
+  pull_request:
+    branches: [ main, hardening ]
+
+env:
+  PYTHONIOENCODING: "utf-8"
+
+jobs:
+  test-linux:
+    name: Linux Verification (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "AI-OS Tester"
+          git config --global user.email "tester@ai-os.dev"
+          git config core.hooksPath .githooks
+
+      - name: Run Master Test Harness
+        run: bash tests/run_tests.sh
+
+      - name: Run AI-OS Doctor Diagnostics (--ci)
+        run: bash scripts/doctor.sh --ci .
+
+      - name: Audit Tracked Files for Leaks
+        run: bash scripts/scan-repo-secrets.sh
+
+      - name: Run Empirical Evals & Benchmarks
+        run: bash evals/run_evals.sh
+
+      - name: Run Replayable Task Suite (Reference Validity)
+        run: bash evals/run_task.sh --task all --reference
+
+      - name: Run Replayable Task Suite (Negative Controls with Expect-Fail)
+        run: bash evals/run_task.sh --task all --negative --expect-fail
+
+      - name: Run Eval Harness Stub-Agent Integration Tests
+        run: bash evals/test_eval_harness.sh
+
+  test-macos:
+    name: macOS Verification (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "AI-OS macOS Tester"
+          git config --global user.email "mactester@ai-os.dev"
+          git config core.hooksPath .githooks
+
+      - name: Run Master Test Harness
+        run: bash tests/run_tests.sh
+
+      - name: Run AI-OS Doctor Diagnostics (--ci)
+        run: bash scripts/doctor.sh --ci .
+
+      - name: Audit Tracked Files for Leaks
+        run: bash scripts/scan-repo-secrets.sh
+
+      - name: Run Empirical Evals & Benchmarks
+        run: bash evals/run_evals.sh
+
+      - name: Run Replayable Task Suite (Reference Validity)
+        run: bash evals/run_task.sh --task all --reference
+
+      - name: Run Replayable Task Suite (Negative Controls with Expect-Fail)
+        run: bash evals/run_task.sh --task all --negative --expect-fail
+
+      - name: Run Eval Harness Stub-Agent Integration Tests
+        run: bash evals/test_eval_harness.sh
+
+  test-windows:
+    name: Windows Verification (Windows Server)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "AI-OS Windows Tester"
+          git config --global user.email "wintester@ai-os.dev"
+          git config core.hooksPath .githooks
+
+      - name: Run Doctor Diagnostics (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/doctor.ps1 -ProjectPath . -Ci
+
+      - name: Verify Template Drift (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/build-templates.ps1 -Check
+
+      - name: Verify Rule Compiler Synchronization (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/compile-rules.ps1 -Check
+
+      - name: Run Empirical Evals & Benchmarks (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File evals/run_evals.ps1
+
+      - name: Run Replayable Task Suite (Reference Validity, PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Reference
+
+      - name: Run Replayable Task Suite (Negative Controls with Expect-Fail, PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Negative -ExpectFail
+
+      - name: Run Bootstrap (PowerShell)
+        run: powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+
+      - name: Run Test Harness (Git Bash on Windows)
+        shell: bash
+        run: bash tests/run_tests.sh
+
+      - name: Run Eval Harness Stub-Agent Integration Tests
+        shell: bash
+        run: bash evals/test_eval_harness.sh
+
+

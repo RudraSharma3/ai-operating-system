@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     One-Shot Project Scaffolding CLI for AI Operating System.
 .DESCRIPTION
@@ -48,12 +48,15 @@ if (Test-Path $ProjectPath) {
 # 1. Create project directory and copy template
 Write-Host "`n[1/5] Copying AI Operating System template..." -ForegroundColor Green
 New-Item -ItemType Directory -Path $ProjectPath -Force | Out-Null
-Copy-Item -Path "$TemplateDir\*" -Destination $ProjectPath -Recurse -Force
-if (Test-Path "$TemplateDir\.ai") {
-    Copy-Item -Path "$TemplateDir\.ai" -Destination $ProjectPath -Recurse -Force
-}
-if (Test-Path "$TemplateDir\.githooks") {
-    Copy-Item -Path "$TemplateDir\.githooks" -Destination $ProjectPath -Recurse -Force
+$templateFiles = Get-ChildItem -Path $TemplateDir -Recurse -File
+foreach ($file in $templateFiles) {
+    $relative = $file.FullName.Substring($TemplateDir.Length).TrimStart("\", "/")
+    $destFile = Join-Path $ProjectPath $relative
+    $destDir = Split-Path -Parent $destFile
+    if (-not (Test-Path $destDir)) {
+        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+    }
+    Copy-Item -Path $file.FullName -Destination $destFile -Force
 }
 
 # 2. Populate project purpose and architecture

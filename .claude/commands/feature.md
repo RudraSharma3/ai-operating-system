@@ -2,7 +2,7 @@
 description: Optimize prompt and plan a new feature with acceptance criteria
 ---
 
-Optimize the following feature request using `playbooks/prompt-refinement.md`.
+Optimize the following feature request using `.ai-os/playbooks/prompt-refinement.md` (or `playbooks/prompt-refinement.md`).
 Read `docs/architecture.md` and `docs/conventions.md`.
 Populate `docs/task-state.md` with:
 1. Refined Goal

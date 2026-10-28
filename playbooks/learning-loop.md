@@ -23,22 +23,27 @@ Instead, append a candidate entry to `.ai/mistakes-candidates.md`:
 | 2026-09-13 | Ran npm instead of bun | Assumed npm default | Command failed | [CODE] Always use bun for package commands | Candidate |
 ```
 
-## 3. The 10-Point Quality Check
+## 3. The 10-Point Quality Gate (Mechanical vs. Model-Judged)
 
-Before any candidate is promoted to permanent project knowledge or `AGENTS.md`, evaluate all 10 criteria:
+Before any candidate rule is proposed or promoted to canonical rules, it is evaluated across mechanical and model/human criteria:
 
-1. **Reusability**: Is this lesson useful across multiple sessions?
-2. **Evidence**: Is it grounded in a real, documented observation?
-3. **Actionability**: Does it tell future agents specifically what to do or avoid?
-4. **Generality**: Is it free of narrow, one-off task details?
-5. **Scope Accuracy**: Is it classified correctly (`UNIVERSAL`, `REPOSITORY`, `PROJECT`, `TASK`)?
-6. **No Redundancy**: Does an existing rule already cover this?
-7. **No Conflict**: Does it contradict an existing rule without explanation?
-8. **Safety**: Does it promote secure, reliable behavior?
-9. **Zero Secrets**: Is it 100% free of credentials, API keys, tokens, or private data?
-10. **Durability**: Will this rule still be valid months from now?
+### Mechanical Quality Checks (Automated deterministically by `sync-rules`)
+> [!IMPORTANT]
+> **Security Boundary Notice**: The mechanical injection and keyword filter in `sync-rules` is a best-effort heuristic scanner (inspecting case variants, paraphrases, zero-width formatting, and Unicode tag blocks U+E0000–U+E007F); **it is NOT a formal security boundary**. Client-side checks can be bypassed or paraphrased; the true, non-bypassable security boundary is human CODEOWNER review and server-side branch protection enforced on Pull Requests (see `docs/branch-protection.md`).
 
-If any check fails or is uncertain, keep as candidate or discard.
+1. **Format Syntax**: Enforces strict format `<ID>. [CATEGORY] Statement — rationale.` via AST/regex.
+2. **Category Validation**: Must match one of the 10 approved tags (`STYLE`, `CODE`, `ARCH`, `TOOL`, `PROCESS`, `DATA`, `UX`, `SECURITY`, `TEST`, `OTHER`).
+3. **Rationale Separator**: Must contain explicit evidence separator (` — ` or ` - `).
+4. **Zero Secrets**: Scans against multi-vendor credential patterns from `.ai/secret-patterns.txt`.
+5. **Anti-Injection & Security Defense**: Mechanically rejects prompt injection phrases (`ignore previous`, `disregard previous`, `system prompt`), security-subverting instructions (`disable the pre-commit`, `--no-verify`, `do not ask the user`, `bypass user`), self-modification tampering (`edit AGENTS.md directly`), and hidden zero-width / bidi / Unicode tag characters.
+6. **No Local Machine Paths**: Rejects project-specific local user paths (`/Users/`, `C:\`, `/home/`, `node_modules`).
+7. **Deduplication**: Mechanically blocks duplicate rules already present in master ruleset.
+8. **Actionable Statement Length**: Rejects brief or vague instructions under 20 characters.
+
+### Model-Judged & Human-Judged Criteria (Evaluated during interview or PR review)
+9. **Reusability & Cross-Project Scope**: Does this principle generalize reliably across different software architectures?
+10. **Durability & Grounded Evidence**: Is the rule grounded in documented failure telemetry and likely to remain valid across future tool versions?
+
 
 ## 4. Promotion Paths
 

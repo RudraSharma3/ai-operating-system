@@ -2,7 +2,8 @@
 
 Read `AGENTS.md` before beginning substantive work. The shared rules there are the canonical instructions for this repository.
 
-## Gemini-Specific Configuration
+## Gemini-Specific Guidance
 
-- Follow all instructions, architecture docs, and learned rules referenced in `AGENTS.md`.
-- Add project-specific Gemini CLI or IDE tool configs here; do not duplicate shared operating policies.
+- Follow all universal rules and the self-correcting rules engine in `AGENTS.md`.
+- Use planning mode for complex multi-file architectural changes or ambiguous workflows.
+- Keep Gemini-specific instructions and adapter configs in this file; never duplicate the canonical shared policy.

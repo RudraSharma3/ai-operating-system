@@ -1,0 +1,30 @@
+name: MCP Registry Verification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday at 00:00 UTC
+
+jobs:
+  verify-mcp-registry:
+    name: Verify MCP Package Registry Pins & Maturity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Run MCP Registry Verification & Stdio Smoke Tests
+        run: bash scripts/registry-check.sh
