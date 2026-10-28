@@ -24,7 +24,7 @@ Write-Host ""
 
 $failures = 0
 
-function Check-NpmPackage {
+function Test-NpmPackage {
     param([string]$pkg, [string]$pinnedVer)
     Write-Host -NoNewline "Checking npm package $pkg@$pinnedVer ... "
     try {
@@ -55,7 +55,7 @@ function Check-NpmPackage {
     }
 }
 
-function Check-PyPiPackage {
+function Test-PyPiPackage {
     param([string]$pkg, [string]$pinnedVer)
     Write-Host -NoNewline "Checking PyPI package $pkg==$pinnedVer ... "
     try {
@@ -81,10 +81,10 @@ function Check-PyPiPackage {
     }
 }
 
-Check-NpmPackage "@modelcontextprotocol/server-filesystem" "1.0.0"
-Check-NpmPackage "@modelcontextprotocol/server-memory" "1.0.0"
-Check-PyPiPackage "mcp-server-git" "2026.10.10"
-Check-PyPiPackage "mcp-server-fetch" "2026.10.10"
+Test-NpmPackage "@modelcontextprotocol/server-filesystem" "1.0.0"
+Test-NpmPackage "@modelcontextprotocol/server-memory" "1.0.0"
+Test-PyPiPackage "mcp-server-git" "2026.10.10"
+Test-PyPiPackage "mcp-server-fetch" "2026.10.10"
 
 Write-Host ""
 Write-Host "============================================================"

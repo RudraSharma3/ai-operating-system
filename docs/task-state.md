@@ -663,9 +663,61 @@ This document tracks the current development milestones and task state for the m
     - Added `[2.4.2] - 2026-10-28` section to `CHANGELOG.md` with explicit operational boundaries stating what AI-OS is proven to do (safety tooling, secret defense, federated sync, doctor diagnostics) and what is NOT proven (comparative effect on live agent outcomes is unmeasured; headless live comparison has not been run).
     - Regenerated templates via `scripts/build-templates.sh` (manifest updated with 56 files, zero drift).
 
+---
 
-
-
-
-
-
+### Step 11: Repository Security and Hygiene Pass (PR branch hygiene)
+- **Step 1 Inventory (Initial State)**:
+  - `SECURITY.md`: Missing (does not exist).
+  - `docs/threat-model.md`: Missing (does not exist).
+  - `.github/dependabot.yml`: Missing (does not exist).
+  - Workflow Permissions & Action Pinning:
+    - `.github/workflows/ci.yml`: No top-level `permissions:` block; uses unpinned `actions/checkout@v4` in 3 jobs.
+    - `.github/workflows/registry-check.yml`: No top-level `permissions:` block; uses unpinned `actions/checkout@v4`, `actions/setup-python@v5`, `actions/setup-node@v4`, `astral-sh/setup-uv@v5`.
+  - Static Analysis in CI:
+    - `shellcheck`: 0 mentions across workflows.
+    - `PSScriptAnalyzer`: 0 mentions across workflows.
+  - Repository Security Settings (`gh api repos/RudraSharma3/ai-operating-system --jq '.security_and_analysis'`):
+    - Initial: `{"dependabot_security_updates":{"status":"disabled"},"secret_scanning":{"status":"disabled"},"secret_scanning_non_provider_patterns":{"status":"disabled"},"secret_scanning_push_protection":{"status":"disabled"},"secret_scanning_validity_checks":{"status":"disabled"}}`
+    - Private Vulnerability Reporting (`gh api repos/RudraSharma3/ai-operating-system/private-vulnerability-reporting`): `{"enabled":false}`
+- **Security Settings Enabled via GitHub API**:
+  - `secret_scanning`: `enabled` (via `PATCH /repos/...`)
+  - `secret_scanning_push_protection`: `enabled` (via `PATCH /repos/...`)
+  - `private_vulnerability_reporting`: `enabled` (via `PUT /repos/.../private-vulnerability-reporting`)
+  - Resulting settings: `{"dependabot_security_updates":{"status":"disabled"},"secret_scanning":{"status":"enabled"},"secret_scanning_non_provider_patterns":{"status":"disabled"},"secret_scanning_push_protection":{"status":"enabled"},"secret_scanning_validity_checks":{"status":"disabled"}}`
+  - Resulting private vulnerability reporting: `{"enabled":true}`
+- **What Changed**:
+  - **Security Policy (`SECURITY.md`)**: Created canonical security policy establishing reporting via GitHub Private Vulnerability Reporting, 2.4.x support matrix, response SLAs, and explicit in-scope / out-of-scope boundaries.
+  - **Threat Model (`docs/threat-model.md`)**: Created comprehensive 1-page threat model detailing protected assets, 4 threat actors (careless agent, prompt-injected agent, malicious dependency, compromised contributor), defense-in-depth controls diagram, and honest operational limits (best-effort heuristic injection filters, human review as the real boundary, directory-isolated sandbox vs hypervisor/microVM).
+  - **Workflow Security & Action SHA Pinning**:
+    - Added top-level `permissions: contents: read` to `.github/workflows/ci.yml` and `.github/workflows/registry-check.yml`.
+    - Pinned all third-party GitHub actions to full immutable commit SHAs with version comments:
+      * `actions/checkout@11d5960a326750d5838078e36cf38b85af677262` # v4.2.2
+      * `actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065` # v5.6.0
+      * `actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020` # v4.4.0
+      * `astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86` # v5.4.2
+    - Created `.github/dependabot.yml` configured for weekly `github-actions` updates.
+  - **Static Analysis CI Integration**:
+    - Added `shellcheck` for all shell scripts in Linux CI (`test-linux`).
+    - Added `PSScriptAnalyzer` for all PowerShell scripts in Windows CI (`test-windows`).
+    - Fixed static analysis findings across shell and PowerShell scripts with 0 rule suppressions.
+  - **Doctor Check 24 (Workflow Security)**:
+    - Added Check 24 (`GitHub Actions workflow action pinning and permissions`) to `scripts/doctor.sh` and `scripts/doctor.ps1` verifying top-level `permissions:` blocks and full SHA action pinning offline.
+    - Updated doctor diagnostic counts to 24 across `scripts/doctor.sh`, `scripts/doctor.ps1`, and `docs/AI-OS-USER-GUIDE.md`.
+    - Added unit test `test_doctor_workflow_pinning_and_permissions` in `tests/test_installer.sh`.
+  - **Repository Security Settings**:
+    - Enabled `secret_scanning` (status: `enabled`).
+    - Enabled `secret_scanning_push_protection` (status: `enabled`).
+    - Enabled `private_vulnerability_reporting` (status: `true`).
+  - **Release & Distribution**:
+    - Bumped `VERSION` to `2.4.3`.
+    - Documented `[2.4.3] - 2026-10-29` in `CHANGELOG.md`.
+    - Rebuilt `templates/project` and `.ai-os/manifest.json` (56 files indexed, zero drift).
+- **What Was Verified**:
+  - `shellcheck`: 0 errors, 0 warnings across all `.sh` scripts and Git pre-commit hooks.
+  - `PSScriptAnalyzer`: 0 errors, 0 warnings across all `.ps1` scripts.
+  - `scripts/doctor.sh --ci .`: 24/24 Passed (0 Warnings, 0 Failures).
+  - `scripts/doctor.ps1 -Ci`: 24/24 Passed (0 Warnings, 0 Failures).
+  - `scripts/build-templates.sh --check`: PASS (0 drift).
+  - `scripts/compile-rules.sh --check`: PASS (in sync).
+- **Not Verified**:
+  - CI execution on PR (pending push and PR creation).

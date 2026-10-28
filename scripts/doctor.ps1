@@ -11,7 +11,7 @@ $warnings = 0
 $failures = 0
 $checksList = [System.Collections.Generic.List[PSObject]]::new()
 
-function Record-Check {
+function Register-CheckRecord {
     param ($Id, $Name, $Status, $Details = "")
     if ($Status -eq "PASS") {
         $script:passed++
@@ -41,9 +41,9 @@ if (-not $Json) {
 # 1. Canonical AGENTS.md
 $agentsFile = Join-Path $target "AGENTS.md"
 if (Test-Path $agentsFile) {
-    Record-Check 1 "Canonical AGENTS.md exists" "PASS"
+    Register-CheckRecord 1 "Canonical AGENTS.md exists" "PASS"
 } else {
-    Record-Check 1 "Canonical AGENTS.md exists" "FAIL" "Missing AGENTS.md at project root"
+    Register-CheckRecord 1 "Canonical AGENTS.md exists" "FAIL" "Missing AGENTS.md at project root"
 }
 
 # 2. Provider adapters point to AGENTS.md
@@ -60,9 +60,9 @@ foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md", ".cursor/rules/agents.md
     }
 }
 if ($adaptersOk) {
-    Record-Check 2 "Provider adapters point to AGENTS.md" "PASS"
+    Register-CheckRecord 2 "Provider adapters point to AGENTS.md" "PASS"
 } else {
-    Record-Check 2 "Provider adapters point to AGENTS.md" "FAIL" $adapterErr
+    Register-CheckRecord 2 "Provider adapters point to AGENTS.md" "FAIL" $adapterErr
 }
 
 # 3. Core architecture documentation exists
@@ -76,9 +76,9 @@ foreach ($d in @("architecture.md", "conventions.md", "task-state.md", "graph.md
     }
 }
 if ($docsOk) {
-    Record-Check 3 "Core architecture documentation exists" "PASS"
+    Register-CheckRecord 3 "Core architecture documentation exists" "PASS"
 } else {
-    Record-Check 3 "Core architecture documentation exists" "FAIL" $docsErr
+    Register-CheckRecord 3 "Core architecture documentation exists" "FAIL" $docsErr
 }
 
 # 4. Learning engine structure exists
@@ -86,17 +86,17 @@ $aiDir = Join-Path $target ".ai"
 $candFile = Join-Path $aiDir "mistakes-candidates.md"
 $lessFile = Join-Path $docsDir "lessons.md"
 if ((Test-Path $aiDir) -and (Test-Path $candFile) -and (Test-Path $lessFile)) {
-    Record-Check 4 "Learning engine structure exists" "PASS"
+    Register-CheckRecord 4 "Learning engine structure exists" "PASS"
 } else {
-    Record-Check 4 "Learning engine structure exists" "FAIL" "Missing .ai/, mistakes-candidates.md, or docs/lessons.md"
+    Register-CheckRecord 4 "Learning engine structure exists" "FAIL" "Missing .ai/, mistakes-candidates.md, or docs/lessons.md"
 }
 
 # 5. Pre-commit hook installed
 $hookFile = Join-Path $target ".githooks\pre-commit"
 if (Test-Path $hookFile) {
-    Record-Check 5 "Pre-commit secret guard is installed and executable" "PASS"
+    Register-CheckRecord 5 "Pre-commit secret guard is installed and executable" "PASS"
 } else {
-    Record-Check 5 "Pre-commit secret guard is installed and executable" "FAIL" "Missing .githooks/pre-commit"
+    Register-CheckRecord 5 "Pre-commit secret guard is installed and executable" "FAIL" "Missing .githooks/pre-commit"
 }
 
 # 6. Active git hook configuration
@@ -104,9 +104,9 @@ Push-Location $target
 try {
     $hooksPath = (git config core.hooksPath 2>$null)
     if ($hooksPath) {
-        Record-Check 6 "Git hook is active in core.hooksPath" "PASS"
+        Register-CheckRecord 6 "Git hook is active in core.hooksPath" "PASS"
     } else {
-        Record-Check 6 "Git hook is active in core.hooksPath" "FAIL" "core.hooksPath is not configured in git"
+        Register-CheckRecord 6 "Git hook is active in core.hooksPath" "FAIL" "core.hooksPath is not configured in git"
     }
 } finally {
     Pop-Location
@@ -139,9 +139,9 @@ if (Test-Path $patternsFile) {
 }
 
 if ($leaksFound -eq 0) {
-    Record-Check 7 "Zero secrets detected in tracked files" "PASS"
+    Register-CheckRecord 7 "Zero secrets detected in tracked files" "PASS"
 } else {
-    Record-Check 7 "Zero secrets detected in tracked files" "FAIL" "Detected $leaksFound file(s) containing secret signatures"
+    Register-CheckRecord 7 "Zero secrets detected in tracked files" "FAIL" "Detected $leaksFound file(s) containing secret signatures"
 }
 
 # 8. No .env files tracked by git
@@ -149,9 +149,9 @@ Push-Location $target
 try {
     $trackedEnv = (git ls-files 2>$null | Where-Object { $_ -match '(^|/)\.env($|\..*)' -and $_ -notmatch '\.(example|sample|template|dist)$' })
     if (-not $trackedEnv) {
-        Record-Check 8 "No environment (.env) files tracked by git" "PASS"
+        Register-CheckRecord 8 "No environment (.env) files tracked by git" "PASS"
     } else {
-        Record-Check 8 "No environment (.env) files tracked by git" "FAIL" "Sensitive env file(s) tracked in git index: $($trackedEnv -join ', ')"
+        Register-CheckRecord 8 "No environment (.env) files tracked by git" "FAIL" "Sensitive env file(s) tracked in git index: $($trackedEnv -join ', ')"
     }
 } finally {
     Pop-Location
@@ -167,9 +167,9 @@ if (Test-Path (Join-Path $pbDir "codebase-analysis.md")) {
     $playbooksOk = $true
 }
 if ($playbooksOk) {
-    Record-Check 9 "Referenced playbooks and prompts paths exist" "PASS"
+    Register-CheckRecord 9 "Referenced playbooks and prompts paths exist" "PASS"
 } else {
-    Record-Check 9 "Referenced playbooks and prompts paths exist" "FAIL" "Referenced playbooks directory or files missing"
+    Register-CheckRecord 9 "Referenced playbooks and prompts paths exist" "FAIL" "Referenced playbooks directory or files missing"
 }
 
 # 10. Unique learned rule IDs
@@ -193,43 +193,43 @@ if (Test-Path $agentsFile) {
     }
 }
 if ($rulesOk) {
-    Record-Check 10 "Learned rule IDs are unique" "PASS"
+    Register-CheckRecord 10 "Learned rule IDs are unique" "PASS"
 } else {
-    Record-Check 10 "Learned rule IDs are unique" "FAIL" $ruleError
+    Register-CheckRecord 10 "Learned rule IDs are unique" "FAIL" $ruleError
 }
 
 # 11. Active task state tracker non-empty
 $tsPath = Join-Path $docsDir "task-state.md"
 if ((Test-Path $tsPath) -and ((Get-Item $tsPath).Length -gt 0)) {
-    Record-Check 11 "Active task state tracker is non-empty" "PASS"
+    Register-CheckRecord 11 "Active task state tracker is non-empty" "PASS"
 } else {
-    Record-Check 11 "Active task state tracker is non-empty" "FAIL" "docs/task-state.md is missing or empty"
+    Register-CheckRecord 11 "Active task state tracker is non-empty" "FAIL" "docs/task-state.md is missing or empty"
 }
 
 # 12. AGENTS.md size under budget
 if (Test-Path $agentsFile) {
     $size = (Get-Item $agentsFile).Length
     if ($size -lt 8192) {
-        Record-Check 12 "AGENTS.md size within token budget (<8KB)" "PASS"
+        Register-CheckRecord 12 "AGENTS.md size within token budget (<8KB)" "PASS"
     } else {
-        Record-Check 12 "AGENTS.md size within token budget (<8KB)" "WARN" "AGENTS.md is $size bytes (exceeds budget)"
+        Register-CheckRecord 12 "AGENTS.md size within token budget (<8KB)" "WARN" "AGENTS.md is $size bytes (exceeds budget)"
     }
 }
 
 # 13. Line ending hygiene (.gitattributes)
 $gaFile = Join-Path $target ".gitattributes"
 if ((Test-Path $gaFile) -and ((Get-Content $gaFile -Raw) -match "eol=lf")) {
-    Record-Check 13 "Line ending hygiene enforced (.gitattributes)" "PASS"
+    Register-CheckRecord 13 "Line ending hygiene enforced (.gitattributes)" "PASS"
 } else {
-    Record-Check 13 "Line ending hygiene enforced (.gitattributes)" "FAIL" "Missing .gitattributes enforcing LF line endings"
+    Register-CheckRecord 13 "Line ending hygiene enforced (.gitattributes)" "FAIL" "Missing .gitattributes enforcing LF line endings"
 }
 
 # 14. Pattern registry and allowlist exist
 $allowFile = Join-Path $target ".ai\secret-allowlist.txt"
 if ((Test-Path $patternsFile) -and (Test-Path $allowFile)) {
-    Record-Check 14 "Secret pattern registry and allowlist exist" "PASS"
+    Register-CheckRecord 14 "Secret pattern registry and allowlist exist" "PASS"
 } else {
-    Record-Check 14 "Secret pattern registry and allowlist exist" "FAIL" "Missing secret-patterns.txt or secret-allowlist.txt"
+    Register-CheckRecord 14 "Secret pattern registry and allowlist exist" "FAIL" "Missing secret-patterns.txt or secret-allowlist.txt"
 }
 
 # 15. Worker tools in multi-agent playbook match mcp.json
@@ -297,17 +297,17 @@ if ((Test-Path $playbookPath) -and (Test-Path $mcpJsonPath)) {
 }
 
 if ($mcpOk) {
-    Record-Check 15 "Playbook MCP worker tools exist in mcp.json" "PASS"
+    Register-CheckRecord 15 "Playbook MCP worker tools exist in mcp.json" "PASS"
 } else {
-    Record-Check 15 "Playbook MCP worker tools exist in mcp.json" "FAIL" $mcpError
+    Register-CheckRecord 15 "Playbook MCP worker tools exist in mcp.json" "FAIL" $mcpError
 }
 
 # 16. Pending *.ai-os-update conflict files
 $conflictFiles = Get-ChildItem -Path $target -Filter "*.ai-os-update" -Recurse -File -ErrorAction SilentlyContinue
 if ($conflictFiles -and $conflictFiles.Count -gt 0) {
-    Record-Check 16 "Side-by-side upgrade conflict files" "WARN" "$($conflictFiles.Count) pending *.ai-os-update file(s) found. Review preserved differences."
+    Register-CheckRecord 16 "Side-by-side upgrade conflict files" "WARN" "$($conflictFiles.Count) pending *.ai-os-update file(s) found. Review preserved differences."
 } else {
-    Record-Check 16 "Side-by-side upgrade conflict files" "PASS"
+    Register-CheckRecord 16 "Side-by-side upgrade conflict files" "PASS"
 }
 
 # 17. PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)
@@ -328,18 +328,17 @@ foreach ($psf in $ps1Files) {
     }
 }
 if ($ps1Ok) {
-    Record-Check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "PASS"
+    Register-CheckRecord 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "PASS"
 } else {
-    Record-Check 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "FAIL" $ps1Err
+    Register-CheckRecord 17 "PowerShell script encoding hygiene (.ps1 ASCII or UTF-8 BOM)" "FAIL" $ps1Err
 }
 
 # 18. No hardcoded local user paths in tracked files
-$userPattern = "C:" + [char]92 + "Users"
 $localHits = (git -C $target grep -iE "C:[\\/]Users" -- ":!scripts/doctor.*" 2>$null)
 if ($localHits) {
-    Record-Check 18 "No hardcoded local user paths in tracked files" "FAIL" "Found hardcoded local user path: $localHits"
+    Register-CheckRecord 18 "No hardcoded local user paths in tracked files" "FAIL" "Found hardcoded local user path: $localHits"
 } else {
-    Record-Check 18 "No hardcoded local user paths in tracked files" "PASS"
+    Register-CheckRecord 18 "No hardcoded local user paths in tracked files" "PASS"
 }
 
 # 19. Documentation counts synchronicity
@@ -361,9 +360,9 @@ if (Test-Path $readmePath) {
     }
     if ($readmeContent -match '(\d+)-point diagnostic doctor') {
         $claimedDoctor = [int]$matches[1]
-        if ($claimedDoctor -ne 23) {
+        if ($claimedDoctor -ne 24) {
             $docCountsOk = $false
-            $docErr = "README claims $claimedDoctor-point doctor, expected 23"
+            $docErr = "README claims $claimedDoctor-point doctor, expected 24"
         }
     }
 }
@@ -372,24 +371,24 @@ if (Test-Path $userGuidePath) {
     $ugContent = Get-Content $userGuidePath -Raw
     if ($ugContent -match '(\d+)-point diagnostic') {
         $ugClaimedDoctor = [int]$matches[1]
-        if ($ugClaimedDoctor -ne 23) {
+        if ($ugClaimedDoctor -ne 24) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 23"
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 24"
         }
     }
     if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
         $ugClaimedChecks = [int]$matches[1]
-        if ($ugClaimedChecks -ne 23) {
+        if ($ugClaimedChecks -ne 24) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 23"
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 24"
         }
     }
 }
 
 if ($docCountsOk) {
-    Record-Check 19 "Documentation counts match reality (playbooks, doctor checks)" "PASS"
+    Register-CheckRecord 19 "Documentation counts match reality (playbooks, doctor checks)" "PASS"
 } else {
-    Record-Check 19 "Documentation counts match reality (playbooks, doctor checks)" "FAIL" $docErr
+    Register-CheckRecord 19 "Documentation counts match reality (playbooks, doctor checks)" "FAIL" $docErr
 }
 
 # 20. Private names deny-list check (.ai/private-names.txt)
@@ -407,17 +406,17 @@ if (Test-Path $privNamesFile) {
     }
 }
 if ($privMatches -gt 0) {
-    Record-Check 20 "No private deny-listed names in tracked files" "FAIL" "Found $privMatches match(es) for private deny-listed names in tracked files"
+    Register-CheckRecord 20 "No private deny-listed names in tracked files" "FAIL" "Found $privMatches match(es) for private deny-listed names in tracked files"
 } else {
-    Record-Check 20 "No private deny-listed names in tracked files" "PASS"
+    Register-CheckRecord 20 "No private deny-listed names in tracked files" "PASS"
 }
 
 # 21. Optional Claude Code hooks installed check
 $claudeSettings = Join-Path $target ".claude/settings.json"
 if (Test-Path $claudeSettings) {
-    Record-Check 21 "Optional Claude Code hooks status" "WARN" "Opt-in Claude Code hooks are active (.claude/settings.json)"
+    Register-CheckRecord 21 "Optional Claude Code hooks status" "WARN" "Opt-in Claude Code hooks are active (.claude/settings.json)"
 } else {
-    Record-Check 21 "Optional Claude Code hooks status" "PASS"
+    Register-CheckRecord 21 "Optional Claude Code hooks status" "PASS"
 }
 
 # 22. Headless agent command documentation verification
@@ -486,9 +485,9 @@ foreach ($df in $docFiles) {
 }
 
 if ($unverifiedCmdErr) {
-    Record-Check 22 "Headless agent command documentation verification" "WARN" $unverifiedCmdErr
+    Register-CheckRecord 22 "Headless agent command documentation verification" "WARN" $unverifiedCmdErr
 } else {
-    Record-Check 22 "Headless agent command documentation verification" "PASS"
+    Register-CheckRecord 22 "Headless agent command documentation verification" "PASS"
 }
 
 # 23. MCP pin maturity and freshness (reads docs/mcp-pins.json offline)
@@ -516,17 +515,58 @@ if (Test-Path $mcpPinsFile) {
             }
         }
         if ($pinWarns.Count -gt 0) {
-            Record-Check 23 "MCP pin maturity and freshness" "WARN" ($pinWarns -join "; ")
+            Register-CheckRecord 23 "MCP pin maturity and freshness" "WARN" ($pinWarns -join "; ")
         } else {
-            Record-Check 23 "MCP pin maturity and freshness" "PASS"
+            Register-CheckRecord 23 "MCP pin maturity and freshness" "PASS"
         }
     } catch {
-        Record-Check 23 "MCP pin maturity and freshness" "WARN" "Error parsing docs/mcp-pins.json: $_"
+        Register-CheckRecord 23 "MCP pin maturity and freshness" "WARN" "Error parsing docs/mcp-pins.json: $_"
     }
 } else {
-    Record-Check 23 "MCP pin maturity and freshness" "PASS"
+    Register-CheckRecord 23 "MCP pin maturity and freshness" "PASS"
 }
 
+# 24. GitHub Actions workflow security (pinned action SHAs and permissions block)
+$workflowsDir = Join-Path $target ".github/workflows"
+$workflowWarn = ""
+if (Test-Path $workflowsDir) {
+    $wfFiles = Get-ChildItem -Path $workflowsDir -File | Where-Object { $_.Extension -in ".yml", ".yaml" }
+    foreach ($wf in $wfFiles) {
+        $wfLines = Get-Content $wf.FullName
+        $hasTopPermissions = $false
+        foreach ($line in $wfLines) {
+            if ($line -match '^permissions:') {
+                $hasTopPermissions = $true
+                break
+            }
+        }
+        if (-not $hasTopPermissions) {
+            $workflowWarn = "Workflow '$($wf.Name)' lacks a top-level permissions block"
+            break
+        }
+        foreach ($line in $wfLines) {
+            if ($line -match '^\s*(?:-\s*)?uses:\s*([^\s#]+)') {
+                $actionRef = $matches[1].Trim("'", '"')
+                if ($actionRef.StartsWith("./") -or $actionRef.StartsWith("docker://")) {
+                    continue
+                }
+                if ($actionRef -match '@([0-9a-fA-F]{40})$') {
+                    continue
+                } else {
+                    $workflowWarn = "Workflow '$($wf.Name)' uses unpinned action '$actionRef' (expected 40-character commit SHA)"
+                    break
+                }
+            }
+        }
+        if ($workflowWarn) { break }
+    }
+}
+
+if ($workflowWarn) {
+    Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "WARN" $workflowWarn
+} else {
+    Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "PASS"
+}
 
 if ($Json) {
     $armor = if ($failures -eq 0) { "ARMED" } else { "UNARMED" }
@@ -551,6 +591,7 @@ if ($Json) {
 }
 
 if ($failures -gt 0) {
+    if ($Ci) { exit 1 }
     exit 1
 }
 exit 0

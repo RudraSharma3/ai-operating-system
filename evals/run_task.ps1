@@ -1,4 +1,6 @@
 [CmdletBinding()]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'Script parameters are scoped to execution and used within Invoke-SingleTask')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '', Justification = 'Dynamic agent command execution from benchmark caller')]
 param(
     [string]$Task = "all",
     [ValidateSet("with", "without")]
@@ -22,7 +24,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
 $TasksDir = Join-Path $ScriptDir "tasks"
 
-function Run-SingleTask([string]$tDir) {
+function Invoke-SingleTask([string]$tDir) {
     $tName = Split-Path -Leaf $tDir
     Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host " Running Eval Task: $tName (Mode: $Mode)" -ForegroundColor Cyan
@@ -202,7 +204,7 @@ $failed = 0
 foreach ($t in $tasksToRun) {
     $total++
     $script:currentTaskPassed = $false
-    Run-SingleTask $t.FullName | Out-Host
+    Invoke-SingleTask $t.FullName | Out-Host
     if ($script:currentTaskPassed) {
         $passed++
     } else {
