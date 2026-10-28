@@ -575,5 +575,57 @@ This document tracks the current development milestones and task state for the m
 - **Not Verified**:
   - Live Claude CLI API calls (no authenticated `claude` binary on local PATH).
 
+---
+
+### Step 8: Supply-Chain Hardening, Offline Test Suite, Sandbox Safety & CI Hygiene (v2.4.0)
+- **What Changed**:
+  - **Step 1: Pinned MCP Server Releases >= 14 Days Old**:
+    - Cutoff date: 2026-10-14T07:20:16Z (14 days before 2026-10-28).
+    - Downgraded pins in `mcp.json` to newest mature releases:
+      - `@modelcontextprotocol/server-filesystem@1.0.0` (published 2026-10-11T02:44:10Z, 17.2d old).
+      - `@modelcontextprotocol/server-memory@1.0.0` (published 2026-10-11T02:42:27Z, 17.2d old).
+      - `mcp-server-git==2026.10.10` (published 2026-10-11T02:41:46Z, 17.2d old).
+      - `mcp-server-fetch==2026.10.10` (published 2026-10-11T02:41:50Z, 17.2d old).
+    - Created committed `docs/mcp-pins.json` recording package, version, publish timestamp, and checked timestamp.
+    - Updated `playbooks/multi-agent-orchestration.md`, `docs/sources.md`, `docs/AI-OS-USER-GUIDE.md`, and `evals/README.md`.
+    - Added Doctor Check 23 (`MCP pin maturity and freshness`) in `scripts/doctor.sh` and `scripts/doctor.ps1` reading `docs/mcp-pins.json` offline without network calls.
+  - **Step 2: Fully Offline Default Tests & CI / Separate Registry Workflow / Windows CI Fix**:
+    - Analyzed CI run `40642770120`: Slowest step on Windows was "Run Test Harness (Git Bash on Windows)" at 14m18s; slowest on Linux was "Run Master Test Harness" at 52s. Identified root cause as Doctor Check 22's line-by-line file loops creating thousands of MSYS2 Win32 process spawns in Git Bash on Windows. Optimized `doctor.sh` to extract matching patterns in bulk, slashing execution time to ~2m30s.
+    - Audited network tool usage across `tests/`, `scripts/`, `evals/`. Ensured all default test, doctor, and eval paths make 0 outbound network calls.
+    - Created online registry verification scripts `scripts/registry-check.sh` and `scripts/registry-check.ps1`.
+    - Added scheduled/manual workflow `.github/workflows/registry-check.yml` (weekly cron + `workflow_dispatch`), not required on `main`.
+    - Added unit test `test_offline_test_and_doctor_scripts_no_network_invocations` in `tests/test_installer.sh`. Demonstrated test-first failure before passing.
+  - **Step 3: Safe Eval Runner Sandbox & Permissions**:
+    - Updated `docs/sources.md` Section 5 with narrowest verified permission options (`claude --permission-mode auto -p`, `claude --allowedTools "Bash,Read,Edit" -p`) and explicit warning banner for `--dangerously-skip-permissions`.
+    - Upgraded `evals/run_task.sh` and `evals/run_task.ps1`:
+      - Mandatory temporary directory outside repository tree and outside any parent git repository.
+      - Strips environment variables matching sensitive patterns (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, cloud provider credentials) before launching agents.
+      - Refuses `--dangerously-skip-permissions` unless `AI_OS_EVAL_SANDBOX=1` is set in an isolated sandbox.
+      - Added `--expect-fail` / `-ExpectFail` flag exiting 0 only when all negative controls are rejected.
+    - Added 4 harness tests in `evals/test_eval_harness.sh` (refusal without env var, refusal under repo tree, env stripping with print-env stub agent, and expect-fail). Total 12/12 harness tests passing.
+  - **Step 4: Git State & Scratch Audit**:
+    - Verified `git stash list` is empty.
+    - Verified `git branch -vv`: `hardening` ahead of `origin/hardening`, `main` up to date with `origin/main`.
+    - Verified `origin/main..main` is empty.
+    - Verified `origin/hardening..main` is empty.
+    - Verified `git check-ignore -v scratch/` reports `.gitignore:13:scratch/`.
+    - Scanned `scratch/`: 2 test pattern matches in downloaded runner logs (`Private Key Header` text in `win_job.log` and `mac_log.txt`), 0 private deny-listed names.
+  - **Step 5: Release v2.4.0 & Template Rebuild**:
+    - Bumped `VERSION` to `2.4.0`.
+    - Updated `CHANGELOG.md` with full `[2.4.0]` section.
+    - Rebuilt templates via `scripts/build-templates.ps1` (56 files indexed, zero drift).
+- **What Was Verified**:
+  - `tests/test_installer.sh`: **19/19 tests PASSED**.
+  - `evals/test_eval_harness.sh`: **12/12 tests PASSED**.
+  - `scripts/doctor.sh .`: **23/23 checks PASSED**.
+  - `scripts/doctor.ps1 .`: **23/23 checks PASSED**.
+  - `scripts/build-templates.sh --check`: **Zero drift detected**.
+  - `scripts/compile-rules.sh --check`: **Zero drift detected**.
+  - `evals/run_task.sh --task all --negative --expect-fail`: **5/5 negative controls rejected (exit 0)**.
+  - `evals/run_task.sh --task all --reference`: **5/5 reference solutions accepted (exit 0)**.
+- **Not Verified**:
+  - Live external LLM calls through Claude CLI API (no authenticated `claude` binary on local PATH).
+
+
 
 
