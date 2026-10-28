@@ -7,9 +7,14 @@ param(
     [switch]$Reference,
     [switch]$Negative,
     [switch]$ExpectFail,
+    [string]$PassEnv = "",
     [switch]$CheckOnly,
     [string]$TargetDir = ""
 )
+
+if (-not $PassEnv -and $env:AI_OS_EVAL_PASS_ENV) {
+    $PassEnv = $env:AI_OS_EVAL_PASS_ENV
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -76,6 +81,22 @@ function Run-SingleTask([string]$tDir) {
         }
     }
 
+    # 4. Refuse cloud / source-control credentials in -PassEnv unless AI_OS_EVAL_SANDBOX=1
+    if ($PassEnv) {
+        $varList = $PassEnv -split ','
+        foreach ($v in $varList) {
+            $v = $v.Trim()
+            if ($v -match '^(?i)(AWS_|AZURE_|GOOGLE_|GITHUB_|GH_|GITLAB_|NPM_TOKEN)') {
+                if ($env:AI_OS_EVAL_SANDBOX -ne "1") {
+                    Write-Error "Refusing to pass through cloud/source-control credential '$v' without AI_OS_EVAL_SANDBOX=1."
+                    if ($cleanupNeeded -and (Test-Path $sandbox)) { Remove-Item -Path $sandbox -Recurse -Force -ErrorAction SilentlyContinue }
+                    $script:currentTaskPassed = $false
+                    return $false
+                }
+            }
+        }
+    }
+
     $setupScript = Join-Path $tDir "setup.ps1"
     $checkScript = Join-Path $tDir "check.ps1"
     $refScript = Join-Path $tDir "reference_solution.ps1"
@@ -99,7 +120,14 @@ function Run-SingleTask([string]$tDir) {
             & $negScript -TargetDir $sandbox
         } elseif ($AgentCmd) {
             Write-Host "Executing agent command: $AgentCmd (with secret environment stripped)..." -ForegroundColor Gray
-            $secretVars = Get-ChildItem Env: | Where-Object { $_.Name -match '(?i)(KEY|TOKEN|SECRET|PASSWORD|^AWS_|^AZURE_|^GOOGLE_|^GCP_)' }
+            $passList = @()
+            if ($PassEnv) {
+                $passList = ($PassEnv -split ',') | ForEach-Object { $_.Trim() }
+            }
+            $secretVars = Get-ChildItem Env: | Where-Object {
+                $_.Name -match '(?i)(KEY|TOKEN|SECRET|PASSWORD|^AWS_|^AZURE_|^GOOGLE_|^GCP_)' -and
+                $passList -notcontains $_.Name
+            }
             & {
                 foreach ($sv in $secretVars) {
                     Remove-Item "Env:$($sv.Name)" -ErrorAction SilentlyContinue
