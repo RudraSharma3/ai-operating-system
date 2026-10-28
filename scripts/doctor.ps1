@@ -106,7 +106,7 @@ try {
     if ($hooksPath) {
         Register-CheckRecord 6 "Git hook is active in core.hooksPath" "PASS"
     } else {
-        Register-CheckRecord 6 "Git hook is active in core.hooksPath" "FAIL" "core.hooksPath is not configured in git"
+        Register-CheckRecord 6 "Git hook is active in core.hooksPath" "FAIL" "core.hooksPath is not configured in git (run 'powershell scripts/bootstrap.ps1' or 'bash scripts/bootstrap.sh' to initialize)"
     }
 } finally {
     Pop-Location

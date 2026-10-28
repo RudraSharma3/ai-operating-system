@@ -121,7 +121,7 @@ HOOKS_PATH=$(git config core.hooksPath 2>/dev/null || true)
 if [ -n "$HOOKS_PATH" ]; then
     record_check 6 "Git hook is active in core.hooksPath" "PASS" ""
 else
-    record_check 6 "Git hook is active in core.hooksPath" "FAIL" "core.hooksPath is not configured in git"
+    record_check 6 "Git hook is active in core.hooksPath" "FAIL" "core.hooksPath is not configured in git (run 'bash scripts/bootstrap.sh' or 'powershell scripts/bootstrap.ps1' to initialize)"
 fi
 
 # 7. Secret scan of tracked files
