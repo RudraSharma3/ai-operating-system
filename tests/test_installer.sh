@@ -397,7 +397,33 @@ EOF
     local doc_out_unpinned doc_status_unpinned=0
     doc_out_unpinned=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status_unpinned=$?
 
-    # 3. Test success when all servers are pinned and tools match
+    # 3. Test failure when a server in mcp.json has range version (^, ~, >=)
+    cat << 'EOF' > "$mcp_file"
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@^1.0.0", "./"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory@1.0.0"]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git==2026.10.10", "--repository", "./"]
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch==2026.10.10"]
+    }
+  }
+}
+EOF
+    local doc_out_range doc_status_range=0
+    doc_out_range=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status_range=$?
+
+    # 4. Test success when all servers are pinned and tools match
     cp "$mcp_file.bak" "$mcp_file"
     local doc_out_clean doc_status_clean=0
     doc_out_clean=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status_clean=$?
@@ -406,6 +432,8 @@ EOF
 
     assert_eq 1 "$doc_status_unpinned" "doctor.sh must fail when an MCP server version is unpinned"
     assert_contains "$doc_out_unpinned" "unpinned" "doctor.sh must report unpinned server version in mcp.json"
+    assert_eq 1 "$doc_status_range" "doctor.sh must fail when an MCP server version has a range (^, ~, >=)"
+    assert_contains "$doc_out_range" "range" "doctor.sh must report range version specification in mcp.json"
     assert_eq 0 "$doc_status_clean" "doctor.sh must pass when all MCP servers are pinned and match playbook"
 }
 

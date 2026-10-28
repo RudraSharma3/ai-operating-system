@@ -264,12 +264,22 @@ try:
         for a in args:
             if '@' in a:
                 parts = a[1:].split('@', 1) if a.startswith('@') else a.split('@', 1)
-                if len(parts) == 2 and parts[1] != 'latest' and any(c.isdigit() for c in parts[1]):
-                    pinned = True
+                if len(parts) == 2:
+                    ver = parts[1]
+                    if any(ver.startswith(op) for op in ('^', '~', '>', '<', '*', '=')) or ver == 'latest':
+                        print(f'Server \"{name}\" in mcp.json has range version specification \"{ver}\" (exact pins required)')
+                        sys.exit(1)
+                    if any(c.isdigit() for c in ver):
+                        pinned = True
             elif '==' in a:
                 parts = a.split('==', 1)
-                if len(parts) == 2 and parts[1] != 'latest' and any(c.isdigit() for c in parts[1]):
-                    pinned = True
+                if len(parts) == 2:
+                    ver = parts[1]
+                    if any(ver.startswith(op) for op in ('^', '~', '>', '<', '*', '=')) or ver == 'latest':
+                        print(f'Server \"{name}\" in mcp.json has range version specification \"{ver}\" (exact pins required)')
+                        sys.exit(1)
+                    if any(c.isdigit() for c in ver):
+                        pinned = True
         if not pinned:
             print(f'Server \"{name}\" in mcp.json has unpinned version specification')
             sys.exit(1)

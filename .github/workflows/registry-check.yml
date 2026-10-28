@@ -23,5 +23,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Run MCP Registry Verification Script
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Run MCP Registry Verification & Stdio Smoke Tests
         run: bash scripts/registry-check.sh
