@@ -265,16 +265,13 @@ if ((Test-Path $playbookPath) -and (Test-Path $mcpJsonPath)) {
                     $isPinned = $false
                     if ($srvArgs) {
                         foreach ($arg in $srvArgs) {
-                            if ($arg -match '@([^\s]+)') {
-                                $ver = $matches[1]
-                                if ($ver -match '^[\^~><*]' -or $ver -eq 'latest') {
-                                    $mcpOk = $false
-                                    $mcpError = "Server '$srvName' in mcp.json has range version specification '$ver' (exact pins required)"
-                                    break
-                                }
-                                if ($ver -match '^\d') { $isPinned = $true }
-                            } elseif ($arg -match '==([^\s]+)') {
-                                $ver = $matches[1]
+                            $ver = ""
+                            if ($arg.Length -gt 1 -and $arg.Substring(1).Contains("@")) {
+                                $ver = $arg.Substring(1).Split("@")[-1]
+                            } elseif ($arg.Contains("==")) {
+                                $ver = $arg.Split("==")[-1]
+                            }
+                            if ($ver) {
                                 if ($ver -match '^[\^~><*]' -or $ver -eq 'latest') {
                                     $mcpOk = $false
                                     $mcpError = "Server '$srvName' in mcp.json has range version specification '$ver' (exact pins required)"
