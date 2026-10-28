@@ -144,6 +144,42 @@ status_expect_fail=0
 bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --negative --expect-fail >/dev/null 2>&1 || status_expect_fail=$?
 assert_eq 0 "$status_expect_fail" "run_task.sh with --negative --expect-fail must exit 0 when all controls rejected"
 
+# Test 13: Default run (no passthrough) leaves ANTHROPIC_API_KEY absent
+echo "▶️ Testing default run leaves ANTHROPIC_API_KEY absent..."
+SAFE_TMP_DEFAULT=$(mktemp -d 2>/dev/null || mktemp -d -t 'safe_tmp_def')
+export ANTHROPIC_API_KEY="test_anthropic_secret_key"
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "bash $SCRIPT_DIR/stub_agent.sh --mode print-env" --target "$SAFE_TMP_DEFAULT" >/dev/null 2>&1 || true
+has_anthropic=0
+if [ -f "$SAFE_TMP_DEFAULT/stub_env.txt" ] && grep -q 'ANTHROPIC_API_KEY' "$SAFE_TMP_DEFAULT/stub_env.txt"; then
+    has_anthropic=1
+fi
+rm -rf "$SAFE_TMP_DEFAULT" 2>/dev/null || true
+assert_eq 0 "$has_anthropic" "default run without --pass-env must strip ANTHROPIC_API_KEY"
+
+# Test 14: Run with --pass-env ANTHROPIC_API_KEY preserves it
+echo "▶️ Testing --pass-env ANTHROPIC_API_KEY preserves allowed variable..."
+SAFE_TMP_PASS=$(mktemp -d 2>/dev/null || mktemp -d -t 'safe_tmp_pass')
+export ANTHROPIC_API_KEY="test_anthropic_secret_key"
+export OTHER_SECRET_KEY="other_secret_val"
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --pass-env ANTHROPIC_API_KEY --agent-cmd "bash $SCRIPT_DIR/stub_agent.sh --mode print-env" --target "$SAFE_TMP_PASS" >/dev/null 2>&1 || true
+pass_survived=0
+other_stripped=1
+if [ -f "$SAFE_TMP_PASS/stub_env.txt" ]; then
+    grep -q 'ANTHROPIC_API_KEY=test_anthropic_secret_key' "$SAFE_TMP_PASS/stub_env.txt" && pass_survived=1
+    grep -q 'OTHER_SECRET_KEY' "$SAFE_TMP_PASS/stub_env.txt" && other_stripped=0
+fi
+rm -rf "$SAFE_TMP_PASS" 2>/dev/null || true
+assert_eq 1 "$pass_survived" "run with --pass-env ANTHROPIC_API_KEY must preserve ANTHROPIC_API_KEY"
+assert_eq 1 "$other_stripped" "run with --pass-env must still strip unpassed secrets"
+
+# Test 15: Run with --pass-env GITHUB_TOKEN without AI_OS_EVAL_SANDBOX=1 is refused
+echo "▶️ Testing refusal of cloud/source-control credential in --pass-env without sandbox flag..."
+status_gh_refused=0
+AI_OS_EVAL_SANDBOX=0 bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --pass-env GITHUB_TOKEN --agent-cmd "bash $SCRIPT_DIR/stub_agent.sh --mode noop" >/dev/null 2>&1 || status_gh_refused=$?
+assert_eq 1 "$status_gh_refused" "--pass-env GITHUB_TOKEN without AI_OS_EVAL_SANDBOX=1 must be refused (exit 1)"
+
+unset ANTHROPIC_API_KEY OTHER_SECRET_KEY 2>/dev/null || true
+
 echo ""
 echo "Harness Test Summary: $PASS_COUNT/$TEST_COUNT passed, $FAIL_COUNT failed."
 [ "$FAIL_COUNT" -eq 0 ] || exit 1

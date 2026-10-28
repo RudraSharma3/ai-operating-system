@@ -16,6 +16,7 @@ USE_NEGATIVE=false
 EXPECT_FAIL=false
 CHECK_ONLY=false
 TARGET_DIR=""
+PASS_ENV="${AI_OS_EVAL_PASS_ENV:-}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -42,6 +43,10 @@ while [[ $# -gt 0 ]]; do
         --expect-fail)
             EXPECT_FAIL=true
             shift
+            ;;
+        --pass-env)
+            PASS_ENV="$2"
+            shift 2
             ;;
         --check-only|-c)
             CHECK_ONLY=true
@@ -119,6 +124,22 @@ run_single_task() {
         fi
     fi
 
+    # 4. Refuse cloud / source-control credentials in --pass-env unless AI_OS_EVAL_SANDBOX=1 is set
+    if [ -n "$PASS_ENV" ]; then
+        IFS=',' read -ra VAR_LIST <<< "$PASS_ENV"
+        for v in "${VAR_LIST[@]}"; do
+            v=$(echo "$v" | xargs)
+            [ -z "$v" ] && continue
+            if [[ "$v" =~ ^(AWS_|AZURE_|GOOGLE_|GITHUB_|GH_|GITLAB_|NPM_TOKEN) ]]; then
+                if [ "${AI_OS_EVAL_SANDBOX:-0}" != "1" ]; then
+                    echo "❌ ERROR: Refusing to pass through cloud/source-control credential '$v' without AI_OS_EVAL_SANDBOX=1." >&2
+                    [ "$cleanup_needed" = true ] && rm -rf "$sandbox" 2>/dev/null || true
+                    return 1
+                fi
+            fi
+        done
+    fi
+
     # 1. Setup fixture repo
     if [ "$CHECK_ONLY" = false ]; then
         echo "▶️ Setting up fixture repository..."
@@ -141,10 +162,23 @@ run_single_task() {
             echo "▶️ Executing agent command: $AGENT_CMD (with secret environment stripped)..."
             local prompt_file="$t_dir/prompt.md"
             (
-                # Strip environment variables matching common secret patterns
+                # Strip environment variables matching common secret patterns, preserving explicit passthrough
                 for var in $(compgen -v 2>/dev/null || env | cut -d= -f1); do
                     if [[ "$var" =~ (KEY|TOKEN|SECRET|PASSWORD|^AWS_|^AZURE_|^GOOGLE_|^GCP_) ]]; then
-                        unset "$var" 2>/dev/null || true
+                        local keep=false
+                        if [ -n "$PASS_ENV" ]; then
+                            IFS=',' read -ra PASS_VARS <<< "$PASS_ENV"
+                            for pv in "${PASS_VARS[@]}"; do
+                                pv=$(echo "$pv" | xargs)
+                                if [ "$pv" = "$var" ]; then
+                                    keep=true
+                                    break
+                                fi
+                            done
+                        fi
+                        if [ "$keep" = false ]; then
+                            unset "$var" 2>/dev/null || true
+                        fi
                     fi
                 done
                 cd "$sandbox" && eval "$AGENT_CMD \"$prompt_file\""

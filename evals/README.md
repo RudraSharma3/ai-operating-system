@@ -70,3 +70,34 @@ bash evals/test_eval_harness.sh
 ```bash
 bash evals/run_evals.sh
 ```
+
+---
+
+## Limits of the Eval Sandbox
+
+The evaluation runner temporary directory isolates only the repository working directory. **It is not a security sandbox.**
+
+Specifically:
+- An agent executing commands can still read, modify, or delete any files accessible to the current operating system user (including the home directory, SSH keys, shell configuration, and credentials).
+- The harness does not restrict or firewall outbound network access.
+- Environment variable stripping removes common secret signatures from child processes, but does not provide OS-level or containerized isolation.
+
+### Recommendations for Live Runs
+For executing untrusted or autonomous agent runs:
+1. **Run inside a Container or VM**:
+   Use Docker or a disposable virtual machine to enforce filesystem, user privilege, and network boundaries:
+   ```dockerfile
+   # Minimal example Dockerfile (untested):
+   FROM debian:bookworm-slim
+   RUN apt-get update && apt-get install -y git curl python3 bash && rm -rf /var/lib/apt/lists/*
+   RUN useradd -m -s /bin/bash sandboxuser
+   USER sandboxuser
+   WORKDIR /home/sandboxuser/workspace
+   ```
+   Or via Docker CLI:
+   ```bash
+   # Example docker invocation (untested):
+   docker run --rm -it --network none -v "$PWD:/workspace" -w /workspace debian:bookworm-slim /bin/bash
+   ```
+2. **Use Narrow Permission Modes**:
+   Always configure the narrowest verified permission mode from [`docs/sources.md`](../docs/sources.md) (e.g., `claude --permission-mode auto -p` or `claude --allowedTools "Bash,Read,Edit" -p`). Documented dangerous flags (such as `--dangerously-skip-permissions`) should never be used on developer workstations.
