@@ -121,7 +121,8 @@ function Run-SingleTask([string]$tDir) {
     $checkPassed = $false
     $checkErr = ""
     try {
-        powershell.exe -ExecutionPolicy Bypass -File $checkScript -TargetDir $sandbox
+        $psCmd = if (Get-Command "powershell.exe" -ErrorAction SilentlyContinue) { "powershell.exe" } else { "pwsh" }
+        & $psCmd -ExecutionPolicy Bypass -File $checkScript -TargetDir $sandbox
         if ($LASTEXITCODE -eq 0) {
             $checkPassed = $true
         } else {
