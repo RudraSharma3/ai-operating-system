@@ -763,4 +763,12 @@ This document tracks the current development milestones and task state for the m
   - Throwaway linter strictness test: PASS (both tools exit non-zero on warnings).
   - Real repository linting: PASS (0 warnings, exit 0 on both tools).
   - Dependabot API endpoints: PASS (vulnerability alerts 204 No Content, automated security fixes `enabled: true`).
+  - PR #2 9-command clean tree verification: all 9 commands exit code 0.
+  - PR #2 CI run (`40755724128`): Linux (51s), macOS (1m11s), Windows (4m49s) — all GREEN.
+  - PR #2 Admin-Bypass Merge: merge commit `9c0b42138baa37ff9d3b7c6d9dd21731f0654dbc` onto `main`. Branch protection unchanged.
+  - Main CI run (`40756631566`): Linux (1m09s), macOS (1m16s), Windows (3m14s) — all GREEN.
+  - Release `v2.4.3`: Created annotated tag `v2.4.3` on merge commit, published GitHub Release with unmeasured agent outcome disclaimer.
+  - Fresh-clone smoke test: Cloned `main` in fresh temp dir, verified HEAD `9c0b421...`, ran tests (77/77 PASS), doctor Check 6 failed on missing `core.hooksPath`, ran `scripts/bootstrap.sh`, doctor re-run passed 24/24. Downstream install into `scratch_downstream` verified fake vendor key blocked (exit 1) and harmless change allowed (exit 0). Temp dir deleted.
+  - Follow-up PR branch (`doctor-bootstrap-message`): Updated `scripts/doctor.sh` and `scripts/doctor.ps1` Check 6 failure message to guide users to `scripts/bootstrap.sh` / `scripts/bootstrap.ps1`.
+
 
