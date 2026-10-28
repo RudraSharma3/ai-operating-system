@@ -348,9 +348,9 @@ if (Test-Path $readmePath) {
     }
     if ($readmeContent -match '(\d+)-point diagnostic doctor') {
         $claimedDoctor = [int]$matches[1]
-        if ($claimedDoctor -ne 22) {
+        if ($claimedDoctor -ne 23) {
             $docCountsOk = $false
-            $docErr = "README claims $claimedDoctor-point doctor, expected 22"
+            $docErr = "README claims $claimedDoctor-point doctor, expected 23"
         }
     }
 }
@@ -359,16 +359,16 @@ if (Test-Path $userGuidePath) {
     $ugContent = Get-Content $userGuidePath -Raw
     if ($ugContent -match '(\d+)-point diagnostic') {
         $ugClaimedDoctor = [int]$matches[1]
-        if ($ugClaimedDoctor -ne 22) {
+        if ($ugClaimedDoctor -ne 23) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 22"
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 23"
         }
     }
     if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
         $ugClaimedChecks = [int]$matches[1]
-        if ($ugClaimedChecks -ne 22) {
+        if ($ugClaimedChecks -ne 23) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 22"
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 23"
         }
     }
 }
@@ -465,6 +465,42 @@ if ($unverifiedCmdErr) {
     Record-Check 22 "Headless agent command documentation verification" "WARN" $unverifiedCmdErr
 } else {
     Record-Check 22 "Headless agent command documentation verification" "PASS"
+}
+
+# 23. MCP pin maturity and freshness (reads docs/mcp-pins.json offline)
+$mcpPinsFile = Join-Path $target "docs/mcp-pins.json"
+if (Test-Path $mcpPinsFile) {
+    try {
+        $pinsRaw = Get-Content $mcpPinsFile -Raw
+        $pinsData = ConvertFrom-Json $pinsRaw
+        $now = [DateTime]::UtcNow
+        $pinWarns = @()
+        foreach ($item in $pinsData) {
+            $pkg = $item.package
+            $ver = $item.version
+            if ($item.published_at -and $item.checked_at) {
+                $pubDt = [DateTime]::Parse($item.published_at, $null, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+                $chkDt = [DateTime]::Parse($item.checked_at, $null, [System.Globalization.DateTimeStyles]::AdjustToUniversal)
+                $ageAtChk = ($chkDt - $pubDt).TotalDays
+                if ($ageAtChk -lt 14.0) {
+                    $pinWarns += "$pkg@$ver was younger than 14 days ($([math]::Round($ageAtChk, 1))d) when recorded"
+                }
+                $recAge = ($now - $chkDt).TotalDays
+                if ($recAge -gt 90.0) {
+                    $pinWarns += "Record for $pkg@$ver is older than 90 days ($([math]::Round($recAge, 1))d stale)"
+                }
+            }
+        }
+        if ($pinWarns.Count -gt 0) {
+            Record-Check 23 "MCP pin maturity and freshness" "WARN" ($pinWarns -join "; ")
+        } else {
+            Record-Check 23 "MCP pin maturity and freshness" "PASS"
+        }
+    } catch {
+        Record-Check 23 "MCP pin maturity and freshness" "WARN" "Error parsing docs/mcp-pins.json: $_"
+    }
+} else {
+    Record-Check 23 "MCP pin maturity and freshness" "PASS"
 }
 
 

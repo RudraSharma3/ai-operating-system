@@ -349,22 +349,22 @@ if [ -f "$README_PATH" ]; then
         DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
     fi
     claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 22 ]; then
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 23 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="README claims $claimed_doc-point doctor, expected 22"
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 23"
     fi
 fi
 
 if [ -f "$UG_PATH" ]; then
     ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 22 ]; then
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 23 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 22"
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 23"
     fi
     ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 22 ]; then
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 23 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 22"
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 23"
     fi
 fi
 
@@ -411,39 +411,85 @@ UNVERIFIED_CMD_ERR=""
 DOC_FILES=()
 [ -f "$PROJECT_PATH/README.md" ] && DOC_FILES+=("$PROJECT_PATH/README.md")
 while IFS= read -r f; do
-    [ -n "$f" ] && DOC_FILES+=("$f")
+    [ -n "$f" ] && [ "$f" != "$SOURCES_FILE" ] && DOC_FILES+=("$f")
 done < <(find "$PROJECT_PATH/docs" "$PROJECT_PATH/evals" -type f -name "*.md" 2>/dev/null || true)
 
-for df in "${DOC_FILES[@]}"; do
-    [ "$df" = "$SOURCES_FILE" ] && continue
-    while IFS= read -r line; do
-        cmd=$(echo "$line" | grep -oE '`claude [^`]+`' | tr -d '`' || true)
-        [ -z "$cmd" ] && cmd=$(echo "$line" | grep -oE '"claude [^"]+"' | tr -d '"' || true)
-        [ -z "$cmd" ] && cmd=$(echo "$line" | grep -oE 'claude[[:space:]]+-[a-zA-Z0-9_ -]+' || true)
+if [ ${#DOC_FILES[@]} -gt 0 ]; then
+    while IFS= read -r match_line; do
+        [ -z "$match_line" ] && continue
+        df="${match_line%%:*}"
+        raw_cmd="${match_line#*:}"
+        cmd="${raw_cmd//[\`\"]/}"
         if [ -n "$cmd" ]; then
             if [ ! -f "$SOURCES_FILE" ]; then
                 UNVERIFIED_CMD_ERR="docs/sources.md missing; unverified command '$cmd' found in $(basename "$df")"
-                break 2
+                break
             fi
             flags=$(echo "$cmd" | grep -oE '\-\-[a-zA-Z0-9_-]+|\-[a-zA-Z0-9]' || true)
             for fl in $flags; do
                 if ! grep -F -q -e "$fl" "$SOURCES_FILE"; then
                     UNVERIFIED_CMD_ERR="Unverified flag '$fl' in '$cmd' in $(basename "$df") (not listed in docs/sources.md)"
-                    break 3
+                    break 2
                 fi
             done
             if echo "$cmd" | grep -qE -- '--non-interactive'; then
                 UNVERIFIED_CMD_ERR="Unverified command '$cmd' in $(basename "$df") (flag marked invalid/unverified in docs/sources.md)"
-                break 2
+                break
             fi
         fi
-    done < "$df"
-done
+    done < <(grep -H -oE '`claude [^`]+`|"claude [^"]+"|\bclaude[[:space:]]+-[a-zA-Z0-9_ -]+' "${DOC_FILES[@]}" 2>/dev/null || true)
+fi
 
 if [ -n "$UNVERIFIED_CMD_ERR" ]; then
     record_check 22 "Headless agent command documentation verification" "WARN" "$UNVERIFIED_CMD_ERR"
 else
     record_check 22 "Headless agent command documentation verification" "PASS" ""
+fi
+
+# 23. MCP pin maturity and freshness (reads docs/mcp-pins.json offline)
+MCP_PINS_FILE="$PROJECT_PATH/docs/mcp-pins.json"
+if [ -f "$MCP_PINS_FILE" ]; then
+    PY_CMD="python"
+    command -v python3 >/dev/null 2>&1 && PY_CMD="python3"
+    PIN_RESULT=$($PY_CMD - "$MCP_PINS_FILE" << 'EOF'
+import sys, json
+from datetime import datetime, timezone
+try:
+    with open(sys.argv[1], 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    now = datetime.now(timezone.utc)
+    warns = []
+    for item in data:
+        pkg = item.get('package', 'unknown')
+        ver = item.get('version', '')
+        pub_str = item.get('published_at', '')
+        chk_str = item.get('checked_at', '')
+        if not pub_str or not chk_str:
+            continue
+        pub_dt = datetime.fromisoformat(pub_str.replace('Z', '+00:00'))
+        chk_dt = datetime.fromisoformat(chk_str.replace('Z', '+00:00'))
+        age_at_chk = (chk_dt - pub_dt).total_seconds() / 86400.0
+        if age_at_chk < 14.0:
+            warns.append(f'{pkg}@{ver} was younger than 14 days ({age_at_chk:.1f}d) when recorded')
+        rec_age = (now - chk_dt).total_seconds() / 86400.0
+        if rec_age > 90.0:
+            warns.append(f'Record for {pkg}@{ver} is older than 90 days ({rec_age:.1f}d stale)')
+    if warns:
+        print('WARN:' + '; '.join(warns))
+    else:
+        print('PASS')
+except Exception as e:
+    print('WARN:Error reading mcp-pins.json: ' + str(e))
+EOF
+)
+
+    if [[ "$PIN_RESULT" == WARN:* ]]; then
+        record_check 23 "MCP pin maturity and freshness" "WARN" "${PIN_RESULT#WARN:}"
+    else
+        record_check 23 "MCP pin maturity and freshness" "PASS" ""
+    fi
+else
+    record_check 23 "MCP pin maturity and freshness" "PASS" ""
 fi
 
 
