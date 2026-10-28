@@ -170,11 +170,11 @@ When AI-OS is integrated into an existing project, agents execute the 6-stage ex
    - Built into `prompts/implementer.md` and `playbooks/testing.md`.
    - On test failure: captures error trace → hypothesizes root cause → applies surgical fix → re-tests (up to 3 autonomous iterations).
 3. **Prompt Caching Layout**:
-   - Pinned immutable Level 1 rules at the top of files to trigger provider server-side caching (70–80% faster, 80% cheaper).
+   - Pinned immutable Level 1 rules at the top of files to leverage provider server-side prefix caching (design target, unbenchmarked).
 4. **Git Pre-Commit AI Guard**:
    - `templates/project/.githooks/pre-commit` scans staged diffs on every commit to block API keys, secrets, and private `.env` files.
-5. **Federated Rule Synchronizer**:
-   - `.\scripts\sync-rules.ps1` extracts `[UNIVERSAL]` rules learned in downstream projects and safely merges them into the master AI-OS repository.
+5. **Federated Rule Synchronizer & Mechanical Gate**:
+   - `scripts/sync-rules.sh` and `scripts/sync-rules.ps1` evaluate candidate rules through a 10-point mechanical gate and generate auditable proposals in `proposals/`.
 6. **Slash Command Workflows**:
    - Pre-configured shortcuts: `/feature <idea>`, `/audit`, `/sync-state`, `/learn`.
 

@@ -1,10 +1,31 @@
 # Multi-Agent MCP Orchestration Playbook
 
-This playbook establishes the operational protocol for coordinating multiple specialized AI models using the **Model Context Protocol (MCP)** under a Manager-Worker or Router architecture.
+This playbook establishes the operational protocol for coordinating multiple specialized AI models using the **Model Context Protocol (MCP)** under a Manager-Worker or Router architecture, strictly constrained by `.ai/routing.md` and `mcp.json`.
 
 ---
 
-## Architecture Overview
+## 1. Principles & Complexity Gate
+
+Before engaging multiple agents, verify against `.ai/routing.md`:
+1. **Tier 1 (Routine Tasks)**: Use **Solo Model Mode** directly. Zero coordination overhead. Multi-agent orchestration is strictly forbidden.
+2. **Tier 2 (Standard Features)**: Use **1-Implementer + 1-Verifier** (`playbooks/feature.md`).
+3. **Tier 3 (Strategic Architecture)**: Dispatch decoupled subcomponents only when boundaries are contractually separated.
+
+---
+
+## 2. MCP Tool Providers (`mcp.json`)
+
+All agent tooling must map directly to verifiable, pinned servers declared in `mcp.json`:
+
+- **`filesystem`** (`@modelcontextprotocol/server-filesystem@1.0.0` via `npx`): Sandboxed file tree reads, scoped modifications, and workspace inspection (Node.js/npm).
+- **`memory`** (`@modelcontextprotocol/server-memory@1.0.0` via `npx`): Structured graph-based state tracking across long-horizon architectural evaluations (Node.js/npm).
+- **`git`** (`mcp-server-git==2026.10.10` via `uvx`): Git repository reads, commit inspection, and history analysis (Python/PyPI).
+- **`fetch`** (`mcp-server-fetch==2026.10.10` via `uvx`): Web content fetching, API documentation conversion, and URL reading (Python/PyPI).
+
+
+---
+
+## 3. Architecture Overview
 
 ```
                       TASK INPUT
@@ -12,72 +33,47 @@ This playbook establishes the operational protocol for coordinating multiple spe
                           ▼
              ┌─────────────────────────┐
              │   ROUTER DECISION HUB   │
-             │   (Right Model for Job) │
+             │   (.ai/routing.md)      │
              └────────────┬────────────┘
                           │
-      ┌───────────────────┼───────────────────┬───────────────────┐
-      ▼                   ▼                   ▼                   ▼
-Need Multimodal /   Need Complex        Need Sandboxed      Need Real-Time
-Large Context?      Reasoning?          Code / Tests?       Web Data?
-      │                   │                   │                   │
-[Gemini Worker]     [Claude Manager]    [Codex Worker]      [Perplexity]
-      │                   │                   │                   │
-      └───────────────────┼───────────────────┴───────────────────┘
+       ┌──────────────────┴──────────────────┐
+       ▼                                     ▼
+Needs Focused Implementation?         Needs Dual Verification?
+(Implementer)                         (Verifier)
+       │                                     │
+       ▼                                     ▼
+[filesystem] Tool Operations          [memory] Context State
+       │                                     │
+       └──────────────────┬──────────────────┘
                           ▼
             ┌───────────────────────────┐
             │   COLLECT & VALIDATE      │
-            │   (Claude Manager)        │
+            │   (Deterministic Suite)   │
             └─────────────┬─────────────┘
                           │
-                   Consistent?
-                   ├── Yes ──▶ Merge Changes ──▶ Done
-                   └── No  ──▶ Manager Fixes Integration Issues
+                   Tests Passing?
+                   ├── Yes ──▶ Commit Changes ──▶ Done
+                   └── No  ──▶ Implementer Fixes Failures
 ```
 
 ---
 
-## 1. The Core Roles
+## 4. The Core Roles
 
-1. **The Manager (Planner & Reasoner - e.g. Claude 3.7 / Opus)**:
-   - Owns task decomposition, architectural design, and final integration.
-   - Authors the **Contract Specification** before delegating.
-   - Evaluates worker outputs, resolves discrepancies, and merges.
-2. **Worker 1 (UI & Frontend - e.g. Gemini 2.0 / 1.5 Flash)**:
-   - Optimized for rapid frontend rendering, UI components, styling, and visual/multimodal assets.
-3. **Worker 2 (API & Backend - e.g. Codex / Claude Implementer)**:
-   - Optimized for database schemas, server endpoints, business logic, and migrations.
-4. **Worker 3 (Tester & Falsifier - e.g. Codex / Test Specialist)**:
-   - Optimized for generating regression suites, edge-case harnesses, and integration tests.
-
----
-
-## 2. The Non-Negotiable Contract-First Protocol
-
-To prevent merge conflicts and incompatible code between parallel workers:
-
-1. **Manager Authors Contract First**:
-   Before dispatching tasks, the Manager MUST define the exact interface types and schemas in `docs/architecture.md` (e.g., TypeScript interfaces, REST endpoints, Pydantic schemas).
-2. **Isolated Workspaces / Files**:
-   - Worker 1 is assigned only frontend files (e.g. `src/components/`, `src/views/`).
-   - Worker 2 is assigned only backend files (e.g. `src/api/`, `src/services/`).
-   - Worker 3 is assigned only test files (e.g. `tests/`).
-3. **No Overlapping Concurrent Edits**: Two workers must NEVER edit the same file at the same time.
+1. **The Lead / Architect (Planner & Reasoner)**:
+   - Owns task decomposition, prompt contract generation (`playbooks/prompt-refinement.md`), and interface boundary definition.
+   - Authors the contract specification in `docs/architecture.md` before dispatching.
+2. **The Implementer (Execution Specialist)**:
+   - Implements changes within explicitly assigned file boundaries using the `filesystem` MCP tool.
+   - Never writes secrets or unverified dependencies.
+3. **The Verifier (Falsification Specialist)**:
+   - Runs deterministic test suites, doctor checks, and linters.
+   - Verifies against the failure checklist in the prompt contract.
 
 ---
 
-## 3. The 4-Stage Multi-Agent Lifecycle
+## 5. Non-Negotiable Contract-First Protocol
 
-### Stage 1: Deconstruct & Route
-The Manager receives the user prompt, optimizes it via `playbooks/prompt-refinement.md`, and splits it into decoupled subtasks mapped to the best model.
-
-### Stage 2: Parallel Dispatch via MCP
-Subtasks are dispatched via MCP tools to worker agents with explicit file boundaries and the shared contract schema.
-
-### Stage 3: Collect & Falsify
-The Manager collects all generated files and runs the test suite (`playbooks/testing.md`).
-
-### Stage 4: Integration Review & Merge
-The Manager checks:
-- Do frontend and backend conform to the schema in `docs/architecture.md`?
-- Do automated tests pass cleanly?
-- If errors exist, the Manager applies surgical fixes and commits the unified change.
+1. **Manager Authors Contract First**: Interface types, schemas, and API boundaries are committed to `docs/architecture.md` before workers begin.
+2. **Strict File Isolation**: Two parallel workers must never edit the same file concurrently.
+3. **Deterministic Verification Over Voting**: Never use model consensus to decide questions that compilers, typecheckers, or test harnesses answer definitively.

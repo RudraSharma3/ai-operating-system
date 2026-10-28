@@ -50,8 +50,11 @@ When researching unfamiliar libraries or APIs, follow the **Source Triangulation
 
 ## 7. Output Developer Greeting & Immediate Next Steps
 
-Upon completing the codebase discovery, output the official developer confirmation banner and guide the engineer on what to do next:
+Before rendering the greeting, run `scripts/doctor.sh` (or `scripts/doctor.ps1`) or inspect git configuration. Derive the `ARMOR` status dynamically:
+- `Git Secret Guard [ARMED]` — If `.githooks/pre-commit` is installed and `core.hooksPath` is active.
+- `Git Secret Guard [UNARMED]` — If hooks are missing or unconfigured.
 
+Output the developer confirmation banner and guide the engineer on what to do next:
 ````markdown
 ```text
 ┌──────────────────────────────────────────────────────────────┐
@@ -60,7 +63,7 @@ Upon completing the codebase discovery, output the official developer confirmati
 │  REPO:   <project-name>                                      │
 │  STACK:  <Detected Tech Stack, e.g. Next.js • Tailwind>      │
 │  MEMORY: docs/architecture.md & docs/graph.md [SYNCED]       │
-│  ARMOR:  Git Secret Guard [ARMED]                            │
+│  ARMOR:  Git Secret Guard [<ARMED or UNARMED>]               │
 └──────────────────────────────────────────────────────────────┘
 ```
 

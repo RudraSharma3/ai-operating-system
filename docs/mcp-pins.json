@@ -1,0 +1,26 @@
+[
+  {
+    "package": "@modelcontextprotocol/server-filesystem",
+    "version": "1.0.0",
+    "published_at": "2026-10-11T02:44:10Z",
+    "checked_at": "2026-10-28T07:20:16Z"
+  },
+  {
+    "package": "@modelcontextprotocol/server-memory",
+    "version": "1.0.0",
+    "published_at": "2026-10-11T02:42:27Z",
+    "checked_at": "2026-10-28T07:20:16Z"
+  },
+  {
+    "package": "mcp-server-git",
+    "version": "2026.10.10",
+    "published_at": "2026-10-11T02:41:46Z",
+    "checked_at": "2026-10-28T07:20:16Z"
+  },
+  {
+    "package": "mcp-server-fetch",
+    "version": "2026.10.10",
+    "published_at": "2026-10-11T02:41:50Z",
+    "checked_at": "2026-10-28T07:20:16Z"
+  }
+]

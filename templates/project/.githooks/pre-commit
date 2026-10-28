@@ -1,38 +1,230 @@
 #!/usr/bin/env bash
-# AI Operating System Pre-Commit Guard Hook (by Rudra Sharma)
-# Protects against secret leaks and enforces task state hygiene.
+# AI Operating System Pre-Commit Secret Guard Hook
+# High-precision security scanner preventing hardcoded secrets and credentials.
 
-echo "🔍 [AI-OS Guard] Checking commit for secret leaks and task state..."
+set -o pipefail
 
-# 1. Check for staged .env files
-STAGED_ENV_FILES=$(git diff --cached --name-only -- ':!.githooks/*' | grep -E "^\.env$|^\.env\..+" || true)
-if [ -n "$STAGED_ENV_FILES" ]; then
+echo "🔍 [AI-OS Guard] Scanning staged changes for credentials and secrets..."
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+ALLOWLIST_FILE="$REPO_ROOT/.ai/secret-allowlist.txt"
+PATTERNS_FILE="$REPO_ROOT/.ai/secret-patterns.txt"
+
+# --- 1. Check for Staged Environment (.env) Files ---
+# Block .env at any depth, but allow .env.example, .env.sample, .env.template, .env.dist
+STAGED_FILES=$(git diff --cached --name-only)
+BLOCKED_ENV_FILES=""
+
+if [ -n "$STAGED_FILES" ]; then
+    while IFS= read -r file; do
+        basename_file=$(basename "$file")
+        if [[ "$basename_file" =~ ^\.env($|\.) ]]; then
+            # Check if it's an allowed template file
+            if [[ "$basename_file" =~ ^\.env\.(example|sample|template|dist)$ ]]; then
+                continue
+            fi
+            BLOCKED_ENV_FILES="${BLOCKED_ENV_FILES}   • $file"$'\n'
+        fi
+    done <<< "$STAGED_FILES"
+fi
+
+if [ -n "$BLOCKED_ENV_FILES" ]; then
     echo ""
     echo "❌ [AI-OS Guard BLOCKED COMMIT]: Staged environment file(s) detected:"
-    for f in $STAGED_ENV_FILES; do
-        echo "   • $f"
-    done
-    echo ""
-    echo "💡 QUICK FIX (Copy and paste to resolve):"
-    echo "   1. Unstage secret file(s):"
-    for f in $STAGED_ENV_FILES; do
-        echo "      git reset $f"
-    done
-    echo "   2. Ensure it is in .gitignore: echo \"$STAGED_ENV_FILES\" >> .gitignore"
-    echo "   3. Commit again:              git commit -m \"feat: your commit message\""
+    echo "$BLOCKED_ENV_FILES"
+    echo "💡 REMEDIATION:"
+    echo "   1. Unstage environment file(s):"
+    echo "      git reset <file>"
+    echo "   2. Ensure environment files are ignored in .gitignore:"
+    echo "      echo \".env*\" >> .gitignore"
+    echo "      echo \"!.env.example\" >> .gitignore"
+    echo "   3. Commit again without staging sensitive files."
     echo ""
     exit 1
 fi
 
-# 2. Check for hardcoded API keys or private keys in staged diff (excluding .githooks itself)
-STAGED_DIFF=$(git diff --cached -- ':!.githooks/*')
-if echo "$STAGED_DIFF" | grep -E -q "sk-[a-zA-Z0-9]{20,}|anthropic-key|BEGIN (RSA|EC|PGP|OPENSSH) PRIVATE KEY"; then
+# --- 2. Check Staged Content (Added Lines Only) ---
+# If gitleaks is installed, run it first
+if command -v gitleaks >/dev/null 2>&1; then
+    if ! gitleaks protect --staged --no-banner; then
+        echo ""
+        echo "❌ [AI-OS Guard BLOCKED COMMIT]: Gitleaks detected sensitive credentials in staged diff!"
+        echo "💡 REMEDIATION: Remove sensitive tokens from your code and use environment variables."
+        exit 1
+    fi
+fi
+
+# Built-in High-Precision Pattern Scanner
+# Get ONLY added lines from staged diff (lines starting with '+' but dropping '+++ ' diff headers)
+ADDED_DIFF=$(git diff --cached -U0 | grep -E '^\+' | grep -v -E '^\+\+\+[[:space:]]' | sed 's/^\+//' || true)
+
+if [ -z "$ADDED_DIFF" ]; then
+    echo "✅ [AI-OS Guard] No newly added content to scan. Clean commit!"
+    exit 0
+fi
+
+DETECTED_NAMES=()
+
+if command -v python3 >/dev/null 2>&1; then
+    PY_ALLOWLIST="$ALLOWLIST_FILE"
+    PY_PATTERNS="$PATTERNS_FILE"
+    if command -v cygpath >/dev/null 2>&1; then
+        PY_ALLOWLIST=$(cygpath -w "$ALLOWLIST_FILE" 2>/dev/null || echo "$ALLOWLIST_FILE")
+        PY_PATTERNS=$(cygpath -w "$PATTERNS_FILE" 2>/dev/null || echo "$PATTERNS_FILE")
+    fi
+    # High-performance batch scanner
+    PYTHON_OUTPUT=$(printf '%s\n' "$ADDED_DIFF" | python3 -c '
+import sys, re, os
+
+allowlist_file = sys.argv[1]
+patterns_file = sys.argv[2]
+
+allowlist = []
+if os.path.isfile(allowlist_file):
+    with open(allowlist_file, "r", encoding="utf-8") as f:
+        for line in f:
+            clean = line.split("#")[0].strip()
+            if clean:
+                allowlist.append(clean)
+
+patterns = []
+if os.path.isfile(patterns_file):
+    with open(patterns_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                parts = line.split("|", 1)
+                name = parts[0].strip()
+                pat = parts[1].strip() if len(parts) > 1 else parts[0].strip()
+                try:
+                    patterns.append((name, re.compile(pat)))
+                except Exception:
+                    pass
+
+def is_placeholder_token(tok):
+    if not tok:
+        return True
+    t = tok.strip().lower()
+    if t in ("changeme", "password", "example", "xxx", "pass", "your_password", "your_pass", "your_host", "user", "root", "admin", "null", "none"):
+        return True
+    if t.startswith("your_") or t.startswith("your-"):
+        return True
+    if re.search(r"^x+$", t):
+        return True
+    if (t.startswith("<") and t.endswith(">")) or (t.startswith("${") and t.endswith("}")):
+        return True
+    if re.search(r"<[^>]+>", t) or re.search(r"\$\{[^}]+\}", t):
+        return True
+    return False
+
+def is_db_url_placeholder(matched_str):
+    m = re.search(r"://([^:@\s]+):([^@\s]+)@([a-zA-Z0-9.-]+)", matched_str)
+    if not m:
+        return False
+    user, pwd, host = m.group(1), m.group(2), m.group(3)
+    if is_placeholder_token(pwd) or is_placeholder_token(host):
+        return True
+    if host.lower() in ("localhost", "127.0.0.1", "host"):
+        if user.lower() in ("user", "username", "root", "admin") and pwd.lower() in ("user", "pass", "password", "admin", "root"):
+            return True
+    return False
+
+violations = set()
+for line in sys.stdin:
+    line = line.rstrip("\r\n")
+    if not line:
+        continue
+    if any(tok in line for tok in allowlist):
+        continue
+    for name, rx in patterns:
+        is_pw_or_db = bool(re.search(r"(database.*url|password)", name, re.IGNORECASE))
+        if is_pw_or_db:
+            matches = list(rx.finditer(line))
+            for m in matches:
+                matched_text = m.group(0)
+                if "://" in matched_text:
+                    if not is_db_url_placeholder(matched_text):
+                        violations.add(name)
+                        break
+                else:
+                    parts = re.split(r"[:=]", matched_text, 1)
+                    val = parts[1].strip().strip("\"").strip(chr(39)) if len(parts) > 1 else matched_text
+                    if not is_placeholder_token(val):
+                        violations.add(name)
+                        break
+        else:
+            if rx.search(line):
+                violations.add(name)
+
+for v in sorted(violations):
+    print(v)
+' "$PY_ALLOWLIST" "$PY_PATTERNS")
+
+    if [ -n "$PYTHON_OUTPUT" ]; then
+        while IFS= read -r vname; do
+            [ -n "$vname" ] && DETECTED_NAMES+=("$vname")
+        done <<< "$PYTHON_OUTPUT"
+    fi
+else
+    # POSIX Shell Fallback
+    ALLOWLIST_ENTRIES=()
+    if [ -f "$ALLOWLIST_FILE" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            clean_line=$(echo "$line" | sed 's/#.*//' | tr -d ' \t\r\n')
+            [ -n "$clean_line" ] && ALLOWLIST_ENTRIES+=("$clean_line")
+        done < "$ALLOWLIST_FILE"
+    fi
+
+    declare -a SCAN_PATTERNS
+    if [ -f "$PATTERNS_FILE" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            [[ -z "${line// }" ]] && continue
+            SCAN_PATTERNS+=("$line")
+        done < "$PATTERNS_FILE"
+    fi
+
+    while IFS= read -r diff_line || [ -n "$diff_line" ]; do
+        [ -z "$diff_line" ] && continue
+        is_allowlisted=0
+        for allow_entry in "${ALLOWLIST_ENTRIES[@]}"; do
+            if [[ "$diff_line" == *"$allow_entry"* ]]; then
+                is_allowlisted=1
+                break
+            fi
+        done
+        [ "$is_allowlisted" -eq 1 ] && continue
+        
+        for pattern_entry in "${SCAN_PATTERNS[@]}"; do
+            name="${pattern_entry%%|*}"
+            regex="${pattern_entry#*|}"
+            if echo "$diff_line" | grep -E -q -e "$regex"; then
+                if [[ "$name" =~ [Dd]atabase.*[Uu][Rr][Ll] ]] || [[ "$name" =~ [Pp]assword ]]; then
+                    if echo "$diff_line" | grep -E -i -q \
+                        -e '://[^:@[:space:]]+:(changeme|password|example|xxx|pass|your_[^@[:space:]]*|<[^>]+>|\$\{[^}]+\})@' \
+                        -e '://[^:@[:space:]]+:[^@[:space:]]+@(localhost|127\.0\.0\.1|example|host|<[^>]+>|\$\{[^}]+\})' \
+                        -e '://(user|admin|root):(user|pass|password|admin|root)@(localhost|127\.0\.0\.1)'; then
+                        continue
+                    fi
+                fi
+                DETECTED_NAMES+=("$name")
+            fi
+        done
+    done <<< "$ADDED_DIFF"
+fi
+
+if [ ${#DETECTED_NAMES[@]} -gt 0 ]; then
     echo ""
-    echo "❌ [AI-OS Guard BLOCKED COMMIT]: Potential private key or API token detected in staged code!"
-    echo "💡 QUICK FIX:"
-    echo "   1. Replace hardcoded secrets with environment variables (e.g. process.env.API_KEY)."
-    echo "   2. Re-stage the cleaned files: git add ."
-    echo "   3. Commit again:              git commit -m \"feat: your commit message\""
+    echo "❌ [AI-OS Guard BLOCKED COMMIT]: High-risk credentials detected in staged code!"
+    echo "   Detected secret types:"
+    printf '%s\n' "${DETECTED_NAMES[@]}" | sort -u | while IFS= read -r dname; do
+        echo "   • $dname"
+    done
+    echo ""
+    echo "💡 REMEDIATION:"
+    echo "   1. Replace hardcoded tokens with environment variables (e.g. process.env.API_KEY, os.getenv)."
+    echo "   2. If this is a synthetic test fixture, add its exact token to .ai/secret-allowlist.txt."
+    echo "   3. Re-stage your cleaned files and commit again."
     echo ""
     exit 1
 fi

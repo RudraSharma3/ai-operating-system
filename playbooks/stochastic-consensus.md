@@ -1,6 +1,6 @@
 # Stochastic Multi-Agent Consensus Playbook
 
-Follow this playbook when facing strategic, high-uncertainty architectural choices, technology evaluations, or open-ended ideation. This technique uses multi-perspective sampling to crush single-model hallucinations and isolate genuine trade-offs.
+Follow this playbook when facing strategic, high-uncertainty architectural choices, technology evaluations, or open-ended ideation. This technique uses multi-perspective sampling to identify genuine trade-offs and rigorously validates candidate solutions with deterministic engineering verification.
 
 ---
 
@@ -10,63 +10,68 @@ Follow this playbook when facing strategic, high-uncertainty architectural choic
 > **Never Over-Engineer Simple Tasks**:
 > - **DO NOT** trigger Stochastic Consensus for routine coding, minor bug fixes, styling adjustments, or straightforward feature additions.
 > - **DO** trigger Stochastic Consensus **ONLY** for:
->   1. Strategic architectural crossroads (e.g. choice of database, auth framework, state architecture).
->   2. High-risk system trade-offs with conflicting constraints (e.g. latency vs. consistency).
->   3. Explicit user requests for ideation or brainstorming.
+>   1. Strategic architectural crossroads (e.g. choice of database engine, auth protocol, state synchronization architecture).
+>   2. High-risk system trade-offs with conflicting constraints (e.g. latency vs. consistency, bundle size vs. runtime speed).
+>   3. Explicit user requests for exploratory architecture ideation.
 
 ---
 
-## 2. The Multi-Perspective Consensus Map
+## 2. Deterministic Consensus Architecture
 
 ```
                   STRATEGIC PROBLEM
                           │
                           ▼
-            [SPAWN 3-5 DIVERSE PERSPECTIVES]
-     (Minimalist, Scalability Architect, Security Auditor, Pragmatist)
+            [SPAWN 3 DIVERSE PERSPECTIVES]
+     (Minimalist, Scalability Architect, Security Auditor)
                           │
                           ▼
-              [COUNT AGREEMENT & REASONING]
+              [EXTRACT CANDIDATE PROPOSALS]
                           │
-       ┌──────────────────┼──────────────────┐
-       ▼                  ▼                  ▼
-7-10 / 10 Agree     4-6 / 10 Agree     1-2 / 10 Agree
-(High Confidence)   (Genuine Trade-off) (Wild Card / Novel)
-       │                  │                  │
-  [CONSENSUS]       [DIVERGENCE]         [OUTLIER]
-  (Safe Bets)       (Judgment Call)     (Investigate)
-       │                  │                  │
-Auto-Approved       Presented to YOU     Small Experiment
-in Action Plan      to Decide Choice     or Discarded
-       │                  │                  │
-       └──────────────────┼──────────────────┘
                           ▼
-         RECORD AS ADR IN docs/decisions/
+        ┌───────────────────────────────────────────┐
+        │ DETERMINISTIC VERIFICATION MATRIX (GATE)  │
+        │ • Feasibility: Does candidate compile?    │
+        │ • Static Check: Passes linter & types?    │
+        │ • Constraint Test: Meets latency budget?  │
+        │ • Complexity Score: Dependency count      │
+        └─────────────────────┬─────────────────────┘
+                              │
+               ┌──────────────┴──────────────┐
+               ▼                             ▼
+       [DETERMINISTIC WINNER]       [GENUINE TRADE-OFF]
+       (Passes all benchmarks)      (Conflicting constraints)
+               │                             │
+               ▼                             ▼
+       RECORD AS ADR IN              PRESENT TRADE-OFF
+       docs/decisions/               TO USER WITH PROS/CONS
 ```
 
 ---
 
 ## 3. Step-by-Step Consensus Protocol
 
-### Step 1: Formulate the Decision Prompt
-Define the exact architectural question, system constraints, and non-functional requirements (performance, cost, team velocity).
+### Step 1: Formulate the Decision Prompt & Prompt Contract
+Define the exact architectural question, system constraints, quantifiable latency/resource targets, and non-functional requirements.
 
-### Step 2: Sample Diverse Personas (3 to 5 Perspectives)
+### Step 2: Sample Diverse Personas (Maximum 3 Perspectives)
 Run sampling across distinct engineering perspectives:
-1. **The Minimalist**: "What is the simplest, lowest-dependency solution?"
-2. **The Scalability Architect**: "What solution handles 10x growth and high concurrency best?"
-3. **The Security & Reliability Specialist**: "Where are the failure modes, attack surfaces, and data risks?"
-4. **The DX / Pragmatist**: "What gives the fastest developer feedback loop and best maintainability?"
+1. **The Minimalist**: "What is the simplest, lowest-dependency solution that satisfies all constraints?"
+2. **The Scalability Architect**: "What solution handles 10x scale, concurrency, and volume best?"
+3. **The Security & Reliability Specialist**: "Where are the attack vectors, failure cascades, and recovery boundaries?"
 
-### Step 3: Build the Consensus Map Table
-Synthesize findings into three clear categories:
+### Step 3: Run Deterministic Verification Matrix
+Never decide a winner through subjective model voting or agreement counting. Evaluate each candidate against concrete, automated criteria:
 
-| Category | Idea / Pattern | Perspective Support | Action |
-| --- | --- | :---: | --- |
-| **Consensus (Safe Bets)** | e.g. "Use PostgreSQL with connection pooling" | 4/4 agree | **Auto-Approved**: Added directly to plan. |
-| **Divergence (Trade-offs)** | e.g. "Prisma ORM vs. Drizzle ORM" | 2/4 vs 2/4 | **Presented to User**: Clear pros/cons for decision. |
-| **Outlier (Wild Cards)** | e.g. "Use custom in-memory SQLite sync" | 1/4 agree | **Flagged**: Evaluated as creative or discarded. |
+| Evaluation Dimension | Verification Method | Pass / Fail Metric |
+|----------------------|---------------------|-------------------|
+| **Compilation & Syntax** | Language parser / compiler | Zero syntax errors |
+| **Type Integrity** | TypeScript / type checker | Zero type errors |
+| **Dependency Burden** | Manifest check | Minimum third-party packages |
+| **Test Verification** | Targeted unit / integration tests | 100% pass rate |
+| **Resource & Latency** | Benchmark / profiling script | Within Prompt Contract budget |
 
 ### Step 4: Present Trade-offs to User & Record ADR
-1. Summarize the Safe Bets and present only the 1-2 Divergent choices that genuinely require human judgment.
-2. Record the final agreed outcome as an Architecture Decision Record (`docs/decisions/NNN-<decision>.md`).
+1. Eliminate candidates that failed deterministic verification.
+2. Present only the genuine trade-offs that require human business judgement.
+3. Record the final agreed outcome as an Architecture Decision Record (`docs/decisions/NNN-<decision>.md`).

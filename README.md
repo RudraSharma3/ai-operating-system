@@ -64,15 +64,17 @@ Whether you have an **existing repository** or are starting a **brand new projec
 - **Canonical Rule Hierarchy**: Single source of truth in [AGENTS.md](AGENTS.md) ensuring consistent execution across Claude, Gemini, Codex, and other LLMs without duplicating rules.
 - **Safe Self-Improvement Loop**: Prevents dangerous naive self-modification. Agents log unverified lessons as candidates (`.ai/mistakes-candidates.md`), pass a 10-point quality check, and promote only verified rules (`docs/lessons.md` / `AGENTS.md`).
 - **Reverse Prompting & Prompt Contract Engine**: Automatically asks clarifying questions for ambiguous requests and transforms messy prompts into formal 4-part Prompt Contracts (`GOAL`, `CONSTRAINTS`, `FORMAT`, `FAILURE`) with forbidden-shortcut defense ([playbooks/prompt-refinement.md](playbooks/prompt-refinement.md)).
-- **Proportional Effort Complexity Gate (Anti-Over-Engineering)**: Defaults to lightweight Solo Model execution for 95% of routine tasks; reserves Multi-Agent MCP and Stochastic Consensus strictly for complex systems.
+- **Proportional Effort Complexity Gate (Anti-Over-Engineering)**: Defaults to lightweight Solo Model execution for routine tasks; reserves Multi-Agent MCP and Stochastic Consensus strictly for complex systems ([.ai/routing.md](.ai/routing.md)).
 - **Multi-Agent MCP Orchestration**: Manager-Worker coordination with contract-first isolation ([playbooks/multi-agent-orchestration.md](playbooks/multi-agent-orchestration.md)).
-- **Stochastic Consensus for Strategic Decisions**: Multi-persona ideation and voting mapped to safe bets vs. human judgment calls ([playbooks/stochastic-consensus.md](playbooks/stochastic-consensus.md)).
+- **Deterministic Consensus for Strategic Decisions**: Multi-persona ideation paired with deterministic engineering verification matrices ([playbooks/stochastic-consensus.md](playbooks/stochastic-consensus.md)).
 - **Visual Dependency Graph & Blast Radius Mapping**: Visual Mermaid wiring diagrams in [docs/graph.md](docs/graph.md) for safe refactoring.
-- **Token Optimization & Prompt Caching**: Pinned static rule prefix layout cutting latency by 5x and token costs by up to 90% ([playbooks/token-optimization.md](playbooks/token-optimization.md)).
+- **Token Optimization & Prompt Caching**: Pinned static rule prefix layout maximizing provider server-side prompt cache hits (design target; see [playbooks/token-optimization.md](playbooks/token-optimization.md)).
 - **Autonomous Self-Healing Test Loop**: Agents auto-remediate syntax/test failures up to 3 iterations before escalating ([playbooks/testing.md](playbooks/testing.md)).
 - **Smart Pre-Commit Secret Armor & Actionable Remediation**: Real-time git hook that intercepts credential leaks, identifies offending files, and provides instant copy-paste resolution commands.
-- **Idempotent Non-Destructive Project Integrator**: Safe installer (`scripts/install.ps1`, `scripts/install.sh`) that preserves existing project files, arms git protection, and runs a 14-point diagnostic doctor.
-- **Federated Global Learning**: CLI tool syncing universal rules learned across projects back to the master repository.
+- **Federated Global Learning & Gate**: Mechanical 10-point gate creating auditable proposals in `proposals/` instead of silent direct mutations ([scripts/sync-rules.sh](scripts/sync-rules.sh)).
+- **Replayable Evaluation & Anti-Gaming Benchmark Suite**: Replayable tasks (`evals/`) verifying bug fixes, features, prompt contracts, secret defense, and injection resilience with reference solutions, negative controls, and deterministic stub agents.
+
+> **Measurement Status Note**: The comparative effect of AI-OS on live agent outcomes (speed, cost, token efficiency, and task pass rates across large model samples) is currently unmeasured pending standardized multi-agent headless benchmarks.
 
 ---
 
@@ -97,7 +99,7 @@ ai-operating-system/
 │   ├── task-state.md                   # Active task progress tracker
 │   └── decisions/
 │       └── 001-ai-operating-system-architecture.md # Formal ADR 001
-├── playbooks/ (13 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
+├── playbooks/ (14 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
 │                              # testing, review, architecture-decisions,
 │                              # learning-loop, prompt-refinement,
 │                              # multi-agent-orchestration, stochastic-consensus,
@@ -127,6 +129,37 @@ ai-operating-system/
         ├── GEMINI.md                  # Gemini adapter
         └── CODEX.md                   # Codex adapter
 ```
+
+---
+
+## ⚠️ Limits of the Eval Sandbox
+
+The evaluation runner temporary directory isolates only the repository working directory. **It is not a security sandbox.**
+
+Specifically:
+- An agent executing commands can still read, modify, or delete any files accessible to the current operating system user (including the home directory, SSH keys, shell configuration, and credentials).
+- The harness does not restrict or firewall outbound network access.
+- Environment variable stripping removes common secret signatures from child processes, but does not provide OS-level or containerized isolation.
+
+### Recommendations for Live Agent Execution
+When testing untrusted or autonomous agent runs:
+1. **Execute inside an isolated Container or VM**:
+   Use Docker or a disposable VM to enforce true filesystem, user privilege, and network boundaries:
+   ```dockerfile
+   # Minimal example Dockerfile (untested):
+   FROM debian:bookworm-slim
+   RUN apt-get update && apt-get install -y git curl python3 bash && rm -rf /var/lib/apt/lists/*
+   RUN useradd -m -s /bin/bash sandboxuser
+   USER sandboxuser
+   WORKDIR /home/sandboxuser/workspace
+   ```
+   Or via Docker CLI:
+   ```bash
+   # Example docker invocation (untested):
+   docker run --rm -it --network none -v "$PWD:/workspace" -w /workspace debian:bookworm-slim /bin/bash
+   ```
+2. **Use Narrow Permission Modes**:
+   Always configure the narrowest verified permission mode from [`docs/sources.md`](docs/sources.md) (e.g., `claude --permission-mode default -p` or `claude --allowedTools "Bash,Read,Edit" -p`). Documented dangerous flags (such as `--dangerously-skip-permissions`) should never be used on developer workstations.
 
 ---
 

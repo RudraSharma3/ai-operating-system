@@ -1,26 +1,25 @@
 {
   "$schema": "https://modelcontextprotocol.io/schema/mcp.json",
   "mcpServers": {
-    "gemini-worker": {
+    "filesystem": {
       "command": "npx",
-      "args": ["-y", "@google/gemini-mcp-server"],
-      "env": {
-        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
-      },
-      "description": "Worker for UI generation, large-context analysis, and multimodal assets"
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@1.0.0", "./"],
+      "description": "Verified Model Context Protocol filesystem access server"
     },
-    "codex-worker": {
+    "memory": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"],
-      "env": {
-        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
-      },
-      "description": "Worker for backend implementation, database migrations, and test writing"
+      "args": ["-y", "@modelcontextprotocol/server-memory@1.0.0"],
+      "description": "Verified Model Context Protocol knowledge graph memory server"
     },
-    "local-ollama-worker": {
-      "command": "ollama",
-      "args": ["serve"],
-      "description": "Optional 100% free local model worker (DeepSeek-R1 / Qwen 2.5 Coder)"
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git==2026.10.10", "--repository", "./"],
+      "description": "Verified Model Context Protocol git repository tool"
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch==2026.10.10"],
+      "description": "Verified Model Context Protocol web content fetch server"
     }
   }
 }
