@@ -4,8 +4,8 @@
 
 We take the security of AI Operating System and the projects using it seriously.
 
-### Preferred Method: GitHub Private Vulnerability Reporting
-Please submit vulnerability reports through **GitHub Private Vulnerability Reporting**:
+### Reporting via GitHub Private Vulnerability Reporting
+Please submit vulnerability reports exclusively through **GitHub Private Vulnerability Reporting**:
 1. Navigate to the repository's [Security Advisories tab](https://github.com/RudraSharma3/ai-operating-system/security/advisories).
 2. Click **Report a vulnerability** to open a private draft advisory.
 3. Include:
@@ -14,25 +14,25 @@ Please submit vulnerability reports through **GitHub Private Vulnerability Repor
    - Potential impact and threat scenario.
    - Proposed mitigation or patch if available.
 
-### Alternative Reporting
-If you are unable to use GitHub Private Vulnerability Reporting, you may open a confidential issue or contact the project maintainers directly. Please do **NOT** post security vulnerabilities in public GitHub issues, discussions, or pull requests until a fix is released.
+> [!NOTE]
+> Please do **NOT** post security vulnerabilities in public GitHub issues, discussions, or pull requests until a fix is released. All vulnerability reports must be submitted through GitHub Private Vulnerability Reporting.
 
-### Response Timeline
-- **Initial Acknowledgment**: Within 48 hours.
-- **Triage & Reproduction**: Within 5 business days.
-- **Remediation & Advisory Release**: Timelines coordinated with the reporter following coordinated vulnerability disclosure.
+### Response & Maintenance Policy
+This is an independent, solo-maintained project. Vulnerability reports are handled on a best-effort basis:
+- Reports are reviewed and acknowledged when possible.
+- There are no guaranteed response timelines or formal SLAs.
+- Mitigations, patches, and security advisories are developed as maintainer availability permits.
 
 ---
 
 ## Supported Versions
 
-Only the current major/minor release series receives active security updates and patches:
+Only the current active release receives security updates and patches:
 
-| Version Series | Supported          | Status                                 |
-| :---           | :---               | :---                                   |
-| `2.4.x`        | :white_check_mark: | Current active release branch.         |
-| `2.3.x`        | :x:                | Unsupported; please upgrade to `2.4.x`. |
-| `< 2.3.0`      | :x:                | Unsupported; end-of-life.              |
+| Version Series | Supported          | Status                                  |
+| :---           | :---               | :---                                    |
+| `2.4.3`        | :white_check_mark: | Current active release (`VERSION`).     |
+| `< 2.4.3`      | :x:                | Unsupported; please upgrade to `2.4.3`. |
 
 ---
 
