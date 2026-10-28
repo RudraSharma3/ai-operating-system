@@ -581,11 +581,12 @@ This document tracks the current development milestones and task state for the m
 - **What Changed**:
   - **Step 1: Pinned MCP Server Releases >= 14 Days Old**:
     - Cutoff date: 2026-10-14T07:20:16Z (14 days before 2026-10-28).
+    - Reconciled pin history from git log: Prior to downgrade, `mcp.json` actually pinned `@modelcontextprotocol/server-filesystem@2.0.1`, `@modelcontextprotocol/server-memory@2.0.0`, `mcp-server-git==2026.10.19`, and `mcp-server-fetch==2026.10.24` (the table in the earlier report had mistakenly shown `^0.6.2` and `==2026.10.27`).
     - Downgraded pins in `mcp.json` to newest mature releases:
-      - `@modelcontextprotocol/server-filesystem@1.0.0` (published 2026-10-11T02:44:10Z, 17.2d old).
-      - `@modelcontextprotocol/server-memory@1.0.0` (published 2026-10-11T02:42:27Z, 17.2d old).
-      - `mcp-server-git==2026.10.10` (published 2026-10-11T02:41:46Z, 17.2d old).
-      - `mcp-server-fetch==2026.10.10` (published 2026-10-11T02:41:50Z, 17.2d old).
+      - `@modelcontextprotocol/server-filesystem@1.0.0` (from `2.0.1`; published 2026-10-11T02:44:10Z, 17.2d old).
+      - `@modelcontextprotocol/server-memory@1.0.0` (from `2.0.0`; published 2026-10-11T02:42:27Z, 17.2d old).
+      - `mcp-server-git==2026.10.10` (from `2026.10.19`; published 2026-10-11T02:41:46Z, 17.2d old).
+      - `mcp-server-fetch==2026.10.10` (from `2026.10.24`; published 2026-10-11T02:41:50Z, 17.2d old).
     - Created committed `docs/mcp-pins.json` recording package, version, publish timestamp, and checked timestamp.
     - Updated `playbooks/multi-agent-orchestration.md`, `docs/sources.md`, `docs/AI-OS-USER-GUIDE.md`, and `evals/README.md`.
     - Added Doctor Check 23 (`MCP pin maturity and freshness`) in `scripts/doctor.sh` and `scripts/doctor.ps1` reading `docs/mcp-pins.json` offline without network calls.
@@ -614,17 +615,30 @@ This document tracks the current development milestones and task state for the m
     - Bumped `VERSION` to `2.4.0`.
     - Updated `CHANGELOG.md` with full `[2.4.0]` section.
     - Rebuilt templates via `scripts/build-templates.ps1` (56 files indexed, zero drift).
+
+---
+
+### Step 9: Final Merge Readiness & Usable Sandbox Passthrough (v2.4.1)
+- **What Changed**:
+  - **Reconciled MCP Pin History & Stdio Smoke Tests**:
+    - Confirmed exact pins in `mcp.json` and `templates/project/mcp.json`: `@modelcontextprotocol/server-filesystem@1.0.0`, `@modelcontextprotocol/server-memory@1.0.0`, `mcp-server-git==2026.10.10`, `mcp-server-fetch==2026.10.10`.
+    - Updated Doctor Check 15 and test harness to reject range version specifications (`^`, `~`, `>`, `<`, `*`, `latest`).
+    - Documented breaking changes between 1.0.0 and 2.x in `docs/sources.md` (Node 24 engine floor, TS SDK v2, dynamic client roots enforcement).
+    - Added stdio `initialize` smoke tests to `scripts/registry-check.sh` and `scripts/registry-check.ps1` verifying all 4 servers start and complete JSON-RPC initialize handshake within 20s.
+  - **Usable Sandbox Passthrough & Limits Documentation**:
+    - Added `--pass-env` and `AI_OS_EVAL_PASS_ENV` to `evals/run_task.sh` and `evals/run_task.ps1` allowing specified variables to survive stripping while removing other secrets.
+    - Added refusal logic when cloud/source-control credentials (`AWS_*`, `AZURE_*`, `GOOGLE_*`, `GITHUB_*`, `GH_*`, `GITLAB_*`, `NPM_TOKEN`) are requested unless `AI_OS_EVAL_SANDBOX=1` is set.
+    - Added 4 tests in `evals/test_eval_harness.sh` (16/16 tests passing).
+    - Documented "Limits of the Eval Sandbox" in `evals/README.md` and `README.md`.
+  - **Scratch Directory Cleanup**:
+    - Deleted runner log files (`linux_job.log`, `mac_log.txt`, `win_job.log`) and duplicate helper scripts (`check_pypi.py`, `search_network.py`).
 - **What Was Verified**:
-  - `tests/test_installer.sh`: **19/19 tests PASSED**.
-  - `evals/test_eval_harness.sh`: **12/12 tests PASSED**.
-  - `scripts/doctor.sh .`: **23/23 checks PASSED**.
-  - `scripts/doctor.ps1 .`: **23/23 checks PASSED**.
-  - `scripts/build-templates.sh --check`: **Zero drift detected**.
-  - `scripts/compile-rules.sh --check`: **Zero drift detected**.
-  - `evals/run_task.sh --task all --negative --expect-fail`: **5/5 negative controls rejected (exit 0)**.
-  - `evals/run_task.sh --task all --reference`: **5/5 reference solutions accepted (exit 0)**.
+  - `evals/test_eval_harness.sh`: **16/16 tests PASSED**.
+  - `scripts/registry-check.sh`: **PASS** (all 4 registries verified and 4 servers passed stdio initialize smoke tests).
+  - `scripts/registry-check.ps1`: **PASS** (all 4 registries verified and 4 servers passed stdio initialize smoke tests).
 - **Not Verified**:
-  - Live external LLM calls through Claude CLI API (no authenticated `claude` binary on local PATH).
+  - PyPI dedicated release notes/changelogs for `mcp-server-git` and `mcp-server-fetch` (no separate changelog files hosted on PyPI).
+
 
 
 

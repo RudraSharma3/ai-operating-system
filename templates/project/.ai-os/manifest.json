@@ -1,6 +1,6 @@
 {
-    "ai_os_version": "2.4.0",
-    "generated_at": "2026-10-28T09:05:56Z",
+    "ai_os_version": "2.4.1",
+    "generated_at": "2026-10-28T10:34:07Z",
     "file_count": 56,
     "files": {
         ".ai-os/optional/claude-hooks/README.md": "39f2e4e136d1f5acd665a3d9f97c269d799c7f8b7983f407708e124bed59c185",

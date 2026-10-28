@@ -5,10 +5,22 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-10-28
+
+### Added
+- **Eval Sandbox Environment Passthrough (`--pass-env`)**: Added `--pass-env` CLI parameter and `AI_OS_EVAL_PASS_ENV` environment variable support to `evals/run_task.sh` and `evals/run_task.ps1`, allowing user-specified variables (e.g. `ANTHROPIC_API_KEY`) to safely pass through while stripping all unlisted secret signatures.
+- **Source-Control & Cloud Credential Passthrough Guard**: Added refusal validation preventing sensitive source-control and cloud tokens (`AWS_*`, `AZURE_*`, `GOOGLE_*`, `GITHUB_*`, `GH_*`, `GITLAB_*`, `NPM_TOKEN`) from being passed via `--pass-env` unless `AI_OS_EVAL_SANDBOX=1` is explicitly enabled.
+- **MCP Stdio Initialization Smoke Tests**: Added automated live JSON-RPC initialize handshake smoke tests to `scripts/registry-check.sh` and `scripts/registry-check.ps1` (verifying servers respond within 20s and exit cleanly) and added `uv` setup to `.github/workflows/registry-check.yml`.
+- **Honest Sandbox Limits Documentation**: Documented the operational boundary limits of the evaluation runner in `evals/README.md` and `README.md`, emphasizing that the harness is an isolated working directory rather than an OS-level security container, and providing container/VM guidance for untrusted live agent execution.
+
+### Fixed
+- **Doctor Exact MCP Pin Range Enforcement**: Updated Doctor Check 15 and test harness to explicitly reject range version specifications (`^`, `~`, `>`, `<`, `*`, `latest`), enforcing strict exact pinning across master and template `mcp.json`.
+- **MCP Pin History Reconciled**: Reconciled git history in `CHANGELOG.md` and `docs/task-state.md` documenting that prior pins were exact versions (`2.0.1`, `2.0.0`, `2026.10.19`, `2026.10.24`) rather than range placeholders.
+
 ## [2.4.0] - 2026-10-28
 
 ### Added
-- **14-Day MCP Pin Maturity & Doctor Verification**: Pinned all MCP tool servers (`@modelcontextprotocol/server-filesystem@1.0.0`, `@modelcontextprotocol/server-memory@1.0.0`, `mcp-server-git==2026.10.10`, `mcp-server-fetch==2026.10.10`) to stable releases published >= 14 days ago. Added 23-point Doctor Check 23 (`docs/mcp-pins.json`) verifying pin age and record freshness offline without network calls.
+- **14-Day MCP Pin Maturity & Doctor Verification**: Pinned all MCP tool servers (`@modelcontextprotocol/server-filesystem@1.0.0`, `@modelcontextprotocol/server-memory@1.0.0`, `mcp-server-git==2026.10.10`, `mcp-server-fetch==2026.10.10`) to stable releases published >= 14 days ago (downgrading from previous exact pins `2.0.1`, `2.0.0`, `2026.10.19`, and `2026.10.24` which were too recent to satisfy the 14-day policy). Added 23-point Doctor Check 23 (`docs/mcp-pins.json`) verifying pin age and record freshness offline without network calls.
 - **Dedicated Scheduled Registry Check Workflow**: Moved live npm and PyPI registry lookups into `scripts/registry-check.sh`, `scripts/registry-check.ps1`, and a weekly workflow (`.github/workflows/registry-check.yml`) triggered by `workflow_dispatch` and weekly schedule, keeping default test, doctor, and eval execution 100% offline.
 - **Offline Network Guard Verification**: Added `test_offline_test_and_doctor_scripts_no_network_invocations` enforcing that default test, doctor, and eval scripts never invoke outbound network tools (`npm`, `npx`, `uvx`, `pip`, `curl`, `wget`, `Invoke-WebRequest`, `gh api`), with an explicit allowlist strictly limited to `scripts/registry-check.*`.
 - **Eval Sandbox Security & Credential Stripping**: Hardened evaluation runners (`evals/run_task.sh`, `evals/run_task.ps1`) to run exclusively in temporary directories outside the repository tree and outside any parent repository, strip environment variables matching sensitive patterns (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, cloud provider credentials) before launching agents, and refuse `--dangerously-skip-permissions` unless `AI_OS_EVAL_SANDBOX=1` is explicitly set in an isolated sandbox.
