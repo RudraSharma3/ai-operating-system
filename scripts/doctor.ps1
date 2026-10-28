@@ -470,6 +470,17 @@ foreach ($df in $docFiles) {
                 break
             }
         }
+        if ($line -match '--permission-mode[=\s]+([a-zA-Z0-9_-]+)') {
+            $mode = $matches[1]
+            if (-not (Test-Path $sourcesFile)) {
+                $unverifiedCmdErr = "docs/sources.md missing; unverified permission-mode '$mode' found in $(Split-Path $df -Leaf)"
+                break
+            }
+            if (-not ($sourcesContent -match "(`$mode`|'$mode'|\($mode\)|,\s*$mode\b|\b$mode\b)")) {
+                $unverifiedCmdErr = "Unverified permission-mode '$mode' in $(Split-Path $df -Leaf) (not listed in docs/sources.md)"
+                break
+            }
+        }
     }
     if ($unverifiedCmdErr) { break }
 }

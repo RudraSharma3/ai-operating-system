@@ -159,7 +159,7 @@ When testing untrusted or autonomous agent runs:
    docker run --rm -it --network none -v "$PWD:/workspace" -w /workspace debian:bookworm-slim /bin/bash
    ```
 2. **Use Narrow Permission Modes**:
-   Always configure the narrowest verified permission mode from [`docs/sources.md`](docs/sources.md) (e.g., `claude --permission-mode auto -p` or `claude --allowedTools "Bash,Read,Edit" -p`). Documented dangerous flags (such as `--dangerously-skip-permissions`) should never be used on developer workstations.
+   Always configure the narrowest verified permission mode from [`docs/sources.md`](docs/sources.md) (e.g., `claude --permission-mode default -p` or `claude --allowedTools "Bash,Read,Edit" -p`). Documented dangerous flags (such as `--dangerously-skip-permissions`) should never be used on developer workstations.
 
 ---
 

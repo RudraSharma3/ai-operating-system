@@ -448,6 +448,25 @@ if [ ${#DOC_FILES[@]} -gt 0 ]; then
             fi
         fi
     done < <(grep -H -oE '`claude [^`]+`|"claude [^"]+"|\bclaude[[:space:]]+-[a-zA-Z0-9_ -]+' "${DOC_FILES[@]}" 2>/dev/null || true)
+
+    if [ -z "$UNVERIFIED_CMD_ERR" ]; then
+        while IFS= read -r match_line; do
+            [ -z "$match_line" ] && continue
+            df="${match_line%%:*}"
+            raw_val="${match_line#*:}"
+            mode=$(echo "$raw_val" | sed -E 's/.*--permission-mode[[:space:]=]+([a-zA-Z0-9_-]+).*/\1/' || true)
+            if [ -n "$mode" ]; then
+                if [ ! -f "$SOURCES_FILE" ]; then
+                    UNVERIFIED_CMD_ERR="docs/sources.md missing; unverified permission-mode '$mode' found in $(basename "$df")"
+                    break
+                fi
+                if ! grep -E -q "(\`|'|\(|,\s*|\b)$mode(\`|'|\)|,|\b)" "$SOURCES_FILE"; then
+                    UNVERIFIED_CMD_ERR="Unverified permission-mode '$mode' in $(basename "$df") (not listed in docs/sources.md)"
+                    break
+                fi
+            fi
+        done < <(grep -H -E '\-\-permission-mode[[:space:]=]+[a-zA-Z0-9_-]+' "${DOC_FILES[@]}" 2>/dev/null || true)
+    fi
 fi
 
 if [ -n "$UNVERIFIED_CMD_ERR" ]; then

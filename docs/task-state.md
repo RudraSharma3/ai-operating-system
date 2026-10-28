@@ -647,6 +647,23 @@ This document tracks the current development milestones and task state for the m
 - **Not Verified**:
   - PyPI dedicated release notes/changelogs for `mcp-server-git` and `mcp-server-fetch` (no separate changelog files hosted on PyPI; marked NOT VERIFIED per instructions).
 
+---
+
+### Step 10: Release Preparation v2.4.2 & Merge Readiness
+- **What Changed**:
+  - **Permission Mode Verification & Source Reconciliation**:
+    - Re-read official Claude Code CLI documentation (`https://code.claude.com/docs/en/cli-reference.md`, `https://code.claude.com/docs/en/permission-modes.md`, retrieved 2026-10-28).
+    - Documented complete exact permission modes: `default`, `manual`, `dontAsk`, `acceptEdits`, `plan`, `auto`, `bypassPermissions`.
+    - Replaced all previous recommendations of `auto` with `default` (narrowest documented baseline permission mode) across `README.md`, `evals/README.md`, and `evals/results/2026-10-27.md`.
+    - Added automated permission-mode checking to Doctor Check 22 in `scripts/doctor.sh` and `scripts/doctor.ps1` warning/failing if documentation references unverified permission-mode values. Added unit test in `tests/test_installer.sh`.
+  - **Scratch Directory Cleanup**:
+    - Purged `scratch/scan_cross_repos.ps1` and all temporary test files in `scratch/`. Confirmed `scratch/` is empty and gitignored.
+  - **Version Bump & Honest Scope Statement**:
+    - Bumped `VERSION` to `2.4.2`.
+    - Added `[2.4.2] - 2026-10-28` section to `CHANGELOG.md` with explicit operational boundaries stating what AI-OS is proven to do (safety tooling, secret defense, federated sync, doctor diagnostics) and what is NOT proven (comparative effect on live agent outcomes is unmeasured; headless live comparison has not been run).
+    - Regenerated templates via `scripts/build-templates.sh` (manifest updated with 56 files, zero drift).
+
+
 
 
 

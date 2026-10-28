@@ -5,6 +5,16 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2026-10-28
+
+### Changed
+- **Permission Mode Documentation & Doctor Verification**: Documented the complete set of exact permission modes supported by Claude Code CLI (`default`, `manual`, `dontAsk`, `acceptEdits`, `plan`, `auto`, `bypassPermissions`) in `docs/sources.md` (retrieval date 2026-10-28); replaced all previous recommendations of `auto` with `default` (the narrowest documented baseline permission mode) across `README.md`, `evals/README.md`, and evaluation results. Added automated Doctor Check 22 verification failing/warning if documentation references unverified permission-mode values.
+- **Scratch Directory Hygiene**: Purged all temporary test and exploration scripts from `scratch/` keeping the directory strictly gitignored.
+
+### Operational Boundaries & Scope
+- **What AI-OS Is Proven to Do**: The deterministic safety tooling, pre-commit secret guards, federated learning rule promotion gates, offline doctor diagnostics, template synchronization drift checks, and evaluation harness mechanics are empirically tested and verified across Linux, macOS, and Windows.
+- **What AI-OS Is NOT Proven to Do**: The comparative effect of AI-OS on live agent outcomes (speed, cost, token efficiency, number of turns, and task success rate) remains unmeasured; the headless live agent comparison against baseline unguided models has not been run in this environment.
+
 ## [2.4.1] - 2026-10-28
 
 ### Added

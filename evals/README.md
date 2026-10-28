@@ -54,10 +54,10 @@ powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Negative 
 ### Run with Headless Agent CLI (Verified Flags):
 ```bash
 # Bash (Claude Code CLI verified headless mode with narrow permission)
-bash evals/run_task.sh --task all --mode with --agent-cmd "claude --permission-mode auto -p"
+bash evals/run_task.sh --task all --mode with --agent-cmd "claude --permission-mode default -p"
 
 # PowerShell
-powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Mode with -AgentCmd "claude --permission-mode auto -p"
+powershell -ExecutionPolicy Bypass -File evals/run_task.ps1 -Task all -Mode with -AgentCmd "claude --permission-mode default -p"
 ```
 *(Verified headless flags and narrow permission options are recorded in `docs/sources.md`. The dangerous bypass flag `--dangerously-skip-permissions` is restricted as a last resort and blocked unless `AI_OS_EVAL_SANDBOX=1` is set in an isolated sandbox).*
 
@@ -100,4 +100,4 @@ For executing untrusted or autonomous agent runs:
    docker run --rm -it --network none -v "$PWD:/workspace" -w /workspace debian:bookworm-slim /bin/bash
    ```
 2. **Use Narrow Permission Modes**:
-   Always configure the narrowest verified permission mode from [`docs/sources.md`](../docs/sources.md) (e.g., `claude --permission-mode auto -p` or `claude --allowedTools "Bash,Read,Edit" -p`). Documented dangerous flags (such as `--dangerously-skip-permissions`) should never be used on developer workstations.
+   Always configure the narrowest verified permission mode from [`docs/sources.md`](../docs/sources.md) (e.g., `claude --permission-mode default -p` or `claude --allowedTools "Bash,Read,Edit" -p`). Documented dangerous flags (such as `--dangerously-skip-permissions`) should never be used on developer workstations.
