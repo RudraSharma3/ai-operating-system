@@ -102,9 +102,30 @@ foreach ($f in ($files | Sort-Object FullName)) {
     $fileHashes[$rel] = $hashStr
 }
 
+$genAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$realManifestPath = Join-Path $templateDir ".ai-os/manifest.json"
+if (-not $Check -and (Test-Path $realManifestPath)) {
+    try {
+        $prev = Get-Content $realManifestPath -Raw | ConvertFrom-Json
+        $same = ($prev.ai_os_version -eq $version) -and ($prev.file_count -eq $fileHashes.Count)
+        if ($same) {
+            foreach ($k in $fileHashes.Keys) {
+                if ($prev.files.$k -ne $fileHashes[$k]) {
+                    $same = $false
+                    break
+                }
+            }
+        }
+        if ($same) {
+            Write-Host " [SUCCESS] Manifest .ai-os/manifest.json already up-to-date ($($fileHashes.Count) files indexed)" -ForegroundColor Green
+            exit 0
+        }
+    } catch {}
+}
+
 $manifest = [ordered]@{
     ai_os_version = $version
-    generated_at = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    generated_at = $genAt
     file_count = $fileHashes.Count
     files = $fileHashes
 }
