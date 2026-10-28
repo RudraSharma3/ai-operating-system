@@ -69,16 +69,18 @@ GITIGNORE_SRC="$TEMPLATE_DIR/.gitignore"
 GITIGNORE_DEST="$TARGET_PATH/.gitignore"
 if [ -f "$GITIGNORE_DEST" ]; then
     if ! grep -q "# --- AI-OS START ---" "$GITIGNORE_DEST" 2>/dev/null; then
-        echo "" >> "$GITIGNORE_DEST"
-        echo "# --- AI-OS START ---" >> "$GITIGNORE_DEST"
-        echo ".env" >> "$GITIGNORE_DEST"
-        echo ".env.*" >> "$GITIGNORE_DEST"
-        echo "!.env.example" >> "$GITIGNORE_DEST"
-        echo "!.env.sample" >> "$GITIGNORE_DEST"
-        echo "!.env.template" >> "$GITIGNORE_DEST"
-        echo "!.env.dist" >> "$GITIGNORE_DEST"
-        echo ".ai/private-names.txt" >> "$GITIGNORE_DEST"
-        echo "# --- AI-OS END ---" >> "$GITIGNORE_DEST"
+        {
+            echo ""
+            echo "# --- AI-OS START ---"
+            echo ".env"
+            echo ".env.*"
+            echo "!.env.example"
+            echo "!.env.sample"
+            echo "!.env.template"
+            echo "!.env.dist"
+            echo ".ai/private-names.txt"
+            echo "# --- AI-OS END ---"
+        } >> "$GITIGNORE_DEST"
         echo "  + Merged AI-OS secret rules into existing .gitignore"
     else
         echo "  = Existing .gitignore already contains AI-OS rules"
@@ -106,9 +108,11 @@ if [ -d ".git" ]; then
         CHAIN_CMD='[ -f .githooks/pre-commit ] && .githooks/pre-commit "$@"'
         if [ -f "$TARGET_HOOK" ]; then
             if ! grep -F -q ".githooks/pre-commit" "$TARGET_HOOK" 2>/dev/null; then
-                echo "" >> "$TARGET_HOOK"
-                echo "# AI-OS Pre-Commit Guard Chained Delegation" >> "$TARGET_HOOK"
-                echo "$CHAIN_CMD" >> "$TARGET_HOOK"
+                {
+                    echo ""
+                    echo "# AI-OS Pre-Commit Guard Chained Delegation"
+                    echo "$CHAIN_CMD"
+                } >> "$TARGET_HOOK"
                 chmod +x "$TARGET_HOOK" 2>/dev/null || true
                 echo "  + Chained AI-OS guard into $TARGET_HOOK"
             else

@@ -73,6 +73,7 @@ if command -v python3 >/dev/null 2>&1; then
         PY_PATTERNS=$(cygpath -w "$PATTERNS_FILE" 2>/dev/null || echo "$PATTERNS_FILE")
     fi
     # High-performance batch scanner
+    # shellcheck disable=SC2016 # python string literal containing ${...}
     PYTHON_OUTPUT=$(printf '%s\n' "$ADDED_DIFF" | python3 -c '
 import sys, re, os
 

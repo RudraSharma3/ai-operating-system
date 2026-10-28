@@ -20,15 +20,9 @@ run_eval() {
     local eval_cmd="$2"
     echo -n "  • [BENCHMARK] $eval_name ... "
     
-    local start_time
-    start_time=$(date +%s%N 2>/dev/null || date +%s)
-    
     local output
     local status=0
     output=$(eval "$eval_cmd" 2>&1) || status=$?
-    
-    local end_time
-    end_time=$(date +%s%N 2>/dev/null || date +%s)
     
     if [ $status -eq 0 ]; then
         echo "PASS"

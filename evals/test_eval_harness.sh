@@ -38,25 +38,25 @@ STUB_NOOP_BASH="bash $SCRIPT_DIR/stub_agent.sh --mode noop"
 # Test 1: Bash --mode with + Stub Apply Reference -> PASS
 echo "▶️ Testing Bash: --mode with --agent-cmd (apply reference)..."
 status_with_apply=0
-out_with_apply=$(bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode with --agent-cmd "$STUB_APPLY_BASH" 2>&1) || status_with_apply=$?
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode with --agent-cmd "$STUB_APPLY_BASH" >/dev/null 2>&1 || status_with_apply=$?
 assert_eq 0 "$status_with_apply" "run_task.sh with apply-stub in --mode with must PASS (exit 0)"
 
 # Test 2: Bash --mode with + Stub Noop -> FAIL
 echo "▶️ Testing Bash: --mode with --agent-cmd (noop)..."
 status_with_noop=0
-out_with_noop=$(bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode with --agent-cmd "$STUB_NOOP_BASH" 2>&1) || status_with_noop=$?
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode with --agent-cmd "$STUB_NOOP_BASH" >/dev/null 2>&1 || status_with_noop=$?
 assert_eq 1 "$status_with_noop" "run_task.sh with noop-stub in --mode with must FAIL (exit 1)"
 
 # Test 3: Bash --mode without + Stub Apply Reference -> PASS
 echo "▶️ Testing Bash: --mode without --agent-cmd (apply reference)..."
 status_without_apply=0
-out_without_apply=$(bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode without --agent-cmd "$STUB_APPLY_BASH" 2>&1) || status_without_apply=$?
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode without --agent-cmd "$STUB_APPLY_BASH" >/dev/null 2>&1 || status_without_apply=$?
 assert_eq 0 "$status_without_apply" "run_task.sh with apply-stub in --mode without must PASS (exit 0)"
 
 # Test 4: Bash --mode without + Stub Noop -> FAIL
 echo "▶️ Testing Bash: --mode without --agent-cmd (noop)..."
 status_without_noop=0
-out_without_noop=$(bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode without --agent-cmd "$STUB_NOOP_BASH" 2>&1) || status_without_noop=$?
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode without --agent-cmd "$STUB_NOOP_BASH" >/dev/null 2>&1 || status_without_noop=$?
 assert_eq 1 "$status_without_noop" "run_task.sh with noop-stub in --mode without must FAIL (exit 1)"
 
 # --- 2. PowerShell Harness Tests (evals/run_task.ps1) ---
@@ -105,14 +105,14 @@ fi
 # Test 9: Refusal when --agent-cmd contains --dangerously-skip-permissions without AI_OS_EVAL_SANDBOX=1
 echo "▶️ Testing refusal of --dangerously-skip-permissions without env var..."
 status_danger_refused=0
-out_danger_refused=$(AI_OS_EVAL_SANDBOX=0 bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "claude --dangerously-skip-permissions -p" 2>&1) || status_danger_refused=$?
+AI_OS_EVAL_SANDBOX=0 bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "claude --dangerously-skip-permissions -p" >/dev/null 2>&1 || status_danger_refused=$?
 assert_eq 1 "$status_danger_refused" "run_task.sh must refuse --dangerously-skip-permissions when AI_OS_EVAL_SANDBOX is unset/0"
 
 # Test 10: Refusal when sandbox directory is under repository tree
 echo "▶️ Testing refusal when target directory is located under repository tree..."
 mkdir -p "$ROOT_DIR/scratch/illegal_sandbox"
 status_tree_refused=0
-out_tree_refused=$(bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --target "$ROOT_DIR/scratch/illegal_sandbox" 2>&1) || status_tree_refused=$?
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --target "$ROOT_DIR/scratch/illegal_sandbox" >/dev/null 2>&1 || status_tree_refused=$?
 rm -rf "$ROOT_DIR/scratch/illegal_sandbox" 2>/dev/null || true
 assert_eq 1 "$status_tree_refused" "run_task.sh must refuse sandbox located inside repository tree"
 
@@ -124,8 +124,7 @@ export AWS_ACCESS_KEY_ID="leaked_aws_id"
 export GITHUB_TOKEN="leaked_gh_token"
 export DB_PASSWORD_TEST="leaked_db_pwd"
 
-status_env_strip=0
-bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "bash $SCRIPT_DIR/stub_agent.sh --mode print-env" --target "$SAFE_TMP" >/dev/null 2>&1 || status_env_strip=$?
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "bash $SCRIPT_DIR/stub_agent.sh --mode print-env" --target "$SAFE_TMP" >/dev/null 2>&1 || true
 
 ENV_LEAKS=0
 if [ -f "$SAFE_TMP/stub_env.txt" ]; then

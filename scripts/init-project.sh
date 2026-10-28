@@ -8,11 +8,11 @@ STACK="$2"
 TARGET_DIR="${3:-.}"
 
 if [ -z "$PROJECT_NAME" ]; then
-    read -p "Enter Project Name (e.g. my-awesome-app): " PROJECT_NAME
+    read -r -p "Enter Project Name (e.g. my-awesome-app): " PROJECT_NAME
 fi
 
 if [ -z "$STACK" ]; then
-    read -p "Enter Tech Stack (e.g. Next.js + Tailwind + Supabase): " STACK
+    read -r -p "Enter Tech Stack (e.g. Next.js + Tailwind + Supabase): " STACK
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

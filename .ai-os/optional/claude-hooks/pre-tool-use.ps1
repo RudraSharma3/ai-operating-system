@@ -3,7 +3,6 @@
 # Input: JSON context delivered via stdin. Never executes tool input.
 
 $ErrorActionPreference = "SilentlyContinue"
-$projectDir = if ($env:CLAUDE_PROJECT_DIR) { $env:CLAUDE_PROJECT_DIR } else { (Get-Location).Path }
 
 try {
     $rawInput = [Console]::In.ReadToEnd()

@@ -11,9 +11,13 @@ param(
 $ErrorActionPreference = "Stop"
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
-function Compile-SingleTarget {
+function Invoke-CompileSingleTarget {
     param(
-        [string]$TargetDir
+        [string]$TargetDir,
+        [switch]$CheckTarget,
+        [switch]$StdoutTarget,
+        [int]$MaxRulesTarget = 30,
+        [int]$TokenBudgetTarget = 8192
     )
 
     $rulesDir = Join-Path $TargetDir ".ai\rules"
@@ -28,8 +32,8 @@ function Compile-SingleTarget {
         return
     }
 
-    if ($ruleFiles.Count -gt $MaxRules) {
-        Write-Error "Error in $TargetDir : rule count ($($ruleFiles.Count)) exceeds configured maximum ($MaxRules)"
+    if ($ruleFiles.Count -gt $MaxRulesTarget) {
+        Write-Error "Error in $TargetDir : rule count ($($ruleFiles.Count)) exceeds configured maximum ($MaxRulesTarget)"
         exit 1
     }
 
@@ -79,15 +83,20 @@ function Compile-SingleTarget {
     $newContent = $prefixClean + $compiledRulesText + "`n"
 
     $byteSize = [System.Text.Encoding]::UTF8.GetByteCount($newContent)
-    if ($byteSize -gt $TokenBudget) {
-        Write-Error "Error: Compiled $agentsFile size ($byteSize bytes) exceeds configured token budget ($TokenBudget bytes)"
+    if ($byteSize -gt $TokenBudgetTarget) {
+        Write-Error "Error: Compiled $agentsFile size ($byteSize bytes) exceeds configured token budget ($TokenBudgetTarget bytes)"
         exit 1
+    }
+
+    if ($StdoutTarget) {
+        Write-Output $newContent
+        return
     }
 
     $normalizedExisting = $agentsContent.Replace("`r`n", "`n").Trim()
     $normalizedNew = $newContent.Replace("`r`n", "`n").Trim()
 
-    if ($Check) {
+    if ($CheckTarget) {
         if ($normalizedExisting -ne $normalizedNew) {
             Write-Error "Check failed: $agentsFile is not in sync with .ai/rules/"
             exit 1
@@ -96,12 +105,12 @@ function Compile-SingleTarget {
         }
     } else {
         [System.IO.File]::WriteAllText($agentsFile, $newContent, $utf8NoBom)
-        Write-Host " [SUCCESS] Compiled $($seenIds.Count) rules into $agentsFile ($byteSize bytes / budget $TokenBudget bytes)" -ForegroundColor Green
+        Write-Host " [SUCCESS] Compiled $($seenIds.Count) rules into $agentsFile ($byteSize bytes / budget $TokenBudgetTarget bytes)" -ForegroundColor Green
     }
 }
 
 $projectPath = (Resolve-Path $Project).Path
-Compile-SingleTarget -TargetDir $projectPath
+Invoke-CompileSingleTarget -TargetDir $projectPath -CheckTarget:$Check -StdoutTarget:$Stdout -MaxRulesTarget $MaxRules -TokenBudgetTarget $TokenBudget
 
 if ($Recursive) {
     $subDirs = @(Get-ChildItem -Path (Join-Path $projectPath "packages") -Directory -ErrorAction SilentlyContinue) +
@@ -111,7 +120,7 @@ if ($Recursive) {
         $subAgents = Join-Path $sub.FullName "AGENTS.md"
         if ((Test-Path $subRules) -and (Test-Path $subAgents)) {
             Write-Host " [MONOREPO] Compiling nested package: $($sub.Name)" -ForegroundColor Cyan
-            Compile-SingleTarget -TargetDir $sub.FullName
+            Invoke-CompileSingleTarget -TargetDir $sub.FullName -CheckTarget:$Check -StdoutTarget:$Stdout -MaxRulesTarget $MaxRules -TokenBudgetTarget $TokenBudget
         }
     }
 }
