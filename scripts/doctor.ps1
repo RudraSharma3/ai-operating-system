@@ -265,10 +265,26 @@ if ((Test-Path $playbookPath) -and (Test-Path $mcpJsonPath)) {
                     $isPinned = $false
                     if ($srvArgs) {
                         foreach ($arg in $srvArgs) {
-                            if ($arg -match '@(\d+[\w\.-]*)' -and $arg -notmatch '@latest') { $isPinned = $true }
-                            elseif ($arg -match '==(\d+[\w\.-]*)' -and $arg -notmatch '==latest') { $isPinned = $true }
+                            if ($arg -match '@([^\s]+)') {
+                                $ver = $matches[1]
+                                if ($ver -match '^[\^~><*]' -or $ver -eq 'latest') {
+                                    $mcpOk = $false
+                                    $mcpError = "Server '$srvName' in mcp.json has range version specification '$ver' (exact pins required)"
+                                    break
+                                }
+                                if ($ver -match '^\d') { $isPinned = $true }
+                            } elseif ($arg -match '==([^\s]+)') {
+                                $ver = $matches[1]
+                                if ($ver -match '^[\^~><*]' -or $ver -eq 'latest') {
+                                    $mcpOk = $false
+                                    $mcpError = "Server '$srvName' in mcp.json has range version specification '$ver' (exact pins required)"
+                                    break
+                                }
+                                if ($ver -match '^\d') { $isPinned = $true }
+                            }
                         }
                     }
+                    if (-not $mcpOk) { break }
                     if (-not $isPinned) {
                         $mcpOk = $false
                         $mcpError = "Server '$srvName' in mcp.json has unpinned version specification"

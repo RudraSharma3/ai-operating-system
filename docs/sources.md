@@ -133,4 +133,15 @@ This document records the official documentation URLs, retrieval dates, and veri
   - `mcp-server-git`: PyPI repository (`https://pypi.org/pypi/mcp-server-git/json`). Pinned to `2026.10.10` (published `2026-10-11T02:41:46Z`, 17 days old).
   - `mcp-server-fetch`: PyPI repository (`https://pypi.org/pypi/mcp-server-fetch/json`). Pinned to `2026.10.10` (published `2026-10-11T02:41:50Z`, 17 days old).
 
+- **Major Version Transition (2.x -> 1.0.0 Downgrade Rationale & Breaking Changes)**:
+  - **Pin Reconciliation**: `mcp.json` previously pinned `@modelcontextprotocol/server-filesystem@2.0.1` and `@modelcontextprotocol/server-memory@2.0.0`. These were published on 2026-10-19 and 2026-10-25 (only 3-9 days old as of 2026-10-28), violating the 14-day maturity requirement (cutoff: 2026-10-14). To restore strict supply-chain hygiene, both servers were downgraded to `1.0.0` (published 2026-10-11, 17 days old).
+  - **Breaking Changes Between 1.0.0 and 2.x**:
+    - **Official Source**: npm package metadata and GitHub release ledger (`https://github.com/modelcontextprotocol/servers`, retrieval date 2026-10-28).
+    - **TypeScript SDK v2 Migration**: Version 2.0.0 upgraded internal server dependencies from TS SDK v1 to `@modelcontextprotocol/server` ^2.3.1 (TS SDK v2) and raised the runtime engine floor to `node >= 24`. Version 1.0.0 maintains broader Node.js runtime compatibility (`node >= 18`).
+    - **Strict Roots Protocol Capabilities**: Version 2.0.0 enforces client `capabilities.roots` dynamic negotiation. If dynamic roots resolution leaves behind no valid root directories, file operations are rejected with `"Access denied - no allowed directories"`. In contrast, version 1.0.0 relies on directory arguments passed on process startup (`./`), ensuring deterministic headless execution without complex client roots protocol handshakes.
+    - **Symlink & Path Traversal Restrictions**: Version 2.0.0 introduced stricter symlink traversal barriers within configured roots.
+    - **Diff / Patch Schema**: Version 2.0.0 updated the schema of `edit_file` to support formal dryRun diff outputs.
+  - **Python Server Releases (`mcp-server-git`, `mcp-server-fetch`)**:
+    - Downgraded from `2026.10.19`/`2026.10.24` to `2026.10.10` (published 2026-10-11) for 14-day maturity compliance. Separate upstream changelog files on PyPI: **NOT VERIFIED** (PyPI metadata does not provide dedicated changelog endpoints for these calver versions beyond release upload timestamps).
+
 

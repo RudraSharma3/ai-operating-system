@@ -103,10 +103,105 @@ check_pypi "mcp-server-git" "2026.10.10"
 check_pypi "mcp-server-fetch" "2026.10.10"
 
 echo ""
+echo "============================================================"
+echo " 🔌 AI-OS MCP Server Stdio Smoke Test (Initialize Handshake)"
+echo "============================================================"
+
+PY_CMD="python3"
+command -v python3 >/dev/null 2>&1 || PY_CMD="python"
+
+SMOKE_STATUS=0
+"$PY_CMD" - "$MCP_JSON" << 'EOF' || SMOKE_STATUS=$?
+import json, os, subprocess, sys, time, shutil
+
+mcp_path = sys.argv[1]
+with open(mcp_path, 'r', encoding='utf-8') as f:
+    config = json.load(f)
+
+servers = config.get('mcpServers', {})
+failures = 0
+
+req = json.dumps({
+    'jsonrpc': '2.0',
+    'id': 1,
+    'method': 'initialize',
+    'params': {
+        'protocolVersion': '2024-11-05',
+        'capabilities': {},
+        'clientInfo': {'name': 'smoke-test', 'version': '1.0.0'}
+    }
+}) + '\n'
+
+for name, srv in servers.items():
+    cmd = [srv['command']] + srv.get('args', [])
+    resolved_bin = shutil.which(cmd[0])
+    if not resolved_bin:
+        print(f"Server '{name}': NOT VERIFIED (binary '{cmd[0]}' not found)")
+        failures += 1
+        continue
+
+    full_cmd = [resolved_bin] + cmd[1:]
+    cmd_str = ' '.join(cmd)
+    print(f"Starting {name} ({cmd_str}) ... ", end='', flush=True)
+    start = time.time()
+    try:
+        p = subprocess.Popen(
+            full_cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1
+        )
+        p.stdin.write(req)
+        p.stdin.flush()
+
+        resp_line = ''
+        while time.time() - start < 20:
+            line = p.stdout.readline()
+            if line:
+                resp_line = line
+                break
+            time.sleep(0.05)
+
+        duration = round(time.time() - start, 2)
+        try:
+            p.terminate()
+            p.wait(timeout=2)
+        except Exception:
+            p.kill()
+
+        if resp_line:
+            data = json.loads(resp_line)
+            if 'result' in data:
+                proto = data['result'].get('protocolVersion', 'unknown')
+                srv_info = data['result'].get('serverInfo', {}).get('name', 'unknown')
+                print(f"PASS ({duration}s, proto={proto}, server={srv_info})")
+            else:
+                print(f"FAIL (response missing result: {resp_line.strip()})")
+                failures += 1
+        else:
+            _, err = p.communicate(timeout=2)
+            print(f"FAIL (timed out after 20s; stderr: {err.strip()[:120]})")
+            failures += 1
+    except Exception as e:
+        print(f"FAIL ({e})")
+        failures += 1
+
+if failures > 0:
+    sys.exit(1)
+sys.exit(0)
+EOF
+
+if [ "$SMOKE_STATUS" -ne 0 ]; then
+    FAILURES=$((FAILURES + SMOKE_STATUS))
+fi
+
+echo ""
 if [ "$FAILURES" -eq 0 ]; then
-    echo "✅ All MCP pins verified against upstream registries and satisfy 14-day maturity requirement."
+    echo "✅ All MCP pins verified against upstream registries and passed stdio initialize smoke tests."
     exit 0
 else
-    echo "❌ Registry check failed with $FAILURES error(s)."
+    echo "❌ Registry & smoke check failed with $FAILURES error(s)."
     exit 1
 fi
