@@ -562,18 +562,30 @@ if (Test-Path $workflowsDir) {
     }
 }
 
-# Check 3: Dependabot 14-day cooldown enforcement
+# Check 3: Dependabot 14-day cooldown enforcement (table-driven from docs/dependabot-cooldown-keys.json)
 $dependabotFile = Join-Path $target ".github\dependabot.yml"
+$cooldownTableFile = Join-Path $target "docs\dependabot-cooldown-keys.json"
+if (-not (Test-Path $cooldownTableFile)) {
+    $cooldownTableFile = Join-Path $PSScriptRoot "..\docs\dependabot-cooldown-keys.json"
+}
+
+$workflowErr = ""
 if (-not $workflowWarn -and (Test-Path $dependabotFile)) {
-    $nonSemverEcos = @('bazel', 'devcontainers', 'docker', 'docker-compose', 'github-actions', 'gitsubmodule', 'helm', 'nix', 'opentofu', 'pre-commit', 'terraform', 'vcpkg')
-    $validAllKeys = @('default-days', 'include', 'exclude')
-    $validSemverKeys = @('semver-major-days', 'semver-minor-days', 'semver-patch-days')
+    $tableData = $null
+    if (Test-Path $cooldownTableFile) {
+        try {
+            $tableJson = Get-Content $cooldownTableFile -Raw | ConvertFrom-Json
+            $tableData = $tableJson.ecosystems
+        } catch { }
+    }
+
     $depLines = Get-Content $dependabotFile
     $currentEco = ""
     $inCooldown = $false
     $cooldownIndent = 0
     $hasCooldown = $false
     $has14Day = $false
+    $unknownEco = $null
 
     foreach ($rawLine in $depLines) {
         $cleanLine = ($rawLine -replace '#.*$', '').TrimEnd()
@@ -599,20 +611,23 @@ if (-not $workflowWarn -and (Test-Path $dependabotFile)) {
                 if ($kIndent -le $cooldownIndent) {
                     $inCooldown = $false
                 } else {
-                    if ($validAllKeys -contains $ckey) {
-                        if ($ckey -eq 'default-days') {
-                            if ($cleanLine -match 'default-days:\s*([0-9]+)') {
-                                if ([int]$matches[1] -ge 14) { $has14Day = $true }
+                    if ($ckey -eq 'default-days') {
+                        if ($cleanLine -match 'default-days:\s*([0-9]+)') {
+                            if ([int]$matches[1] -ge 14) { $has14Day = $true }
+                        }
+                    }
+
+                    if ($tableData) {
+                        $prop = $tableData.PSObject.Properties[$currentEco]
+                        if (-not $prop) {
+                            if (-not $unknownEco) { $unknownEco = $currentEco }
+                        } else {
+                            $allowedKeys = @($prop.Value)
+                            if ($allowedKeys -notcontains $ckey) {
+                                $workflowErr = "Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '$ckey' for package ecosystem '$currentEco'"
+                                break
                             }
                         }
-                    } elseif ($validSemverKeys -contains $ckey) {
-                        if ($nonSemverEcos -contains $currentEco) {
-                            $workflowWarn = "Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '$ckey' for package ecosystem '$currentEco'"
-                            break
-                        }
-                    } else {
-                        $workflowWarn = "Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '$ckey'"
-                        break
                     }
                 }
             } else {
@@ -621,14 +636,18 @@ if (-not $workflowWarn -and (Test-Path $dependabotFile)) {
         }
     }
 
-    if (-not $workflowWarn) {
-        if (-not $hasCooldown -or -not $has14Day) {
+    if (-not $workflowErr) {
+        if ($unknownEco) {
+            $workflowWarn = "Dependabot configuration '.github/dependabot.yml' uses unknown package ecosystem '$unknownEco'"
+        } elseif (-not $hasCooldown -or -not $has14Day) {
             $workflowWarn = "Dependabot configuration '.github/dependabot.yml' lacks a minimum 14-day cooldown"
         }
     }
 }
 
-if ($workflowWarn) {
+if ($workflowErr) {
+    Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "FAIL" $workflowErr
+} elseif ($workflowWarn) {
     Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "WARN" $workflowWarn
 } else {
     Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "PASS"
