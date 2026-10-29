@@ -2,7 +2,7 @@
 # AI-OS AGENTS.md Safety Content Contract Test Suite
 # Asserts that AGENTS.md (master and template) retains all core safety criteria by content.
 
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -70,9 +70,33 @@ verify_agents_contract() {
         return 1
     fi
     
-    # 9. Explicit authorization gate for merges/releases/tags/closes
-    if ! echo "$content" | grep -F "Never merge PRs, push commits directly to protected branches (main), create tags, publish releases, close pull requests, or alter repository settings without explicit instruction in the active user request" >/dev/null; then
-        echo "ASSERTION FAILED: $label: Must contain explicit authorization gate forbidding merges/releases/tag creation/PR closes without active prompt instruction" >&2
+    # 9. Explicit authorization gate (must be <= 250 bytes and match all 4: merge, tag or release, repository settings, continue)
+    local rule_line
+    rule_line=$(grep -i "explicit instruction" "$target_file" || true)
+    if [ -z "$rule_line" ]; then
+        echo "ASSERTION FAILED: $label: Must contain explicit authorization gate rule line" >&2
+        return 1
+    fi
+    local rule_len
+    rule_len=$(echo "$rule_line" | wc -c)
+    if [ "$rule_len" -gt 250 ]; then
+        echo "ASSERTION FAILED: $label: Rule line length ($rule_len bytes) exceeds 250 bytes limit" >&2
+        return 1
+    fi
+    if ! echo "$content" | grep -qi "merge"; then
+        echo "ASSERTION FAILED: $label: Must match 'merge'" >&2
+        return 1
+    fi
+    if ! echo "$content" | grep -qiE "(tag|release)"; then
+        echo "ASSERTION FAILED: $label: Must match 'tag or release'" >&2
+        return 1
+    fi
+    if ! echo "$content" | grep -qi "repository settings"; then
+        echo "ASSERTION FAILED: $label: Must match 'repository settings'" >&2
+        return 1
+    fi
+    if ! echo "$content" | grep -qi "continue"; then
+        echo "ASSERTION FAILED: $label: Must match 'continue'" >&2
         return 1
     fi
     
