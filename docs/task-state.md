@@ -895,29 +895,36 @@ This document tracks the current development milestones and task state for the m
 ### Step 16: Authorization Rule Byte Length Correction, Table-Driven Check 24, and Verification Reconciliation
 - **What Changed**:
   - **Authorization Rule Byte Length Correction**:
-    * Audit & Measurement: Found Section 1.6 in master AGENTS.md and Rule 9 in 	emplates/project/AGENTS.md. The previously committed text measured 284 bytes UTF-8 (285 bytes with newline in AGENTS.md, 288 bytes with 9.  in template). The prior report's claim of 247 bytes was an error.
-    * Rewrite: Rewrote rule to 197 bytes UTF-8 (198 bytes with newline in master AGENTS.md, 201 bytes with 9.  in template), strictly <= 250 bytes:
-      Never merge PRs, push to protected branches, tag, release, close PRs, or alter repository settings without explicit instruction in the active task text; a vague "continue" prompt is not permission.
-    * Contract Enforcement: Strengthened 	ests/test_agents_contract.sh Criterion 9 to assert the rule line is <= 250 bytes and matches all four required concepts: merge, 	ag or release, 
-epository settings, and "continue". Demonstrated failing test first on 284-byte text, then passing after rewrite.
-    * Size Accounting: Master AGENTS.md is 4,995 bytes (3,197 bytes headroom under 8,192 budget); 	emplates/project/AGENTS.md is 3,802 bytes (4,390 bytes headroom).
+    * Audit & Measurement: Found Section 1.6 in master AGENTS.md and Rule 9 in templates/project/AGENTS.md. The previously committed text measured 284 bytes UTF-8 (285 bytes with newline in AGENTS.md, 288 bytes with 9. in template). The prior report claim of 247 bytes was an error.
+    * Rewrite: Rewrote rule to 197 bytes UTF-8 (198 bytes with newline in master AGENTS.md, 201 bytes with 9. in template), strictly <= 250 bytes:
+      `Never merge PRs, push to protected branches, tag, release, close PRs, or alter repository settings without explicit instruction in the active task text; a vague "continue" prompt is not permission.`
+    * Contract Enforcement: Strengthened tests/test_agents_contract.sh Criterion 9 to assert the rule line is <= 250 bytes and matches all four required concepts: merge, tag or release, repository settings, and "continue". Demonstrated failing test first on 284-byte text, then passing after rewrite.
+    * Size Accounting: Master AGENTS.md is 4,995 bytes (3,197 bytes headroom under 8,192 budget); templates/project/AGENTS.md is 3,802 bytes (4,390 bytes headroom).
   - **Verification Command Reconciliation**:
     * Sourced evals/run_task.sh usage. The flags --eval-only, --dry-run, and --negative-control do not exist in the script; earlier mentions in reports were improvised descriptions. Canonical evaluation commands are evals/run_evals.sh, evals/run_task.sh --task all --reference, and evals/run_task.sh --task all --negative --expect-fail.
   - **Table-Driven Doctor Check 24**:
     * Sourced GitHub Dependabot options reference from https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference (retrieved 2026-10-29). Recorded 33-ecosystem allowed cooldown keys in committed data file docs/dependabot-cooldown-keys.json.
     * Verbatim excerpt (<25 words): *"The default-days option is supported for all package managers listed, while semver-major-days, semver-minor-days, and semver-patch-days are supported only where indicated."*
     * Updated scripts/doctor.sh and scripts/doctor.ps1 to validate .github/dependabot.yml against this table: unknown ecosystem produces WARN, unknown key for known ecosystem produces FAIL.
-    * Added dual-direction tests in 	ests/test_installer.sh: demonstrated failing test first on invalid config, then verified passing on valid config.
+    * Added dual-direction tests in tests/test_installer.sh: demonstrated failing test first on invalid config, then verified passing on valid config.
   - **Open Dependabot PR Audit (PRs #5, #6, #11, #12)**:
-    * PR #5 (ctions/checkout v7.0.1): published 2026-07-20 (100.9d old >= 14d), SHA matches upstream commit SHA.
-    * PR #6 (ctions/setup-node v7.1.0): published 2026-10-08 (21.4d old >= 14d), SHA matches upstream commit SHA.
-    * PR #11 (ctions/setup-python v7.0.0): published 2026-07-20 (101.4d old >= 14d), SHA matches upstream commit SHA.
-    * PR #12 (stral-sh/setup-uv v10.3.0): published 2026-10-09 (19.6d old >= 14d), SHA matches upstream commit SHA.
+    * PR #5 (actions/checkout v7.0.1): published 2026-07-20 (100.9d old >= 14d), SHA matches upstream commit SHA.
+    * PR #6 (actions/setup-node v7.1.0): published 2026-10-08 (21.4d old >= 14d), SHA matches upstream commit SHA.
+    * PR #11 (actions/setup-python v7.0.0): published 2026-07-20 (101.4d old >= 14d), SHA matches upstream commit SHA.
+    * PR #12 (astral-sh/setup-uv v10.3.0): published 2026-10-09 (19.6d old >= 14d), SHA matches upstream commit SHA.
     * Read-only audit; no PRs touched.
 - **What Was Verified**:
-  - 	ests/test_agents_contract.sh: **3/3 Passed** (0 Failed).
-  - 	ests/test_installer.sh: **20/20 Passed** (0 Failed).
-  - scripts/build-templates.sh --check: **PASS** (Zero drift).
-  - git rev-parse v2.4.5^{commit} equals merge commit 7877a08082b7699f9b15eae74d3783960a808fd5; 2.4.5:VERSION reads 2.4.5.
+  - `tests/run_tests.sh`: **77 Passed | 0 Failed** (exit code 0).
+  - `scripts/doctor.sh --ci .`: **24 Passed | 0 Warnings | 0 Failures** (exit code 0).
+  - `powershell -ExecutionPolicy Bypass -File scripts/doctor.ps1 -Ci`: **24 Passed | 0 Warnings | 0 Failures** (exit code 0).
+  - `evals/run_evals.sh`: **5 Passed | 0 Failed** (exit code 0).
+  - `evals/run_task.sh --task all --reference`: **5 Passed | 0 Failed** (exit code 0).
+  - `evals/run_task.sh --task all --negative --expect-fail`: **5 negative controls rejected** (exit code 0).
+  - `evals/test_eval_harness.sh`: **20 Passed | 0 Failed** (exit code 0).
+  - `scripts/build-templates.sh --check`: **Zero drift detected** (exit code 0).
+  - `scripts/compile-rules.sh --check`: **In sync with .ai/rules/** (exit code 0).
+  - `tests/test_agents_contract.sh`: **3/3 Passed** (0 Failed).
+  - `tests/test_installer.sh`: **20/20 Passed** (0 Failed).
+  - `git rev-parse 'v2.4.5^{commit}'` equals merge commit `7877a08082b7699f9b15eae74d3783960a808fd5`; `v2.4.5:VERSION` reads `2.4.5`.
 - **Not Verified**:
   - None.
