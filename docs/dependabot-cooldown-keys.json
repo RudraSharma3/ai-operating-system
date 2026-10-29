@@ -1,0 +1,235 @@
+{
+  "url": "https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference",
+  "retrieval_date": "2026-10-29",
+  "verbatim_excerpt": "The default-days option is supported for all package managers listed, while semver-major-days, semver-minor-days, and semver-patch-days are supported only where indicated.",
+  "ecosystems": {
+    "bazel": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "bundler": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "bun": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "cargo": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "composer": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "conda": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "deno": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "devcontainers": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "docker": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "docker-compose": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "dotnet-sdk": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "elm": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "github-actions": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "gitsubmodule": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "gomod": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "gradle": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "helm": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "hex": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "julia": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "maven": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "nix-flakes": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "npm": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "nuget": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "opentofu": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "pip": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "pre-commit": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "pub": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "rust-toolchain": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "sbt": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "swift": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "terraform": [
+      "default-days",
+      "exclude",
+      "include"
+    ],
+    "uv": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
+    "vcpkg": [
+      "default-days",
+      "exclude",
+      "include"
+    ]
+  }
+}
