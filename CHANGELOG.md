@@ -5,6 +5,17 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.4] - 2026-10-29
+
+### Added
+- **Static Analysis & Lint Policy**: Created canonical `docs/lint-policy.md` documenting every severity filter (`--severity=warning`, `-Severity Error, Warning`), global exclusion (`PSAvoidUsingWriteHost` hiding 245 interactive host output findings), and inline suppression (`PSReviewUnusedParameter` hiding 6 parameter contract findings, `PSAvoidUsingInvokeExpression` hiding 1 dynamic evaluation finding, `# shellcheck disable=SC2016` hiding 7 literal single-quote string findings in embedded Python, sed backreferences, and markdown test fixtures).
+- **Dependabot Supply-Chain Cooldown (14 Days)**: Configured 14-day supply-chain cooldown in `.github/dependabot.yml` (`default-days: 14`, `semver-major-days: 14`, `semver-minor-days: 14`, `semver-patch-days: 14`), documented official GitHub specification in `docs/sources.md` (retrieval date 2026-10-29), and enhanced Doctor Check 24 (`scripts/doctor.sh`, `scripts/doctor.ps1`, `tests/test_installer.sh`) to assert Dependabot 14-day maturity configuration offline.
+- **Doctor Check 6 Guidance**: Clarified Doctor Check 6 failure message (`core.hooksPath is not configured in git`) to guide users directly to running `bash scripts/bootstrap.sh` or `powershell scripts/bootstrap.ps1` to restore active Git hooks.
+
+### Changed
+- **Branch Protection Reconciliation**: Reconciled branch protection configuration documentation in `docs/branch-protection.md` and `docs/task-state.md` to reflect verified GitHub REST API state: `enforce_admins: false` (allowing administrator bypass for the sole repository maintainer) and exact status check context names (`Linux Verification (Ubuntu)`, `macOS Verification (macOS)`, `Windows Verification (Windows Server)`).
+- **Checkout Action Pin Verification**: Formally verified `actions/checkout` old SHA (`11d5960a326750d5838078e36cf38b85af677262`) via GitHub API commit inspection, proving it was the `releases-v4` branch commit for floating tag `v4` ("backport fixes to releases-v4 (#2524)"), confirming why it differed from point release `v4.2.2` (`11bd71901bbe5b1630ceea73d27597364c9af683`).
+
 ## [2.4.3] - 2026-10-29
 
 ### Added

@@ -562,6 +562,15 @@ if (Test-Path $workflowsDir) {
     }
 }
 
+# Check 3: Dependabot 14-day cooldown enforcement
+$dependabotFile = Join-Path $target ".github\dependabot.yml"
+if (-not $workflowWarn -and (Test-Path $dependabotFile)) {
+    $depContent = Get-Content $dependabotFile -Raw
+    if ($depContent -notmatch '(?m)^\s*cooldown:' -or $depContent -notmatch 'default-days:\s*([1-9][4-9]|[2-9][0-9])') {
+        $workflowWarn = "Dependabot configuration '.github/dependabot.yml' lacks a minimum 14-day cooldown"
+    }
+}
+
 if ($workflowWarn) {
     Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "WARN" $workflowWarn
 } else {

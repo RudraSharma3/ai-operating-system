@@ -699,7 +699,7 @@ This document tracks the current development milestones and task state for the m
   - **Static Analysis CI Integration**:
     - Added `shellcheck` for all shell scripts in Linux CI (`test-linux`).
     - Added `PSScriptAnalyzer` for all PowerShell scripts in Windows CI (`test-windows`).
-    - Fixed static analysis findings across shell and PowerShell scripts with 0 rule suppressions.
+    - Fixed static analysis findings across shell and PowerShell scripts (full disclosure of global exclusion PSAvoidUsingWriteHost, eval harness suppressions, and SC2016 disables documented in docs/lint-policy.md).
   - **Doctor Check 24 (Workflow Security)**:
     - Added Check 24 (`GitHub Actions workflow action pinning and permissions`) to `scripts/doctor.sh` and `scripts/doctor.ps1` verifying top-level `permissions:` blocks and full SHA action pinning offline.
     - Updated doctor diagnostic counts to 24 across `scripts/doctor.sh`, `scripts/doctor.ps1`, and `docs/AI-OS-USER-GUIDE.md`.
@@ -739,7 +739,7 @@ This document tracks the current development milestones and task state for the m
     - Created throwaway scripts outside repository tree in temp directory with known warnings.
     - Verified `shellcheck --severity=warning` exited 1 on unused variable / unquoted arguments.
     - Verified `Invoke-ScriptAnalyzer -Severity Error, Warning -ExcludeRule PSAvoidUsingWriteHost` flagged unused variable and exited 1.
-    - Demonstrated real repository passes both linters with 0 errors, 0 warnings, and 0 suppressions.
+    - Demonstrated real repository passes both linters with 0 errors and 0 warnings under configured severity filters (exclusions and suppressions fully disclosed in docs/lint-policy.md).
   - **Repository Security Settings (Dependabot Alerts & Updates)**:
     - Enabled Dependabot vulnerability alerts via API: `PUT /repos/RudraSharma3/ai-operating-system/vulnerability-alerts` (status: 204 No Content).
     - Enabled Dependabot security fixes via API: `PUT /repos/RudraSharma3/ai-operating-system/automated-security-fixes` (status: `{"enabled":true,"paused":false}`).
@@ -771,4 +771,45 @@ This document tracks the current development milestones and task state for the m
   - Fresh-clone smoke test: Cloned `main` in fresh temp dir, verified HEAD `9c0b421...`, ran tests (77/77 PASS), doctor Check 6 failed on missing `core.hooksPath`, ran `scripts/bootstrap.sh`, doctor re-run passed 24/24. Downstream install into `scratch_downstream` verified fake vendor key blocked (exit 1) and harmless change allowed (exit 0). Temp dir deleted.
   - Follow-up PR branch (`doctor-bootstrap-message`): Updated `scripts/doctor.sh` and `scripts/doctor.ps1` Check 6 failure message to guide users to `scripts/bootstrap.sh` / `scripts/bootstrap.ps1`.
 
+---
+
+### Step 13: Housekeeping, Lint Policy Disclosure & Dependabot Cooldown Enforcement
+- **What Changed**:
+  - **Branch Protection Reconciliation**:
+    - Retrieved raw branch protection JSON from GitHub API: `enforce_admins` is `false`, `required_status_checks.contexts` are `["Linux Verification (Ubuntu)", "macOS Verification (macOS)", "Windows Verification (Windows Server)"]`, `strict: true`, `required_approving_review_count: 1`, `require_code_owner_reviews: true`.
+    - Compared against check-run names on `main`: exact 1:1 match.
+    - Reconciled previous report discrepancy: The previous turn's chat summary mistakenly stated `enforce_admins: true` and listed YAML job IDs (`test-linux`, `test-macos`, `test-windows`). The GitHub API confirmed `enforce_admins: false`, which is why administrator bypass (`--admin`) succeeds and is essential for a sole maintainer who cannot self-approve PRs under CODEOWNERS rules.
+    - Updated `docs/branch-protection.md` and `docs/task-state.md` to reflect verified settings.
+  - **Lint Exclusions & Suppressions Disclosure**:
+    - Created canonical `docs/lint-policy.md` disclosing every exclusion and suppression with exact counts and justifications:
+      * `PSAvoidUsingWriteHost` in `.github/workflows/ci.yml`: Hides **245** findings across 24 `.ps1` files (justified for interactive colored terminal output in CLI utilities).
+      * `evals/run_task.ps1` suppressions: Hides **6** `PSReviewUnusedParameter` findings and **1** `PSAvoidUsingInvokeExpression` finding.
+      * `shellcheck --severity=warning`: Excludes purely stylistic formatting notices, focusing on syntax and runtime bugs.
+      * `# shellcheck disable=SC2016`: 7 targeted instances across `.githooks/pre-commit`, `templates/project/.githooks/pre-commit`, `scripts/doctor.sh`, and `tests/test_installer.sh` where literal single-quoted strings are intentionally passed to embedded Python, sed, or test fixtures.
+    - Corrected earlier unqualified "0 suppressions" statements in `docs/task-state.md`.
+  - **Proved Checkout Old-SHA Commit**:
+    - Queried GitHub API for `11d5960a326750d5838078e36cf38b85af677262`: commit message `"backport fixes to releases-v4 (#2524)"`.
+    - Confirmed it was the tip commit of the maintenance branch / floating major tag `v4`, proving why it differed from point release `v4.2.2` (`11bd71901bbe5b1630ceea73d27597364c9af683`).
+  - **Open PR Audit & Dependabot 14-Day Cooldown**:
+    - Audited all open pull requests (#3, #4, #5, #6, #8). Calculated release age as of 2026-10-29:
+      * PR #3 (`actions/setup-python@v7.1.0`): 7 days old (< 14 days, wait / defer).
+      * PR #4 (`astral-sh/setup-uv@v10.3.2`): 7 days old (< 14 days, wait / defer).
+      * PR #5 (`actions/checkout@v7.0.1`): 101 days old (mature, defer to unified modernization batch).
+      * PR #6 (`actions/setup-node@v7.1.0`): 21 days old (mature, defer to unified modernization batch).
+      * PR #8 (`docs/task-state.md` roadmap): Pending review.
+    - Documented Dependabot `cooldown` option from official GitHub documentation in `docs/sources.md` (retrieval date 2026-10-29).
+    - Configured `cooldown: default-days: 14` in `.github/dependabot.yml`.
+    - Enhanced Doctor Check 24 in `scripts/doctor.sh` and `scripts/doctor.ps1` to assert Dependabot 14-day cooldown offline.
+    - Added test coverage in `tests/test_installer.sh`.
+  - **Version Bump & Templates**:
+    - Bumped `VERSION` to `2.4.4`.
+    - Documented changes in `CHANGELOG.md`.
+    - Regenerated template files and `.ai-os/manifest.json` (56 files indexed, zero drift).
+- **What Was Verified**:
+  - `scripts/doctor.sh --ci .`: **24/24 Passed** (0 Warnings, 0 Failures).
+  - `scripts/doctor.ps1 -Ci`: **24/24 Passed** (0 Warnings, 0 Failures).
+  - `tests/test_installer.sh`: **20/20 Passed** (0 Failed).
+  - `scripts/build-templates.sh --check`: **PASS** (Zero drift).
+- **Not Verified**:
+  - None.
 
