@@ -168,3 +168,100 @@ This document records the official documentation URLs, retrieval dates, and veri
     * semver-major-days: 14, semver-minor-days: 14, semver-patch-days: 14: Enforces the 14-day maturity floor across all version upgrade severities.
   - Mitigates supply chain risk and ecosystem instability by ensuring automated dependency proposals only introduce packages that have seasoned in production for at least two weeks.
   - Security updates for known vulnerabilities bypass this cooldown automatically and are opened immediately.
+
+---
+
+## 8. GitHub Actions Major-Version Upgrades & Supply-Chain Review (PRs #3, #4, #5, #6)
+
+- **Retrieval Date**: 2026-10-29
+- **Verification Status**: **VERIFIED**
+
+### 1. Release Sources & Documentation Endpoints
+- **actions/setup-python**:
+  - Releases: `https://github.com/actions/setup-python/releases`
+  - v6.0.0: `https://github.com/actions/setup-python/releases/tag/v6.0.0`
+  - v7.0.0: `https://github.com/actions/setup-python/releases/tag/v7.0.0`
+  - v7.1.0: `https://github.com/actions/setup-python/releases/tag/v7.1.0`
+- **astral-sh/setup-uv**:
+  - Releases: `https://github.com/astral-sh/setup-uv/releases`
+  - v6.0.0: `https://github.com/astral-sh/setup-uv/releases/tag/v6.0.0`
+  - v7.0.0: `https://github.com/astral-sh/setup-uv/releases/tag/v7.0.0`
+  - v8.0.0: `https://github.com/astral-sh/setup-uv/releases/tag/v8.0.0`
+  - v9.0.0: `https://github.com/astral-sh/setup-uv/releases/tag/v9.0.0`
+  - v10.0.0: `https://github.com/astral-sh/setup-uv/releases/tag/v10.0.0`
+  - v10.3.2: `https://github.com/astral-sh/setup-uv/releases/tag/v10.3.2`
+- **actions/checkout**:
+  - Releases: `https://github.com/actions/checkout/releases`
+  - v5.0.0: `https://github.com/actions/checkout/releases/tag/v5.0.0`
+  - v6.0.0: `https://github.com/actions/checkout/releases/tag/v6.0.0`
+  - v7.0.0: `https://github.com/actions/checkout/releases/tag/v7.0.0`
+  - v7.0.1: `https://github.com/actions/checkout/releases/tag/v7.0.1`
+- **actions/setup-node**:
+  - Releases: `https://github.com/actions/setup-node/releases`
+  - v5.0.0: `https://github.com/actions/setup-node/releases/tag/v5.0.0`
+  - v6.0.0: `https://github.com/actions/setup-node/releases/tag/v6.0.0`
+  - v7.0.0: `https://github.com/actions/setup-node/releases/tag/v7.0.0`
+  - v7.1.0: `https://github.com/actions/setup-node/releases/tag/v7.1.0`
+
+### 2. Breaking Changes, Runner Requirements, and Input Deltas
+- **`actions/setup-python` (v5.6.0 -> v7.1.0)**:
+  - **Node Runtime**: Migrated from Node 20 to Node 24 runtime (v6.0.0).
+  - **Minimum Runner Version**: `actions/runner >= v2.327.1`.
+  - **Changed Inputs & Architecture**:
+    - v6.0.0: Added `pip-version` input.
+    - v6.1.0: Added `pip-install` input.
+    - v7.0.0: Removed `pip-install` input (breaking); migrated codebase to ECMAScript Modules (ESM).
+    - v7.1.0: Added `mirror` and `mirror-token` inputs for custom Python mirror distribution endpoints.
+- **`astral-sh/setup-uv` (v5.4.2 -> v10.3.2)**:
+  - **Node Runtime**: Migrated from Node 20 to Node 24 runtime (v7.0.0).
+  - **Minimum Runner Version**: Standard hosted runner (`ubuntu-latest`, `macos-latest`, `windows-latest`) or updated self-hosted runner.
+  - **Changed Inputs & Breaking Changes**:
+    - v6.0.0: Removed deprecated `pyproject-file` and `uv-file` inputs; added explicit `activate-environment` boolean input (defaults to false, replacing automatic root venv creation); added `working-directory` input; changed default `cache-dependency-glob`.
+    - v7.0.0: Removed deprecated `server-url` input; changed default binary download source to Astral mirror (`releases.astral.sh`).
+    - v8.0.0: Removed deprecated custom `manifest-file` format; stopped publishing mutable major/minor tags (`@v8`, `@v8.0`), enforcing immutable exact tags (`v8.0.0`).
+    - v9.0.0: Disabled default cache pruning (`prune-cache: false`), increasing cache hit rates at the expense of higher cache storage consumption.
+    - v10.0.0: Default `enable-cache: auto` automatically disables cache for `pull_request_target`, `workflow_run`, and `release` events to prevent cache poisoning attacks; added `version: latest-known`.
+    - v10.3.2: Added `python-arch` input for selecting target architecture independently of Python version.
+- **`actions/checkout` (v4.2.2 -> v7.0.1)**:
+  - **Node Runtime**: Migrated to Node 24 runtime (v5.0.0).
+  - **Minimum Runner Version**: `actions/runner >= v2.327.1`.
+  - **Changed Inputs & Breaking Changes**:
+    - v5.0.0: Node 24 runtime transition.
+    - v6.0.0: Persists GitHub credentials to a separate credentials file instead of embedding within repository git config.
+    - v7.0.0: Security barrier blocking checking out fork pull requests under `pull_request_target` and `workflow_run` triggers.
+    - v7.0.1: Escapes git configuration arguments passed to `git config --unset`.
+- **`actions/setup-node` (v4.4.0 -> v7.1.0)**:
+  - **Node Runtime**: Migrated to Node 24 runtime (v5.0.0).
+  - **Minimum Runner Version**: `actions/runner >= v2.327.1`.
+  - **Changed Inputs & Breaking Changes**:
+    - v5.0.0: Automatic dependency caching enabled when `packageManager` field is detected in `package.json` (can be disabled via `package-manager-cache: false`).
+    - v6.0.0: Restricted automatic caching to npm.
+    - v7.0.0: Migrated to ESM; added `cache-primary-key` and `cache-matched-key` outputs; eliminated dummy `NODE_AUTH_TOKEN` environment variable export.
+    - v7.1.0: Added support for `mise.toml` version detection and absolute path support for `node-version-file`.
+
+### 3. Pinned Commit SHA Verification via GitHub REST API
+All commit SHAs proposed in Dependabot PRs were independently queried and verified against GitHub's commit endpoint (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`):
+| PR | Action Target | Tag | Pinned Commit SHA in PR | API Commit SHA | Verification |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **#3** | `actions/setup-python` | `v7.1.0` | `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | **MATCH (PASS)** |
+| **#4** | `astral-sh/setup-uv` | `v10.3.2` | `07a047e608db84b3d8c06cd9a7c7dcc9c355c18e` | `07a047e608db84b3d8c06cd9a7c7dcc9c355c18e` | **MATCH (PASS)** |
+| **#5** | `actions/checkout` | `v7.0.1` | `3d3c42e5aac5ba805825da76410c181273ba90b1` | `3d3c42e5aac5ba805825da76410c181273ba90b1` | **MATCH (PASS)** |
+| **#6** | `actions/setup-node` | `v7.1.0` | `949feb2413d6458794dcd2491c4babbbce0c15c1` | `949feb2413d6458794dcd2491c4babbbce0c15c1` | **MATCH (PASS)** |
+
+### 4. Recommendation Table & Supply-Chain Triage
+| PR | Dependency | Version Jump | Published Date | 14-Day Cooldown Policy | Triage Decision | Rationale |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **#3** | `actions/setup-python` | `5.6.0` -> `7.1.0` | 2026-10-22 | **FAIL** (7 days old < 14 days) | **WAIT / REJECT PR** | Violates 14-day supply-chain maturity cooldown; modifies shared workflow files out of sync. |
+| **#4** | `astral-sh/setup-uv` | `5.4.2` -> `10.3.2` | 2026-10-22 | **FAIL** (7 days old < 14 days) | **WAIT / REJECT PR** | Violates 14-day supply-chain maturity cooldown; modifies shared workflow files out of sync. |
+| **#5** | `actions/checkout` | `4.2.2` -> `7.0.1` | 2026-07-20 | **PASS** (>3 months old) | **WAIT (HOLD FOR BATCH)** | SHA verified, but individual merge creates merge conflicts in `.github/workflows/registry-check.yml` and breaks un-synchronized doctor/test pins. |
+| **#6** | `actions/setup-node` | `4.4.0` -> `7.1.0` | 2026-10-08 | **PASS** (21 days old) | **WAIT (HOLD FOR BATCH)** | SHA verified, but individual merge creates merge conflicts in `.github/workflows/registry-check.yml` and breaks un-synchronized doctor/test pins. |
+
+### 5. Proposed Unified Batch Plan
+- **Hold Period**: Maintain cooldown until **2026-11-05** when both `actions/setup-python@v7.1.0` and `astral-sh/setup-uv@v10.3.2` cross the 14-day supply-chain maturity threshold.
+- **Single Modernization Branch**: Create a dedicated branch `chore/modernize-actions` targeting all 4 upgrades simultaneously.
+- **Coordinated File Synchronization**:
+  1. Update `.github/workflows/ci.yml` and `.github/workflows/registry-check.yml` to the verified commit SHAs.
+  2. Update `scripts/registry-check.sh` and `scripts/registry-check.ps1` to assert the new pinned SHAs.
+  3. Update `tests/test_installer.sh` check-runner test expectations.
+- **Automated Verification**: Run full multi-platform matrix CI (Ubuntu, macOS, Windows) and ensure 0 warnings across ShellCheck and PSScriptAnalyzer.
+- **Supercede & Close**: Merge the atomic PR and close PRs #3, #4, #5, #6 with reference to the atomic modernization commit.

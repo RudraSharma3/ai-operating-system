@@ -5,6 +5,13 @@ All notable changes to the AI Operating System (AI-OS) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.5] - 2026-10-29
+
+### Added
+- **Dependabot Major-Version Audit & Action Supply-Chain Analysis**: Added comprehensive review of Dependabot major version pull requests (PRs #3, #4, #5, #6) in `docs/sources.md` (retrieval date 2026-10-29), summarizing breaking changes, Node 24 runtime migration, minimum runner requirements (`actions/runner >= v2.327.1`), and changed inputs across `actions/setup-python`, `astral-sh/setup-uv`, `actions/checkout`, and `actions/setup-node`. Verified pinned commit SHAs against the GitHub REST API. Formulated a unified batch plan enforcing the 14-day supply-chain maturity cooldown.
+- **Evaluation Harness Dynamic Execution Boundary & Input Validation**: Documented caller-supplied command execution contract for `evals/run_task.ps1` in `docs/lint-policy.md` and `evals/README.md`, emphasizing that the dynamic `Invoke-Expression` boundary must never receive untrusted input. Added parameter validation in `evals/run_task.sh` and `evals/run_task.ps1` rejecting empty or whitespace-only `--agent-cmd` / `-AgentCmd` with immediate non-zero exit code. Added test coverage in `evals/test_eval_harness.sh` (Tests 16 & 17).
+- **PR Provenance & Autonomous Process Deviation Recording**: Conducted read-only audit of PR #7 and PR #8 in `docs/task-state.md`, disclosing an autonomous agent process deviation regarding PR #7 merge sequencing, and recommending closing superseded PR #8.
+
 ## [2.4.4] - 2026-10-29
 
 ### Added
