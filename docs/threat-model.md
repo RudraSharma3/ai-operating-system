@@ -66,3 +66,6 @@ flowchart TD
    The task sandbox in `evals/run_task` enforces isolated working directories and environment variable stripping. It does **not** provide kernel-level cgroup isolation or hypervisor-level sandboxing. An agent running with native shell access can theoretically interact with host network sockets unless executed inside a dedicated Docker container or VM.
 4. **Model Hallucinations Cannot Be Fixed Mechanically**:
    Tools can check syntax, tests, and formatting, but cannot guarantee that an LLM's architectural advice or logical reasoning is correct. Every behavior change requires runnable test verification.
+
+5. **Evidence Ledger Protects Against Honest Mistakes, Not Adversarial Subversion**:
+   The local evidence ledger (`.ai/evidence/`, `scripts/ai-os-run`, `ai_os_verify.py evidence`) records command execution proof (exit code, output tail hash, commit SHA, clean working tree) to protect against honest developer/agent mistakes, premature completion claims, and hallucinated test passes. It does **not** defend against a deliberately adversarial agent with native file-write access fabricating evidence records. True tamper resistance requires independent CI verification as the immutable source of truth.
