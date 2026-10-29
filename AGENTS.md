@@ -39,6 +39,9 @@ Default to the lowest coordination overhead that safely achieves the task:
 - **Tier 2 (Standard Features / Modules)**: 1-Implementer + 1-Verifier workflow (`playbooks/feature.md`).
 - **Tier 3 (Strategic Architecture & Decoupled Subsystems)**: Trigger Consensus (`playbooks/stochastic-consensus.md`) or Multi-Agent MCP (`playbooks/multi-agent-orchestration.md`) strictly for high-risk trade-offs or parallel architecture.
 
+### 1.6 Explicit Authorization Gate
+Never merge PRs, push commits directly to protected branches (main), create tags, publish releases, close pull requests, or alter repository settings without explicit instruction in the active user request; vague continuation prompts (e.g. "continue") do not constitute authorization.
+
 ---
 
 ## 2. Self-Correcting Rules Engine

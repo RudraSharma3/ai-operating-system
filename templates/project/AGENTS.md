@@ -41,6 +41,7 @@ Before taking action, review:
 6. Never commit secrets, credentials, API keys, or private tokens to version control.
 7. Automatically apply Reverse Prompting (clarifying questions with defaults; in non-interactive mode proceed with stated defaults) and generate a 4-part Prompt Contract (GOAL, CONSTRAINTS, FORMAT, FAILURE) in `docs/task-state.md` for messy or ambiguous requests before executing.
 8. Practice Proportional Effort: Use Solo Model execution for routine tasks; reserve Multi-Agent MCP orchestration and Consensus sampling strictly for high-complexity architectural decisions.
+9. Never merge PRs, push commits directly to protected branches (main), create tags, publish releases, close pull requests, or alter repository settings without explicit instruction in the active user request; vague continuation prompts (e.g. "continue") do not constitute authorization.
 
 ---
 
