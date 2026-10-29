@@ -851,3 +851,41 @@ This document tracks the current development milestones and task state for the m
   - `scripts/build-templates.sh --check`: **PASS** (Zero drift).
 - **Not Verified**:
   - None.
+
+
+---
+
+### Step 15: Dependabot Options Fix, Explicit Authorization Gate, and PR #8 Closure
+- **What Changed**:
+  - **Dependabot Validator Failure Diagnosis & Resolution**:
+    * GitHub Dependabot check-run on `main` (`9be4a2de55f855835c7234398533cf03920e7b67`) failed with:
+      `The property '#/updates/0/cooldown/semver-major-days' is not supported for the package ecosystem 'github-actions'.`
+      `The property '#/updates/0/cooldown/semver-minor-days' is not supported for the package ecosystem 'github-actions'.`
+      `The property '#/updates/0/cooldown/semver-patch-days' is not supported for the package ecosystem 'github-actions'.`
+    * Root Cause: PR #9 committed `.github/dependabot.yml` containing SemVer cooldown keys. GitHub's Dependabot schema restricts `semver-*-days` strictly to package managers that support semantic versioning (npm, Pip, Cargo, etc.). `github-actions` references git commit SHAs/tags, not SemVer packages. The previous report colloquially summarized the configuration as `default-days: 14` without noting that all 4 keys were committed.
+    * Live Options Reference Verification: Fetched `https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#cooldown` (retrieval date 2026-10-29). Recorded all 6 parameters (`default-days`, `semver-major-days`, `semver-minor-days`, `semver-patch-days`, `include`, `exclude`) and the complete 33-package-manager support table in `docs/sources.md` Section 7.
+    * File Fix: Updated `.github/dependabot.yml` to specify strictly `default-days: 14`.
+    * Offline Doctor Check 24 Validation: Updated `scripts/doctor.sh` and `scripts/doctor.ps1` to parse `.github/dependabot.yml` offline and validate cooldown keys against non-SemVer ecosystems (`github-actions`, `docker`, `bazel`, etc.), warning if unsupported keys or unknown parameters appear.
+    * Test-First Verification: Added unit tests in `tests/test_installer.sh` asserting both valid configurations and that unsupported `semver-major-days` under `github-actions` triggers a warning containing `"unsupported cooldown key"`. Verified test failure first, then verified passing after doctor update.
+  - **Explicit Authorization Operating Rule (AGENTS.md & Template)**:
+    * Baseline Audit: Confirmed neither master `AGENTS.md` nor `templates/project/AGENTS.md` contained a rule forbidding merges, releases, tag creation, PR closes, or pushes to protected branches without active prompt instruction.
+    * Policy Addition: Added Section 1.6 (`Explicit Authorization Gate`) to `AGENTS.md` and Rule 9 to `templates/project/AGENTS.md` with the exact non-bypassable clause (247 bytes <= 250 bytes):
+      `Never merge PRs, push commits directly to protected branches (main), create tags, publish releases, close pull requests, or alter repository settings without explicit instruction in the active user request; vague continuation prompts (e.g. "continue") do not constitute authorization.`
+    * Contract Enforcement: Extended `tests/test_agents_contract.sh` with Criterion 9. Demonstrated failing test first, followed by passing verification.
+    * Token Budget Assertion: Verified both files remain well within 8,192 bytes: master `AGENTS.md` is 5,082 bytes (3,110 bytes headroom), template `AGENTS.md` is 3,889 bytes (4,303 bytes headroom).
+  - **PR #8 Clean Closure**:
+    * Commented on PR #8 explaining that the PR was created out of order without task text authorization, its proposed updates were superseded, and PR #10 is canonically carrying forward the work.
+    * Closed PR #8 via `gh pr close 8` without deleting the branch (`headRefName: next-epic-evals-and-actions-triage`). PR state is CLOSED.
+    * PRs #3, #4, #5, #6 remained untouched.
+  - **Template Synchronization & Manifest**:
+    * Ran `scripts/build-templates.sh` to compile rules and generate `.ai-os/manifest.json` (56 files indexed).
+    * Verified zero drift via `scripts/build-templates.sh --check`.
+- **What Was Verified**:
+  - `tests/test_agents_contract.sh`: **3/3 Passed** (0 Failed).
+  - `tests/test_installer.sh`: **20/20 Passed** (0 Failed), including invalid/valid Dependabot cooldown keys.
+  - `scripts/doctor.sh --ci .`: **24/24 Passed** (0 Warnings, 0 Failures).
+  - `scripts/doctor.ps1 -Ci`: **24/24 Passed** (0 Warnings, 0 Failures).
+  - `scripts/build-templates.sh --check`: **PASS** (Zero drift).
+  - `gh pr view 8 --json state,comments`: State is `CLOSED`, explanatory comment posted.
+- **Not Verified**:
+  - None.
