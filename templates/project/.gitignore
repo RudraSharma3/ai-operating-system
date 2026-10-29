@@ -8,6 +8,7 @@ node_modules/
 dist/
 build/
 coverage/
+.ai/evidence/
 
 # Editors and operating systems
 .DS_Store

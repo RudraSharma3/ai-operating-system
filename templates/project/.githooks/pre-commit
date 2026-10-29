@@ -230,5 +230,91 @@ if [ ${#DETECTED_NAMES[@]} -gt 0 ]; then
     exit 1
 fi
 
-echo "✅ [AI-OS Guard] Secret hygiene check passed. Clean commit!"
+echo "✅ [AI-OS Guard] Secret hygiene check passed."
+
+# --- 3. Dependency & Import Verification Layer ---
+VERIFY_CONF="$REPO_ROOT/.ai/verify.conf"
+CONF_DEPS="block"
+CONF_IMPORTS="warn"
+CONF_ON_MISSING_PY="warn"
+
+if [ -f "$VERIFY_CONF" ]; then
+    while IFS='=' read -r key val || [ -n "$key" ]; do
+        key=$(echo "$key" | tr -d '[:space:]')
+        val=$(echo "$val" | tr -d '[:space:]')
+        [[ "$key" =~ ^# ]] && continue
+        [ -z "$key" ] && continue
+        case "$key" in
+            deps) CONF_DEPS="$val" ;;
+            imports) CONF_IMPORTS="$val" ;;
+            on_missing_python) CONF_ON_MISSING_PY="$val" ;;
+        esac
+    done < "$VERIFY_CONF"
+fi
+
+VERIFIER_SCRIPT="$REPO_ROOT/scripts/ai_os_verify.py"
+if [ ! -f "$VERIFIER_SCRIPT" ]; then
+    if [ -f "$REPO_ROOT/.ai-os/scripts/ai_os_verify.py" ]; then
+        VERIFIER_SCRIPT="$REPO_ROOT/.ai-os/scripts/ai_os_verify.py"
+    fi
+fi
+
+if [ -f "$VERIFIER_SCRIPT" ] && { [ "$CONF_DEPS" != "off" ] || [ "$CONF_IMPORTS" != "off" ]; }; then
+    PY_BIN=""
+    if command -v python3 >/dev/null 2>&1; then
+        PY_BIN="python3"
+    elif command -v python >/dev/null 2>&1; then
+        PY_BIN="python"
+    fi
+
+    if [ -z "$PY_BIN" ]; then
+        if [ "$CONF_ON_MISSING_PY" = "block" ]; then
+            echo "❌ [AI-OS Verifier BLOCKED COMMIT]: Python 3.9+ is required but was not found in PATH." >&2
+            exit 1
+        else
+            echo "⚠️  [AI-OS Verifier Warning]: Python 3.9+ not found in PATH. Skipping dependency & import verification." >&2
+        fi
+    else
+        # Check staged manifests for deps verification
+        STAGED_MANIFESTS=""
+        STAGED_SOURCES=""
+        while IFS= read -r sfile; do
+            [ -z "$sfile" ] && continue
+            bname="${sfile##*/}"
+            if [[ "$bname" =~ ^(package\.json|pyproject\.toml)$ ]] || [[ "$bname" =~ ^requirements.*\.txt$ ]]; then
+                STAGED_MANIFESTS="1"
+            fi
+            if [[ "$sfile" =~ \.(py|js|jsx|ts|tsx|mjs|cjs)$ ]]; then
+                STAGED_SOURCES="${STAGED_SOURCES} $sfile"
+            fi
+        done <<< "$STAGED_FILES"
+
+        if [ -n "$STAGED_MANIFESTS" ] && [ "$CONF_DEPS" != "off" ]; then
+            echo "🔍 [AI-OS Verifier] Auditing newly added dependencies against .ai/deps-approved.txt..."
+            if ! "$PY_BIN" "$VERIFIER_SCRIPT" deps --target "$REPO_ROOT"; then
+                if [ "$CONF_DEPS" = "block" ]; then
+                    echo "❌ [AI-OS Verifier BLOCKED COMMIT]: Unapproved dependencies detected!" >&2
+                    exit 1
+                else
+                    echo "⚠️  [AI-OS Verifier Warning]: Unapproved dependencies detected." >&2
+                fi
+            fi
+        fi
+
+        if [ -n "$STAGED_SOURCES" ] && [ "$CONF_IMPORTS" != "off" ]; then
+            echo "🔍 [AI-OS Verifier] Checking static imports on staged source files..."
+            # shellcheck disable=SC2086
+            if ! "$PY_BIN" "$VERIFIER_SCRIPT" imports --target "$REPO_ROOT" --files $STAGED_SOURCES; then
+                if [ "$CONF_IMPORTS" = "block" ]; then
+                    echo "❌ [AI-OS Verifier BLOCKED COMMIT]: Undeclared imports detected!" >&2
+                    exit 1
+                else
+                    echo "⚠️  [AI-OS Verifier Warning]: Undeclared imports detected." >&2
+                fi
+            fi
+        fi
+    fi
+fi
+
+echo "✅ [AI-OS Guard] All pre-commit security checks passed. Clean commit!"
 exit 0

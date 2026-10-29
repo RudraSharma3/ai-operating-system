@@ -928,3 +928,51 @@ This document tracks the current development milestones and task state for the m
   - `git rev-parse 'v2.4.5^{commit}'` equals merge commit `7877a08082b7699f9b15eae74d3783960a808fd5`; `v2.4.5:VERSION` reads `2.4.5`.
 - **Not Verified**:
   - None.
+
+---
+
+### Step 17: Verification Layer Against Coding-Agent Hallucination (v2.5.0)
+- **What Changed**:
+  - **Verification Engine & Wrappers**:
+    * Created scripts/ai_os_verify.py (Python 3.9+ standard library only) supporting deps, imports, registry-check (strictly requiring --online), run, and evidence.
+    * Created POSIX bash and PowerShell wrappers: scripts/ai-os-verify.sh, scripts/ai-os-verify.ps1, scripts/ai-os-run, and scripts/ai-os-run.ps1 (marked executable).
+    * Added configuration files .ai/deps-approved.txt, .ai/import-aliases.txt, .ai/verify.conf in root and templates/project/.
+    * Updated .github/CODEOWNERS to restrict modifications to .ai/deps-approved.txt to @RudraSharma3.
+    * Created tests/test_verify.sh covering 11 subcommands, flags, and edge cases. Demonstrated failing test run first, then passing: 11 Passed | 0 Failed.
+    * Measured false-positive import counts: root repo 0, sibling1 0, sibling2 10 (counts only, no sibling names printed).
+  - **Git Hook & Doctor Integration**:
+    * Chained deps check (default block) and imports check (default warn) into .githooks/pre-commit and template copies.
+    * Measured pre-commit hook overhead across 5 runs with 50 staged files: baseline median 0.540s, with verifier median 1.878s, added overhead median 1.338s (< 2.0s limit).
+    * Added Doctor checks 25, 26, 27 to scripts/doctor.sh and scripts/doctor.ps1.
+    * Updated scripts/install.sh, scripts/install.ps1, scripts/build-templates.sh, and scripts/build-templates.ps1.
+    * Added 3 installer integration test scenarios to tests/test_installer.sh.
+  - **Evidence Ledger**:
+    * Implemented test runner wrapper scripts/ai-os-run capturing run metadata, exit code, stdout/stderr SHA-256 digest, execution timestamp, and environment digest into .ai/evidence/<sha>-<ts>-<rand>.json.
+    * Added evidence verification command ai-os-verify.py evidence --require <pattern>.
+    * Added .ai/evidence/ to .gitignore.
+    * Updated Claude hook .ai-os/optional/claude-hooks/pre-tool-use.sh and .ps1 to prevent LLM modification or deletion of .ai/evidence/.
+  - **Compact Rules & Playbook**:
+    * Added ## Evidence & Verification block to AGENTS.md and templates/project/AGENTS.md. UTF-8 byte size measured at 538 bytes (budget <= 700 bytes).
+    * Total file sizes: AGENTS.md is 5,534 bytes (2,658 bytes headroom under 8,192-byte budget); templates/project/AGENTS.md is 4,341 bytes (3,851 bytes headroom).
+    * Added detailed playbook playbooks/hallucination-guard.md with rule-to-check matrix and limitations.
+    * Extended tests/test_agents_contract.sh with Criteria 10 & 11; demonstrated failing run first (2 Passed | 2 Failed), then passing after block added: 4 Passed | 0 Failed.
+  - **Reproducible Evaluation Tasks**:
+    * Created tasks 06-phantom-dependency, 07-stale-api, 08-false-completion-claim under evals/tasks/ each with prompt.md, setup.sh/.ps1, reference_solution.sh/.ps1, negative_solution.sh/.ps1, and check.sh/.ps1.
+    * Verified untouched fixtures fail (Tasks 06, 07, 08 FAIL).
+    * Verified reference solutions pass: evals/run_task.sh --task all --reference -> 8/8 Passed (exit code 0).
+    * Verified negative controls fail: evals/run_task.sh --task all --negative --expect-fail -> all 8 negative controls rejected (exit code 0).
+    * Verified eval harness plumbing: evals/test_eval_harness.sh -> 20/20 Passed (exit code 0).
+    * Headless CLI status: Claude Code CLI 2.1.312 installed & logged in; live comparison recorded as unmeasured per sandbox isolation rules.
+  - **Quickstart, Demo, & Positioning**:
+    * Updated README.md with 3-command quickstart, failure modes addressed/not addressed, and comparison matrix.
+    * Added Section 8 to docs/sources.md citing 3 slopsquatting papers with verbatim quotes (<25 words) and retrieval dates (2026-10-29).
+    * Created scripts/demo.sh and scripts/demo.ps1 demonstrating secret blocking, phantom dependency blocking, and clean commit execution.
+    * Added demo test to tests/test_installer.sh.
+  - **Release Preparation**:
+    * Bumped VERSION to 2.5.0 with minor bump reason.
+    * Updated CHANGELOG.md with tested scopes and explicitly noting that live effectiveness remains unmeasured.
+    * Regenerated templates and manifest via scripts/build-templates.sh. Zero drift verified across bash and pwsh.
+- **What Was Verified**:
+  * Exact test suite, doctor, eval, and demo commands executed and documented in session report.
+- **Not Verified**:
+  * Live coding agent benchmark comparison under headless runner mode (recorded as unmeasured per container/VM sandbox isolation requirements).
