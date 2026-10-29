@@ -11,6 +11,7 @@ TASKS_DIR="$SCRIPT_DIR/tasks"
 TASK_NAME="all"
 MODE="with"
 AGENT_CMD=""
+AGENT_CMD_SPECIFIED=false
 USE_REFERENCE=false
 USE_NEGATIVE=false
 EXPECT_FAIL=false
@@ -30,6 +31,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --agent-cmd|-a)
             AGENT_CMD="$2"
+            AGENT_CMD_SPECIFIED=true
             shift 2
             ;;
         --reference|-r)
@@ -63,6 +65,14 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [ "$AGENT_CMD_SPECIFIED" = true ]; then
+    TRIMMED_AGENT_CMD=$(echo "$AGENT_CMD" | xargs)
+    if [ -z "$TRIMMED_AGENT_CMD" ]; then
+        echo "❌ ERROR: --agent-cmd cannot be empty or whitespace-only." >&2
+        exit 1
+    fi
+fi
 
 run_single_task() {
     local t_dir="$1"

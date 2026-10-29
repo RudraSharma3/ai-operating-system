@@ -179,6 +179,28 @@ assert_eq 1 "$status_gh_refused" "--pass-env GITHUB_TOKEN without AI_OS_EVAL_SAN
 
 unset ANTHROPIC_API_KEY OTHER_SECRET_KEY 2>/dev/null || true
 
+# Test 16: Refusal of empty or whitespace-only --agent-cmd in Bash
+echo "Testing refusal of empty or whitespace-only --agent-cmd in Bash..."
+status_empty_bash=0
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "" >/dev/null 2>&1 || status_empty_bash=$?
+assert_eq 1 "$status_empty_bash" "run_task.sh must refuse empty --agent-cmd"
+
+status_ws_bash=0
+bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --agent-cmd "   " >/dev/null 2>&1 || status_ws_bash=$?
+assert_eq 1 "$status_ws_bash" "run_task.sh must refuse whitespace-only --agent-cmd"
+
+# Test 17: Refusal of empty or whitespace-only -AgentCmd in PowerShell
+if command -v powershell.exe >/dev/null 2>&1 || command -v pwsh >/dev/null 2>&1; then
+    echo "Testing refusal of empty or whitespace-only -AgentCmd in PowerShell..."
+    status_empty_ps=0
+    $PS_BIN -ExecutionPolicy Bypass -File "$PS_SCRIPT_DIR/run_task.ps1" -Task 01-bug-fix -AgentCmd "" >/dev/null 2>&1 || status_empty_ps=$?
+    assert_eq 1 "$status_empty_ps" "run_task.ps1 must refuse empty -AgentCmd"
+
+    status_ws_ps=0
+    $PS_BIN -ExecutionPolicy Bypass -File "$PS_SCRIPT_DIR/run_task.ps1" -Task 01-bug-fix -AgentCmd "   " >/dev/null 2>&1 || status_ws_ps=$?
+    assert_eq 1 "$status_ws_ps" "run_task.ps1 must refuse whitespace-only -AgentCmd"
+fi
+
 echo ""
 echo "Harness Test Summary: $PASS_COUNT/$TEST_COUNT passed, $FAIL_COUNT failed."
 [ "$FAIL_COUNT" -eq 0 ] || exit 1

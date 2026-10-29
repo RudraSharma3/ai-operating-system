@@ -70,6 +70,12 @@ verify_agents_contract() {
         return 1
     fi
     
+    # 9. Explicit authorization gate for merges/releases/tags/closes
+    if ! echo "$content" | grep -F "Never merge PRs, push commits directly to protected branches (main), create tags, publish releases, close pull requests, or alter repository settings without explicit instruction in the active user request" >/dev/null; then
+        echo "ASSERTION FAILED: $label: Must contain explicit authorization gate forbidding merges/releases/tag creation/PR closes without active prompt instruction" >&2
+        return 1
+    fi
+    
     return 0
 }
 

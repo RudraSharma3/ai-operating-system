@@ -20,6 +20,13 @@ if (-not $PassEnv -and $env:AI_OS_EVAL_PASS_ENV) {
 
 $ErrorActionPreference = "Stop"
 
+if ($PSBoundParameters.ContainsKey('AgentCmd')) {
+    if ([string]::IsNullOrWhiteSpace($AgentCmd)) {
+        Write-Error "AgentCmd parameter cannot be empty or whitespace-only."
+        exit 1
+    }
+}
+
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
 $TasksDir = Join-Path $ScriptDir "tasks"
