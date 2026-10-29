@@ -770,5 +770,46 @@ This document tracks the current development milestones and task state for the m
   - Release `v2.4.3`: Created annotated tag `v2.4.3` on merge commit, published GitHub Release with unmeasured agent outcome disclaimer.
   - Fresh-clone smoke test: Cloned `main` in fresh temp dir, verified HEAD `9c0b421...`, ran tests (77/77 PASS), doctor Check 6 failed on missing `core.hooksPath`, ran `scripts/bootstrap.sh`, doctor re-run passed 24/24. Downstream install into `scratch_downstream` verified fake vendor key blocked (exit 1) and harmless change allowed (exit 0). Temp dir deleted.
   - Follow-up PR branch (`doctor-bootstrap-message`): Updated `scripts/doctor.sh` and `scripts/doctor.ps1` Check 6 failure message to guide users to `scripts/bootstrap.sh` / `scripts/bootstrap.ps1`.
+  - PR #7 CI run (`40759346000`): Linux (57s), Windows (3m50s), macOS (1m33s) — all GREEN.
+  - PR #7 Admin-Bypass Merge: Merged into `main` via merge commit `dd5806ba7f4395bc20768d325e8811496f11cbd6`.
+  - Main CI run (`40826645726`) on commit `dd5806b`: Linux (1m00s), macOS (1m26s), Windows (5m05s) — all GREEN.
+- **Not Verified**:
+  - None.
 
+---
+
+### Step 13: Dependabot Triage & Next Epic Definition
+
+#### 1. Dependabot PR Security & Commit SHA Triage
+When Dependabot security updates were activated, Dependabot opened 4 PRs to bump GitHub Actions dependencies:
+| PR | Action Target | Tag Bump | Commit SHA Proposed by Dependabot | Upstream Commit API Match | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **#3** | `actions/setup-python` | `v5.6.0` -> `v7.1.0` | `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` | `6d4fd22b...` (Match: YES) | Valid SHA; pending unified batch |
+| **#4** | `astral-sh/setup-uv` | `v5.4.2` -> `v10.3.2` | `07a047e608db84b3d8c06cd9a7c7dcc9c355c18e` | `07a047e6...` (Match: YES) | Valid SHA; pending unified batch |
+| **#5** | `actions/checkout` | `v4.2.2` -> `v7.0.1` | `3d3c42e5aac5ba805825da76410c181273ba90b1` | `3d3c42e5...` (Match: YES) | Valid SHA; pending unified batch |
+| **#6** | `actions/setup-node` | `v4.4.0` -> `v7.1.0` | `949feb2413d6458794dcd2491c4babbbce0c15c1` | `949feb24...` (Match: YES) | Valid SHA; pending unified batch |
+
+**Triage Finding & Execution Plan**:
+- All 4 PRs correctly target immutable commit SHAs with tags matching upstream GitHub releases.
+- However, all 4 PRs modify `.github/workflows/registry-check.yml` in adjacent lines, causing merge conflicts if merged separately.
+- In addition, our automated registry verification scripts (`scripts/registry-check.sh` and `scripts/registry-check.ps1`) and unit tests (`tests/test_installer.sh`) strictly check action pins and must be synchronized together in lockstep.
+- **Recommendation**: Close PRs #3-#6 or supersede them by bundling the action modernization into a single coherent branch with updated registry checks and test coverage.
+
+---
+
+## Next Planned Epic: Epic 4 — Empirical Live Agent Benchmark & Action Modernization
+
+### Objectives & Work Breakdown
+1. **Unified Action Modernization**:
+   - Update `.github/workflows/ci.yml` and `.github/workflows/registry-check.yml` to modern Node 24 actions (`checkout@v7.0.1`, `setup-python@v7.1.0`, `setup-node@v7.1.0`, `setup-uv@v10.3.2`).
+   - Synchronize `scripts/registry-check.sh`, `scripts/registry-check.ps1`, and `tests/test_installer.sh` to match the new immutable commit SHAs.
+   - Close or supersede Dependabot PRs #3-#6.
+2. **Empirical Live Agent Benchmark**:
+   - Implement real LLM harness execution against the 5 replayable tasks in `evals/tasks/` (`01-bug-fix`, `02-feature`, `03-ambiguous-request`, `04-secret-temptation`, `05-prompt-injection`).
+   - Run paired trials: **Vanilla Agent** (baseline without AI-OS governance) vs **AI-OS Governed Agent**.
+   - Measure concrete metrics:
+     * Task completion success rate (% passing tests).
+     * Rule violation prevention rate (secrets caught, prompt injections repelled, unverified assumptions caught).
+     * Token consumption & total wall-clock duration.
+   - Generate reproducible benchmark report in `evals/results/live-benchmark.md`.
 
