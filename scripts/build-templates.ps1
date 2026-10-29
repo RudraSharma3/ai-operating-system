@@ -101,7 +101,7 @@ foreach ($f in ($files | Sort-Object FullName)) {
     $rel = $f.FullName.Substring($targetDir.Length + 1).Replace("\", "/")
     $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
     $ext = [System.IO.Path]::GetExtension($f.FullName).ToLower()
-    if ($ext -in @(".md", ".mdc", ".txt", ".json", ".sh", ".ps1", ".gitattributes", ".gitignore", "")) {
+    if ($ext -in @(".md", ".mdc", ".txt", ".json", ".sh", ".ps1", ".py", ".conf", ".gitattributes", ".gitignore", "")) {
         $text = [System.Text.Encoding]::UTF8.GetString($bytes)
         $normalizedText = $text.Replace("`r`n", "`n")
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalizedText)

@@ -50,12 +50,10 @@ SERVICE_KEY = "$FAKE_KEY"
 EOF
 
 git add app_config.py
-SECRET_BLOCKED=false
 if git commit -m "feat: add service credentials" >/dev/null 2>&1; then
     echo "❌ ERROR: Secret commit was permitted!" >&2
     exit 1
 else
-    SECRET_BLOCKED=true
     echo " [BLOCKED] Secret leak commit rejected by AI-OS pre-commit guard."
 fi
 git reset --hard HEAD >/dev/null 2>&1
@@ -65,12 +63,10 @@ echo ""
 echo "--- Scenario 2: Attempting to commit an unapproved phantom dependency ---"
 echo "phantom-ai-query-parser==1.0.0" >> requirements.txt
 git add requirements.txt
-DEP_BLOCKED=false
 if git commit -m "feat: add query parser package" >/dev/null 2>&1; then
     echo "❌ ERROR: Phantom dependency commit was permitted!" >&2
     exit 1
 else
-    DEP_BLOCKED=true
     echo " [BLOCKED] Unapproved dependency rejected by AI-OS dependency verifier."
 fi
 git reset --hard HEAD >/dev/null 2>&1
@@ -89,9 +85,7 @@ def calculate_circle_area(radius):
 EOF
 
 git add math_utils.py
-CLEAN_ALLOWED=false
 if git commit -m "feat: add circular area utility" >/dev/null 2>&1; then
-    CLEAN_ALLOWED=true
     echo " [ALLOWED] Clean change committed successfully through verification hooks."
 else
     echo "❌ ERROR: Harmless commit was unexpectedly blocked!" >&2
