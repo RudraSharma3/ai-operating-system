@@ -79,6 +79,10 @@ json_scripts='{"tool_name":"Edit","tool_input":{"file_path":"scripts/install.sh"
 out_block_scripts=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_scripts" | bash "$HOOKS_DIR/pre-tool-use.sh")
 assert_contains '"permissionDecision": "deny"' "$out_block_scripts" "PreToolUse blocks scripts/ edit"
 
+json_evidence='{"tool_name":"Write","tool_input":{"file_path":".ai/evidence/20261029_fake.json","content":"tamper"}}'
+out_block_evidence=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_evidence" | bash "$HOOKS_DIR/pre-tool-use.sh")
+assert_contains '"permissionDecision": "deny"' "$out_block_evidence" "PreToolUse blocks .ai/evidence/ edit"
+
 # Test 6: pre-tool-use.sh allows normal app file edits
 json_app='{"tool_name":"Write","tool_input":{"file_path":"src/index.js","content":"console.log(1);"}}'
 out_app=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_app" | bash "$HOOKS_DIR/pre-tool-use.sh")

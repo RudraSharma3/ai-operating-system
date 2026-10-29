@@ -63,7 +63,7 @@ $srcGitignore = Join-Path $TemplateDir ".gitignore"
 if (Test-Path $destGitignore) {
     $currentContent = Get-Content $destGitignore -Raw -ErrorAction SilentlyContinue
     if ($currentContent -notmatch "# --- AI-OS START ---") {
-        $aiosBlock = "`n# --- AI-OS START ---`n.env`n.env.*`n!.env.example`n!.env.sample`n!.env.template`n!.env.dist`n.ai/private-names.txt`n# --- AI-OS END ---`n"
+        $aiosBlock = "`n# --- AI-OS START ---`n.env`n.env.*`n!.env.example`n!.env.sample`n!.env.template`n!.env.dist`n.ai/private-names.txt`n.ai/evidence/`n# --- AI-OS END ---`n"
         Add-Content -Path $destGitignore -Value $aiosBlock
         Write-Host "  + Merged AI-OS secret rules into existing .gitignore" -ForegroundColor Gray
     } else {

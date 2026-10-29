@@ -362,22 +362,22 @@ if [ -f "$README_PATH" ]; then
         DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
     fi
     claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 24 ]; then
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 27 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="README claims $claimed_doc-point doctor, expected 24"
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 27"
     fi
 fi
 
 if [ -f "$UG_PATH" ]; then
     ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 24 ]; then
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 27 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 24"
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 27"
     fi
     ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 24 ]; then
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 27 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 24"
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 27"
     fi
 fi
 
@@ -666,6 +666,62 @@ elif [ -n "$WORKFLOW_WARN" ]; then
     record_check 24 "GitHub Actions workflow action pinning and permissions" "WARN" "$WORKFLOW_WARN"
 else
     record_check 24 "GitHub Actions workflow action pinning and permissions" "PASS" ""
+fi
+
+# 25. Python 3.9+ runtime availability (warn if missing)
+PY_AVAIL=false
+if command -v python3 >/dev/null 2>&1; then
+    PY_AVAIL=true
+elif command -v python >/dev/null 2>&1; then
+    PY_AVAIL=true
+fi
+
+if [ "$PY_AVAIL" = true ]; then
+    record_check 25 "Python 3.9+ runtime availability" "PASS" ""
+else
+    record_check 25 "Python 3.9+ runtime availability" "WARN" "Python 3.9+ not found in PATH; verification layer features will be disabled"
+fi
+
+# 26. Dependency approval list and CODEOWNERS coverage
+DEPS_FILE="$PROJECT_PATH/.ai/deps-approved.txt"
+CO_FILE="$PROJECT_PATH/.github/CODEOWNERS"
+if [ ! -f "$DEPS_FILE" ]; then
+    record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
+elif [ ! -f "$CO_FILE" ] || ! grep -q "\.ai/deps-approved\.txt" "$CO_FILE"; then
+    record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt"
+else
+    record_check 26 "Dependency approval list and CODEOWNERS coverage" "PASS" ""
+fi
+
+# 27. Pre-commit verification configuration
+VCONF_FILE="$PROJECT_PATH/.ai/verify.conf"
+VCONF_ERR=""
+if [ ! -f "$VCONF_FILE" ]; then
+    VCONF_ERR="Missing .ai/verify.conf configuration file"
+else
+    while IFS='=' read -r k v || [ -n "$k" ]; do
+        k=$(echo "$k" | tr -d '[:space:]')
+        v=$(echo "$v" | tr -d '[:space:]')
+        [[ "$k" =~ ^# ]] && continue
+        [ -z "$k" ] && continue
+        case "$k" in
+            deps)
+                [[ "$v" =~ ^(block|warn|off)$ ]] || VCONF_ERR="Invalid verify.conf setting for deps: '$v'"
+                ;;
+            imports)
+                [[ "$v" =~ ^(block|warn|off)$ ]] || VCONF_ERR="Invalid verify.conf setting for imports: '$v'"
+                ;;
+            on_missing_python)
+                [[ "$v" =~ ^(warn|block)$ ]] || VCONF_ERR="Invalid verify.conf setting for on_missing_python: '$v'"
+                ;;
+        esac
+    done < "$VCONF_FILE"
+fi
+
+if [ -n "$VCONF_ERR" ]; then
+    record_check 27 "Pre-commit verification configuration" "FAIL" "$VCONF_ERR"
+else
+    record_check 27 "Pre-commit verification configuration" "PASS" ""
 fi
 
 if [ "$JSON_MODE" = true ]; then

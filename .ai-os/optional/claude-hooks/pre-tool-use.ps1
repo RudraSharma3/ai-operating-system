@@ -25,13 +25,13 @@ if ($toolName -in $writeTools) {
                   else { "" }
     $targetPath = $targetPath.ToString().Replace("\", "/").Trim()
     
-    if ($targetPath -match "(^|/)(AGENTS\.md|\.ai/rules/.*|\.githooks/.*|scripts/.*)$") {
+    if ($targetPath -match "(^|/)(AGENTS\.md|\.ai/rules/.*|\.githooks/.*|scripts/.*|\.ai/evidence/.*)$") {
         if ($env:AI_OS_ALLOW_GOVERNANCE_EDIT -ne "1") {
             @{
                 hookSpecificOutput = @{
                     hookEventName = "PreToolUse"
                     permissionDecision = "deny"
-                    permissionDecisionReason = "Direct edits to AI-OS governance files (AGENTS.md, .ai/rules/, .githooks/, scripts/) are blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
+                    permissionDecisionReason = "Direct edits to AI-OS governance and evidence files (AGENTS.md, .ai/rules/, .githooks/, scripts/, .ai/evidence/) are blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
                 }
             } | ConvertTo-Json -Depth 4
             exit 0

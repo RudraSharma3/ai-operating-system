@@ -52,13 +52,23 @@ if [ -d "$ROOT_DIR/.ai-os/optional/claude-hooks" ]; then
     cp -r "$ROOT_DIR/.ai-os/optional/claude-hooks/"* "$TARGET_DIR/.ai-os/optional/claude-hooks/"
 fi
 
-# 2. Sync security filters and githooks
+# 2. Sync security filters, verification layer, and githooks
 mkdir -p "$TARGET_DIR/.ai"
 mkdir -p "$TARGET_DIR/.githooks"
+mkdir -p "$TARGET_DIR/.ai-os/scripts"
 cp "$ROOT_DIR/.ai/secret-patterns.txt" "$TARGET_DIR/.ai/secret-patterns.txt"
 cp "$ROOT_DIR/.ai/secret-allowlist.txt" "$TARGET_DIR/.ai/secret-allowlist.txt"
+[ -f "$ROOT_DIR/.ai/deps-approved.txt" ] && cp "$ROOT_DIR/.ai/deps-approved.txt" "$TARGET_DIR/.ai/deps-approved.txt"
+[ -f "$ROOT_DIR/.ai/import-aliases.txt" ] && cp "$ROOT_DIR/.ai/import-aliases.txt" "$TARGET_DIR/.ai/import-aliases.txt"
+[ -f "$ROOT_DIR/.ai/verify.conf" ] && cp "$ROOT_DIR/.ai/verify.conf" "$TARGET_DIR/.ai/verify.conf"
 cp "$ROOT_DIR/.githooks/pre-commit" "$TARGET_DIR/.githooks/pre-commit"
 chmod +x "$TARGET_DIR/.githooks/pre-commit"
+cp "$ROOT_DIR/scripts/ai_os_verify.py" "$TARGET_DIR/.ai-os/scripts/ai_os_verify.py"
+cp "$ROOT_DIR/scripts/ai-os-verify.sh" "$TARGET_DIR/.ai-os/scripts/ai-os-verify.sh"
+cp "$ROOT_DIR/scripts/ai-os-verify.ps1" "$TARGET_DIR/.ai-os/scripts/ai-os-verify.ps1"
+cp "$ROOT_DIR/scripts/ai-os-run" "$TARGET_DIR/.ai-os/scripts/ai-os-run"
+cp "$ROOT_DIR/scripts/ai-os-run.ps1" "$TARGET_DIR/.ai-os/scripts/ai-os-run.ps1"
+chmod +x "$TARGET_DIR/.ai-os/scripts/"*
 
 # 3. Sync Git and provider configurations
 cp "$ROOT_DIR/.gitattributes" "$TARGET_DIR/.gitattributes"
