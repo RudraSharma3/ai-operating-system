@@ -98,7 +98,7 @@ check_mode = sys.argv[3] == 'true'
 real_template_dir = sys.argv[4]
 
 manifest_path = os.path.join(target_dir, '.ai-os', 'manifest.json')
-text_extensions = {'.md', '.mdc', '.txt', '.json', '.sh', '.ps1', '.gitattributes', '.gitignore', ''}
+text_extensions = {'.md', '.mdc', '.txt', '.json', '.sh', '.ps1', '.py', '.conf', '.gitattributes', '.gitignore', ''}
 
 file_hashes = {}
 for root, dirs, files in os.walk(target_dir):
