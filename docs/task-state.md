@@ -813,3 +813,41 @@ This document tracks the current development milestones and task state for the m
 - **Not Verified**:
   - None.
 
+---
+
+### Step 14: Provenance Audit of PR #7 & PR #8, Dependabot Major-Version Triage, and Invoke-Expression Dynamic Boundary
+- **What Changed**:
+  - **PR #7 Provenance & Autonomous Process Deviation Recording**:
+    * PR Details: Author `RudraSharma3`, merged by `RudraSharma3` at `2026-10-29T06:00:36Z` via merge commit `dd5806ba7f4395bc20768d325e8811496f11cbd6`.
+    * Timing: Merged before the current task prompt was issued (`2026-10-29T07:28:46Z` / 12:58:46 PM local time).
+    * Process Deviation: In an earlier autonomous session, after PR #2 merged, the user responded with 'continue'. The agent presented interactive options via `ask_question` and subsequently merged PR #7 upon receiving user response, rather than completing all Steps 1-4 prior to merge as instructed in prompt 7. This is explicitly disclosed and recorded as an autonomous agent process deviation.
+    * Changed Files: `git show --stat dd5806ba`: modified `scripts/doctor.sh` (+1, -1), `scripts/doctor.ps1` (+1, -1), and `docs/task-state.md` (+8, -0). (Note: Prompt 7 intended only doctor script failure messages and their tests; `docs/task-state.md` was also touched).
+  - **PR #8 Summary and Recommendation**:
+    * Created by agent on branch `next-epic-evals-and-actions-triage` at `2026-10-29T06:09:14Z` (commit author Rudra Sharma `naganoobiea@gmail.com`).
+    * Diff: Touches only `docs/task-state.md` (+41, -0).
+    * Recommendation: **Close without merging**. Rationale: Branch was created out-of-order and is superseded by the formal PR #9 housekeeping and `provenance` work. All task-state tracking, Dependabot review, and Epic 4 benchmark roadmaps are now fully consolidated in the canonical branches.
+  - **Dependabot Major-Version Review (PRs #3, #4, #5, #6)**:
+    * Analyzed all major versions crossed: `actions/setup-python` (5.6.0 -> 7.1.0: v6, v7), `astral-sh/setup-uv` (5.4.2 -> 10.3.2: v6, v7, v8, v9, v10), `actions/checkout` (4.2.2 -> 7.0.1: v5, v6, v7), and `actions/setup-node` (4.4.0 -> 7.1.0: v5, v6, v7).
+    * Extracted breaking changes, Node 24 runtime requirements, minimum runner versions (`actions/runner >= v2.327.1`), and input deltas.
+    * Documented all official GitHub release URLs and retrieval date (2026-10-29) in `docs/sources.md` Section 8.
+    * Verified all 4 commit SHAs against the GitHub REST API (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`), confirming 100% exact matches.
+    * Triage Decision: PR #3 (Wait/Reject, 7 days old < 14-day threshold), PR #4 (Wait/Reject, 7 days old < 14-day threshold), PR #5 (Wait/Hold for atomic batch), PR #6 (Wait/Hold for atomic batch).
+    * Unified Batch Plan: Maintain cooldown until 2026-11-05; execute a single atomic PR `chore/modernize-actions` updating workflows, registry checks, and test expectations in lockstep.
+  - **Invoke-Expression Boundary Disclosure & Parameter Validation**:
+    * In `docs/lint-policy.md` and `evals/README.md`, stated explicitly that `evals/run_task.ps1` executes caller-supplied agent command strings via `Invoke-Expression` and must never receive untrusted input. The `PSAvoidUsingInvokeExpression` suppression is maintained strictly for this evaluation benchmark harness boundary.
+    * Added validation in `evals/run_task.sh` and `evals/run_task.ps1` immediately rejecting empty or whitespace-only `--agent-cmd` / `-AgentCmd` with non-zero exit code.
+    * Added automated test coverage in `evals/test_eval_harness.sh` (Tests 16 & 17) validating immediate refusal.
+  - **Version Bump & Templates**:
+    * Bumped `VERSION` to `2.4.5`.
+    * Updated `CHANGELOG.md` with release notes for 2.4.5.
+    * Synchronized templates and manifest via `scripts/build-templates.sh`.
+- **What Was Verified**:
+  - `gh pr view 7`: Details verified; merge commit `dd5806b` confirmed.
+  - `gh pr view 8`: Details verified; recommended closure.
+  - `gh api repos/.../commits/<tag>`: All 4 Dependabot commit SHAs matched.
+  - `evals/test_eval_harness.sh`: **20/20 Passed** (0 Failed), including empty and whitespace `--agent-cmd` rejection.
+  - `scripts/doctor.sh --ci .`: **24/24 Passed** (0 Warnings, 0 Failures).
+  - `scripts/doctor.ps1 -Ci`: **24/24 Passed** (0 Warnings, 0 Failures).
+  - `scripts/build-templates.sh --check`: **PASS** (Zero drift).
+- **Not Verified**:
+  - None.

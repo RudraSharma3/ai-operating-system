@@ -101,3 +101,6 @@ For executing untrusted or autonomous agent runs:
    ```
 2. **Use Narrow Permission Modes**:
    Always configure the narrowest verified permission mode from [`docs/sources.md`](../docs/sources.md) (e.g., `claude --permission-mode default -p` or `claude --allowedTools "Bash,Read,Edit" -p`). Documented dangerous flags (such as `--dangerously-skip-permissions`) should never be used on developer workstations.
+
+### Dynamic Command Execution Boundary (`Invoke-Expression`)
+`evals/run_task.ps1` executes the caller-supplied agent command string (via `Invoke-Expression`) and must **never** be given untrusted input. The harness enforces that empty or whitespace-only commands are immediately rejected with a non-zero exit status. The PSScriptAnalyzer suppression (`PSAvoidUsingInvokeExpression`) is maintained solely for this benchmark harness boundary where the caller explicitly dictates the benchmarked agent CLI command.
