@@ -716,6 +716,104 @@ EOF
     assert_contains "$doc_out_dep_unknown_eco" "unknown package ecosystem" "doctor.sh must identify unknown package ecosystem" || return 1
 }
 
+test_installer_scenario1_empty_repo_blocks_phantom_dependency() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Run install.sh on empty repo
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # Attempt to commit unapproved dependency
+    echo "phantom-slop-pkg==1.0.0" > requirements.txt
+    git add requirements.txt
+
+    local status=0
+    .githooks/pre-commit >/dev/null 2>&1 || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "1" "$status" "Scenario 1 (empty repo): pre-commit hook must BLOCK commit with unapproved phantom dependency"
+}
+
+test_installer_scenario2_existing_docs_gitignore_blocks_phantom_dependency() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Existing docs and .gitignore
+    mkdir -p docs
+    echo "# Custom Doc" > docs/custom.md
+    echo "node_modules/" > .gitignore
+    git add docs/custom.md .gitignore
+    git commit -q -m "existing project baseline"
+
+    # Run install.sh
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # Verify existing docs preserved
+    [ -f docs/custom.md ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: docs/custom.md lost" >&2; return 1; }
+
+    # Attempt to commit unapproved dependency in package.json
+    cat << 'EOF' > package.json
+{
+  "dependencies": {
+    "phantom-slop-npm": "^1.0.0"
+  }
+}
+EOF
+    git add package.json
+
+    local status=0
+    .githooks/pre-commit >/dev/null 2>&1 || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "1" "$status" "Scenario 2 (existing docs/.gitignore): pre-commit hook must BLOCK phantom dependency"
+}
+
+test_installer_scenario3_husky_hookspath_blocks_phantom_dependency() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Existing husky hooksPath
+    mkdir -p .husky
+    git config core.hooksPath .husky
+    echo "#!/bin/sh" > .husky/pre-commit
+    chmod +x .husky/pre-commit
+    git add .husky/pre-commit
+    git commit -q -m "initial husky repo"
+
+    # Run install.sh
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # Verify core.hooksPath is still .husky
+    local hp
+    hp=$(git config core.hooksPath)
+    [ "$hp" = ".husky" ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: core.hooksPath overwritten" >&2; return 1; }
+
+    # Attempt to commit unapproved dependency
+    echo "malicious-ai-pkg==2.0.0" > requirements.txt
+    git add requirements.txt
+
+    local status=0
+    # Execute the chained husky hook
+    .husky/pre-commit >/dev/null 2>&1 || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "1" "$status" "Scenario 3 (husky hooksPath): chained hook must BLOCK phantom dependency"
+}
+
+test_demo_script_execution() {
+    local demo_out
+    local demo_status=0
+    demo_out=$(bash "$REPO_ROOT/scripts/demo.sh" 2>&1) || demo_status=$?
+
+    assert_eq "0" "$demo_status" "scripts/demo.sh must execute cleanly (exit code 0)" || return 1
+    assert_contains "$demo_out" "Secret leak commit rejected" "demo output must show secret leak blocked" || return 1
+    assert_contains "$demo_out" "Unapproved dependency rejected" "demo output must show phantom dependency blocked" || return 1
+    assert_contains "$demo_out" "Clean change committed successfully" "demo output must show clean change allowed" || return 1
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -725,6 +823,9 @@ run_test "install.sh: Installs Claude Code hooks only when --with-claude-hooks i
 run_test "install.ps1: Installs template docs into existing docs/ dir" test_ps1_copies_into_existing_docs_dir
 run_test "install.ps1: Merges .gitignore without overwriting" test_ps1_merges_gitignore
 run_test "install.ps1: Preserves and chains existing core.hooksPath" test_ps1_preserves_and_chains_hookspath
+run_test "installer scenario 1: Empty repo installation blocks phantom dependency" test_installer_scenario1_empty_repo_blocks_phantom_dependency
+run_test "installer scenario 2: Existing docs and .gitignore installation blocks phantom dependency" test_installer_scenario2_existing_docs_gitignore_blocks_phantom_dependency
+run_test "installer scenario 3: Husky hooksPath installation chains and blocks phantom dependency" test_installer_scenario3_husky_hookspath_blocks_phantom_dependency
 run_test "upgrade.sh: Upgrades template and preserves customizations" test_sh_upgrade_preserves_customizations
 run_test "upgrade.sh: Preserves customized file on conflict with side-by-side update" test_upgrade_conflict_preserves_both
 run_test "upgrade.sh: Upgrades legacy pre-manifest install without data loss" test_upgrade_legacy_pre_manifest
@@ -737,6 +838,7 @@ run_test "doctor.sh: Warns if docs contain headless command not listed in docs/s
 run_test "doctor.sh: Warns if mcp-pins.json contains young pin or stale record" test_doctor_mcp_pins_maturity_and_freshness
 run_test "doctor.sh: Warns if workflows lack permissions or use unpinned action SHAs" test_doctor_workflow_pinning_and_permissions
 run_test "offline: Default tests, doctor scripts, and evals do not invoke network tools" test_offline_test_and_doctor_scripts_no_network_invocations
+run_test "demo.sh: Executes demonstration blocking secrets and phantom deps" test_demo_script_execution
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"

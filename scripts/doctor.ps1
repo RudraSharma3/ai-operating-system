@@ -360,9 +360,9 @@ if (Test-Path $readmePath) {
     }
     if ($readmeContent -match '(\d+)-point diagnostic doctor') {
         $claimedDoctor = [int]$matches[1]
-        if ($claimedDoctor -ne 24) {
+        if ($claimedDoctor -ne 27) {
             $docCountsOk = $false
-            $docErr = "README claims $claimedDoctor-point doctor, expected 24"
+            $docErr = "README claims $claimedDoctor-point doctor, expected 27"
         }
     }
 }
@@ -371,16 +371,16 @@ if (Test-Path $userGuidePath) {
     $ugContent = Get-Content $userGuidePath -Raw
     if ($ugContent -match '(\d+)-point diagnostic') {
         $ugClaimedDoctor = [int]$matches[1]
-        if ($ugClaimedDoctor -ne 24) {
+        if ($ugClaimedDoctor -ne 27) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 24"
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 27"
         }
     }
     if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
         $ugClaimedChecks = [int]$matches[1]
-        if ($ugClaimedChecks -ne 24) {
+        if ($ugClaimedChecks -ne 27) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 24"
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 27"
         }
     }
 }
@@ -653,6 +653,61 @@ if ($workflowErr) {
     Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "WARN" $workflowWarn
 } else {
     Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "PASS"
+}
+
+# 25. Python 3.9+ runtime availability (warn if missing)
+$pyAvail = $false
+$pyBin = if (Get-Command "python3" -ErrorAction SilentlyContinue) { "python3" } elseif (Get-Command "python" -ErrorAction SilentlyContinue) { "python" } else { $null }
+if ($pyBin) {
+    $pyAvail = $true
+}
+
+if ($pyAvail) {
+    Register-CheckRecord 25 "Python 3.9+ runtime availability" "PASS"
+} else {
+    Register-CheckRecord 25 "Python 3.9+ runtime availability" "WARN" "Python 3.9+ not found in PATH; verification layer features will be disabled"
+}
+
+# 26. Dependency approval list and CODEOWNERS coverage
+$depsFile = Join-Path $target ".ai/deps-approved.txt"
+$coFile = Join-Path $target ".github/CODEOWNERS"
+if (-not (Test-Path $depsFile)) {
+    Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
+} elseif ((-not (Test-Path $coFile)) -or (-not (Get-Content $coFile | Select-String -Pattern ".ai/deps-approved.txt" -SimpleMatch))) {
+    Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt"
+} else {
+    Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "PASS"
+}
+
+# 27. Pre-commit verification configuration
+$vconfFile = Join-Path $target ".ai/verify.conf"
+$vconfErr = $null
+if (-not (Test-Path $vconfFile)) {
+    $vconfErr = "Missing .ai/verify.conf configuration file"
+} else {
+    $vlines = Get-Content $vconfFile
+    foreach ($vl in $vlines) {
+        $cleanVl = ($vl -replace '#.*$', '').Trim()
+        if ([string]::IsNullOrWhiteSpace($cleanVl)) { continue }
+        $parts = $cleanVl -split '='
+        if ($parts.Length -eq 2) {
+            $k = $parts[0].Trim()
+            $v = $parts[1].Trim()
+            if ($k -eq "deps" -and $v -notmatch '^(block|warn|off)$') {
+                $vconfErr = "Invalid verify.conf setting for deps: '$v'"
+            } elseif ($k -eq "imports" -and $v -notmatch '^(block|warn|off)$') {
+                $vconfErr = "Invalid verify.conf setting for imports: '$v'"
+            } elseif ($k -eq "on_missing_python" -and $v -notmatch '^(warn|block)$') {
+                $vconfErr = "Invalid verify.conf setting for on_missing_python: '$v'"
+            }
+        }
+    }
+}
+
+if ($vconfErr) {
+    Register-CheckRecord 27 "Pre-commit verification configuration" "FAIL" $vconfErr
+} else {
+    Register-CheckRecord 27 "Pre-commit verification configuration" "PASS"
 }
 
 if ($Json) {

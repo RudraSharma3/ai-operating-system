@@ -79,6 +79,7 @@ if [ -f "$GITIGNORE_DEST" ]; then
             echo "!.env.template"
             echo "!.env.dist"
             echo ".ai/private-names.txt"
+            echo ".ai/evidence/"
             echo "# --- AI-OS END ---"
         } >> "$GITIGNORE_DEST"
         echo "  + Merged AI-OS secret rules into existing .gitignore"
