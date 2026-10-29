@@ -558,6 +558,14 @@ if [ -d "$WORKFLOWS_DIR" ]; then
     done < <(find "$WORKFLOWS_DIR" -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null || true)
 fi
 
+# Check 3: Dependabot 14-day cooldown enforcement
+DEPENDABOT_FILE="$PROJECT_PATH/.github/dependabot.yml"
+if [ -z "$WORKFLOW_WARN" ] && [ -f "$DEPENDABOT_FILE" ]; then
+    if ! grep -qE '^[[:space:]]*cooldown:' "$DEPENDABOT_FILE" || ! grep -qE 'default-days:[[:space:]]*([1-9][4-9]|[2-9][0-9])' "$DEPENDABOT_FILE"; then
+        WORKFLOW_WARN="Dependabot configuration '.github/dependabot.yml' lacks a minimum 14-day cooldown"
+    fi
+fi
+
 if [ -n "$WORKFLOW_WARN" ]; then
     record_check 24 "GitHub Actions workflow action pinning and permissions" "WARN" "$WORKFLOW_WARN"
 else

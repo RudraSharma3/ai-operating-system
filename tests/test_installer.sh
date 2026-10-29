@@ -627,6 +627,32 @@ EOF
     local doc_out_pass
     doc_out_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
 
+    # 4. Test warn when dependabot.yml lacks 14-day cooldown
+    cat << 'EOF' > "$sandbox/.github/dependabot.yml"
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+EOF
+    local doc_out_dep_warn
+    doc_out_dep_warn=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    # 5. Test pass when dependabot.yml includes 14-day cooldown
+    cat << 'EOF' > "$sandbox/.github/dependabot.yml"
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+EOF
+    local doc_out_dep_pass
+    doc_out_dep_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
     cleanup_sandbox "$sandbox"
 
     assert_contains "$doc_out_no_perm" "WARN] GitHub Actions workflow" "doctor.sh must warn when workflow lacks top-level permissions block" || return 1
@@ -634,6 +660,9 @@ EOF
     assert_contains "$doc_out_unpinned" "WARN] GitHub Actions workflow" "doctor.sh must warn when workflow uses unpinned action" || return 1
     assert_contains "$doc_out_unpinned" "unpinned action" "doctor.sh must identify unpinned action" || return 1
     assert_contains "$doc_out_pass" "PASS] GitHub Actions workflow" "doctor.sh must pass when workflow has permissions and pinned SHA" || return 1
+    assert_contains "$doc_out_dep_warn" "WARN] GitHub Actions workflow" "doctor.sh must warn when dependabot.yml lacks cooldown" || return 1
+    assert_contains "$doc_out_dep_warn" "lacks a minimum 14-day cooldown" "doctor.sh must identify missing dependabot cooldown" || return 1
+    assert_contains "$doc_out_dep_pass" "PASS] GitHub Actions workflow" "doctor.sh must pass when dependabot.yml has 14-day cooldown" || return 1
 }
 
 # Run installer tests
