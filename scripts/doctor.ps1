@@ -565,9 +565,66 @@ if (Test-Path $workflowsDir) {
 # Check 3: Dependabot 14-day cooldown enforcement
 $dependabotFile = Join-Path $target ".github\dependabot.yml"
 if (-not $workflowWarn -and (Test-Path $dependabotFile)) {
-    $depContent = Get-Content $dependabotFile -Raw
-    if ($depContent -notmatch '(?m)^\s*cooldown:' -or $depContent -notmatch 'default-days:\s*([1-9][4-9]|[2-9][0-9])') {
-        $workflowWarn = "Dependabot configuration '.github/dependabot.yml' lacks a minimum 14-day cooldown"
+    $nonSemverEcos = @('bazel', 'devcontainers', 'docker', 'docker-compose', 'github-actions', 'gitsubmodule', 'helm', 'nix', 'opentofu', 'pre-commit', 'terraform', 'vcpkg')
+    $validAllKeys = @('default-days', 'include', 'exclude')
+    $validSemverKeys = @('semver-major-days', 'semver-minor-days', 'semver-patch-days')
+    $depLines = Get-Content $dependabotFile
+    $currentEco = ""
+    $inCooldown = $false
+    $cooldownIndent = 0
+    $hasCooldown = $false
+    $has14Day = $false
+
+    foreach ($rawLine in $depLines) {
+        $cleanLine = ($rawLine -replace '#.*$', '').TrimEnd()
+        if ([string]::IsNullOrWhiteSpace($cleanLine)) { continue }
+
+        if ($cleanLine -match 'package-ecosystem:\s*"?([a-zA-Z0-9_-]+)"?') {
+            $currentEco = $matches[1]
+            $inCooldown = $false
+            continue
+        }
+
+        if ($cleanLine -match '^(\s*)cooldown:\s*$') {
+            $inCooldown = $true
+            $hasCooldown = $true
+            $cooldownIndent = $matches[1].Length
+            continue
+        }
+
+        if ($inCooldown) {
+            if ($cleanLine -match '^(\s+)([a-zA-Z0-9_-]+):') {
+                $kIndent = $matches[1].Length
+                $ckey = $matches[2]
+                if ($kIndent -le $cooldownIndent) {
+                    $inCooldown = $false
+                } else {
+                    if ($validAllKeys -contains $ckey) {
+                        if ($ckey -eq 'default-days') {
+                            if ($cleanLine -match 'default-days:\s*([0-9]+)') {
+                                if ([int]$matches[1] -ge 14) { $has14Day = $true }
+                            }
+                        }
+                    } elseif ($validSemverKeys -contains $ckey) {
+                        if ($nonSemverEcos -contains $currentEco) {
+                            $workflowWarn = "Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '$ckey' for package ecosystem '$currentEco'"
+                            break
+                        }
+                    } else {
+                        $workflowWarn = "Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '$ckey'"
+                        break
+                    }
+                }
+            } else {
+                $inCooldown = $false
+            }
+        }
+    }
+
+    if (-not $workflowWarn) {
+        if (-not $hasCooldown -or -not $has14Day) {
+            $workflowWarn = "Dependabot configuration '.github/dependabot.yml' lacks a minimum 14-day cooldown"
+        }
     }
 }
 

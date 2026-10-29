@@ -158,16 +158,58 @@ This document records the official documentation URLs, retrieval dates, and veri
 
 ## 7. Dependabot Version Updates Cooldown Configuration
 
-- **Official Source**: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-dependency-updates#cooldown
+- **Official Source**: `https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#cooldown`
 - **Retrieval Date**: 2026-10-29
 - **Verification Status**: **VERIFIED**
-- **Details**:
-  - Dependabot natively supports a cooldown block under each package ecosystem entry in .github/dependabot.yml.
-  - Configured parameters:
-    * default-days: 14: Enforces a mandatory 14-day delay after a new version is released before Dependabot opens a pull request.
-    * semver-major-days: 14, semver-minor-days: 14, semver-patch-days: 14: Enforces the 14-day maturity floor across all version upgrade severities.
-  - Mitigates supply chain risk and ecosystem instability by ensuring automated dependency proposals only introduce packages that have seasoned in production for at least two weeks.
-  - Security updates for known vulnerabilities bypass this cooldown automatically and are opened immediately.
+- **Parameters Documented by GitHub**:
+  - `default-days`: Default cooldown period for dependencies without specific rules (optional). If not specified, Dependabot applies a default cooldown of 3 days. Supported across all package managers.
+  - `semver-major-days`: Cooldown period for major version updates (optional; restricted strictly to package managers supporting SemVer).
+  - `semver-minor-days`: Cooldown period for minor version updates (optional; restricted strictly to package managers supporting SemVer).
+  - `semver-patch-days`: Cooldown period for patch version updates (optional; restricted strictly to package managers supporting SemVer).
+  - `include`: List of dependencies to apply cooldown (up to 150 items). Supports wildcards (`*`).
+  - `exclude`: List of dependencies excluded from cooldown (up to 150 items). Supports wildcards (`*`).
+
+- **Package Manager Support Matrix**:
+| Package Manager / Ecosystem | `default-days` Supported | SemVer-bump (`semver-*-days`) Supported |
+| :--- | :---: | :---: |
+| `bazel` | YES | NO |
+| `bundler` | YES | YES |
+| `bun` | YES | YES |
+| `cargo` | YES | YES |
+| `composer` | YES | YES |
+| `conda` | YES | YES |
+| `deno` | YES | YES |
+| `devcontainers` | YES | NO |
+| `docker` | YES | NO |
+| `docker-compose` | YES | NO |
+| `dotnet-sdk` | YES | YES |
+| `elm` | YES | YES |
+| `github-actions` | YES | NO |
+| `gitsubmodule` | YES | NO |
+| `gomod` | YES | YES |
+| `gradle` | YES | YES |
+| `helm` | YES | NO |
+| `hex` | YES | YES |
+| `julia` | YES | YES |
+| `maven` | YES | YES |
+| `nix` | YES | NO |
+| `npm` | YES | YES |
+| `nuget` | YES | YES |
+| `opentofu` | YES | NO |
+| `pip` | YES | YES |
+| `pre-commit` | YES | NO |
+| `pub` | YES | YES |
+| `rust-toolchain` | YES | YES |
+| `sbt` | YES | YES |
+| `swift` | YES | YES |
+| `terraform` | YES | NO |
+| `uv` | YES | YES |
+| `vcpkg` | YES | NO |
+
+- **Validation Implication for AI-OS**:
+  - For `package-ecosystem: "github-actions"`, only `default-days`, `include`, and `exclude` are supported.
+  - Attempting to set `semver-major-days`, `semver-minor-days`, or `semver-patch-days` for `github-actions` causes GitHub's Dependabot validator to fail with `The property '#/updates/0/cooldown/semver-*-days' is not supported for the package ecosystem 'github-actions'`.
+  - Cooldown for `github-actions` must specify `default-days: 14` without SemVer-bump keys.
 
 ---
 
