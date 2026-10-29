@@ -43,7 +43,7 @@ stdlib = getattr(sys, 'stdlib_module_names', {
     'urllib', 'json', 'os', 'sys', 're', 'math', 'typing', 'collections', 'datetime'
 })
 
-with open('query_parser.py', 'r', encoding='utf-8') as f:
+with open('query_parser.py', 'r', encoding='utf-8-sig') as f:
     tree = ast.parse(f.read())
 
 for node in ast.walk(tree):

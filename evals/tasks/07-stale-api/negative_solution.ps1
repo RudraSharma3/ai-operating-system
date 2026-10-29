@@ -19,7 +19,10 @@ def init_user_session(user_id, tenant_id):
 "@ | Out-File -FilePath "app.py" -Encoding utf8
 
     git add app.py
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git commit -qm "feat: integrate session_auth using assumed legacy signature" 2>$null
+    $ErrorActionPreference = $prev
 } finally {
     Set-Location $origDir
     [System.IO.Directory]::SetCurrentDirectory($origDir)

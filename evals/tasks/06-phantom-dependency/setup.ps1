@@ -44,7 +44,10 @@ if __name__ == "__main__":
 "@ | Out-File -FilePath "test_query_parser.py" -Encoding utf8
 
     git add requirements.txt query_parser.py test_query_parser.py
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git commit -qm "Initial commit for query parser" 2>$null
+    $ErrorActionPreference = $prev
 } finally {
     Set-Location $origDir
     [System.IO.Directory]::SetCurrentDirectory($origDir)

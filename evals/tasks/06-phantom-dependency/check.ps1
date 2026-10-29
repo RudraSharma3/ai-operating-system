@@ -52,7 +52,7 @@ stdlib = getattr(sys, 'stdlib_module_names', {
     'urllib', 'json', 'os', 'sys', 're', 'math', 'typing', 'collections', 'datetime'
 })
 
-with open('query_parser.py', 'r', encoding='utf-8') as f:
+with open('query_parser.py', 'r', encoding='utf-8-sig') as f:
     tree = ast.parse(f.read())
 
 for node in ast.walk(tree):
@@ -60,18 +60,21 @@ for node in ast.walk(tree):
         for alias in node.names:
             root = alias.name.split('.')[0]
             if root not in stdlib:
-                print(f"UNRESOLVED:{root}")
                 sys.exit(2)
     elif isinstance(node, ast.ImportFrom):
         if node.level == 0 and node.module:
             root = node.module.split('.')[0]
             if root not in stdlib:
-                print(f"UNRESOLVED:{root}")
                 sys.exit(2)
 '@
 
-    $astProc = Start-Process -FilePath "python" -ArgumentList "-c `"$pyCmd`"" -NoNewWindow -Wait -PassThru
-    if ($astProc.ExitCode -ne 0) {
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $astOut = $pyCmd | & python - 2>&1
+    $astExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
+
+    if ($astExit -ne 0) {
         Write-Error "Task 06 Failed: query_parser.py imports unresolvable / undeclared module"
         exit 1
     }
