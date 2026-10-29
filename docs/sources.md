@@ -154,3 +154,17 @@ This document records the official documentation URLs, retrieval dates, and veri
     - Downgraded from `2026.10.19`/`2026.10.24` to `2026.10.10` (published 2026-10-11) for 14-day maturity compliance. Separate upstream changelog files on PyPI: **NOT VERIFIED** (PyPI metadata does not provide dedicated changelog endpoints for these calver versions beyond release upload timestamps).
 
 
+---
+
+## 7. Dependabot Version Updates Cooldown Configuration
+
+- **Official Source**: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-dependency-updates#cooldown
+- **Retrieval Date**: 2026-10-29
+- **Verification Status**: **VERIFIED**
+- **Details**:
+  - Dependabot natively supports a cooldown block under each package ecosystem entry in .github/dependabot.yml.
+  - Configured parameters:
+    * default-days: 14: Enforces a mandatory 14-day delay after a new version is released before Dependabot opens a pull request.
+    * semver-major-days: 14, semver-minor-days: 14, semver-patch-days: 14: Enforces the 14-day maturity floor across all version upgrade severities.
+  - Mitigates supply chain risk and ecosystem instability by ensuring automated dependency proposals only introduce packages that have seasoned in production for at least two weeks.
+  - Security updates for known vulnerabilities bypass this cooldown automatically and are opened immediately.
