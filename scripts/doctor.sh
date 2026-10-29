@@ -4,6 +4,8 @@
 
 set -o pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 CI_MODE=false
 JSON_MODE=false
 PROJECT_PATH="."
@@ -558,77 +560,109 @@ if [ -d "$WORKFLOWS_DIR" ]; then
     done < <(find "$WORKFLOWS_DIR" -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null || true)
 fi
 
-# Check 3: Dependabot 14-day cooldown enforcement
+# Check 3: Dependabot 14-day cooldown enforcement (table-driven from docs/dependabot-cooldown-keys.json)
 DEPENDABOT_FILE="$PROJECT_PATH/.github/dependabot.yml"
+COOLDOWN_TABLE_FILE="$PROJECT_PATH/docs/dependabot-cooldown-keys.json"
+[ ! -f "$COOLDOWN_TABLE_FILE" ] && COOLDOWN_TABLE_FILE="$SCRIPT_DIR/../docs/dependabot-cooldown-keys.json"
+
+WORKFLOW_ERR=""
 if [ -z "$WORKFLOW_WARN" ] && [ -f "$DEPENDABOT_FILE" ]; then
-    current_eco=""
-    in_cooldown=false
-    cooldown_indent=0
-    has_cooldown=false
-    has_14day=false
+    PY_CMD="python"
+    command -v python3 >/dev/null 2>&1 && PY_CMD="python3"
+    
+    DEP_VALIDATION=$($PY_CMD - "$DEPENDABOT_FILE" "$COOLDOWN_TABLE_FILE" << 'EOF'
+import sys, json, re
 
-    # Offline table of non-SemVer ecosystems from docs/sources.md:
-    # bazel, devcontainers, docker, docker-compose, github-actions, gitsubmodule, helm, nix, opentofu, pre-commit, terraform, vcpkg
-    non_semver_ecos=" bazel devcontainers docker docker-compose github-actions gitsubmodule helm nix opentofu pre-commit terraform vcpkg "
-    valid_all_cooldown_keys=" default-days include exclude "
-    valid_semver_cooldown_keys=" semver-major-days semver-minor-days semver-patch-days "
+dep_file = sys.argv[1]
+table_file = sys.argv[2]
 
-    while IFS= read -r raw_line || [ -n "$raw_line" ]; do
-        line_no_comment="${raw_line%%#*}"
-        line_clean="$(echo "$line_no_comment" | sed -E 's/[[:space:]]+$//')"
-        [ -z "$line_clean" ] && continue
+ecosystems_table = {}
+try:
+    with open(table_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    ecosystems_table = data.get('ecosystems', {})
+except Exception:
+    pass
 
-        if [[ "$line_clean" =~ package-ecosystem:[[:space:]]*\"?([a-zA-Z0-9_-]+)\"? ]]; then
-            current_eco="${BASH_REMATCH[1]}"
-            in_cooldown=false
-            continue
-        fi
+try:
+    with open(dep_file, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+except Exception as e:
+    print(f"WARN:Cannot read dependabot file: {e}")
+    sys.exit(0)
 
-        if [[ "$line_clean" =~ ^([[:space:]]*)cooldown:[[:space:]]*$ ]]; then
-            in_cooldown=true
-            has_cooldown=true
-            cooldown_indent=${#BASH_REMATCH[1]}
-            continue
-        fi
+current_eco = None
+in_cooldown = False
+cooldown_indent = 0
+has_cooldown = False
+has_14day = False
+unknown_eco = None
+unsupported_key_err = None
 
-        if [ "$in_cooldown" = true ]; then
-            if [[ "$line_clean" =~ ^([[:space:]]+)([a-zA-Z0-9_-]+): ]]; then
-                key_indent=${#BASH_REMATCH[1]}
-                ckey="${BASH_REMATCH[2]}"
-                if [ "$key_indent" -le "$cooldown_indent" ]; then
-                    in_cooldown=false
-                else
-                    if [[ "$valid_all_cooldown_keys" == *" $ckey "* ]]; then
-                        if [ "$ckey" = "default-days" ]; then
-                            if [[ "$line_clean" =~ default-days:[[:space:]]*([0-9]+) ]]; then
-                                days="${BASH_REMATCH[1]}"
-                                [ "$days" -ge 14 ] && has_14day=true
-                            fi
-                        fi
-                    elif [[ "$valid_semver_cooldown_keys" == *" $ckey "* ]]; then
-                        if [[ "$non_semver_ecos" == *" $current_eco "* ]]; then
-                            WORKFLOW_WARN="Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '$ckey' for package ecosystem '$current_eco'"
+for raw_line in lines:
+    clean_line = raw_line.split('#')[0].rstrip()
+    if not clean_line.strip():
+        continue
+
+    m_eco = re.search(r'package-ecosystem:\s*"?([a-zA-Z0-9_-]+)"?', clean_line)
+    if m_eco:
+        current_eco = m_eco.group(1)
+        in_cooldown = False
+        continue
+
+    m_cd = re.match(r'^(\s*)cooldown:\s*$', clean_line)
+    if m_cd:
+        in_cooldown = True
+        has_cooldown = True
+        cooldown_indent = len(m_cd.group(1))
+        continue
+
+    if in_cooldown:
+        m_key = re.match(r'^(\s+)([a-zA-Z0-9_-]+):', clean_line)
+        if m_key:
+            k_indent = len(m_key.group(1))
+            ckey = m_key.group(2)
+            if k_indent <= cooldown_indent:
+                in_cooldown = False
+            else:
+                if ckey == 'default-days':
+                    m_days = re.search(r'default-days:\s*([0-9]+)', clean_line)
+                    if m_days and int(m_days.group(1)) >= 14:
+                        has_14day = True
+
+                if ecosystems_table:
+                    if current_eco not in ecosystems_table:
+                        if not unknown_eco:
+                            unknown_eco = current_eco
+                    else:
+                        allowed = ecosystems_table[current_eco]
+                        if ckey not in allowed:
+                            unsupported_key_err = f"Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '{ckey}' for package ecosystem '{current_eco}'"
                             break
-                        fi
-                    else
-                        WORKFLOW_WARN="Dependabot configuration '.github/dependabot.yml' uses unsupported cooldown key '$ckey'"
-                        break
-                    fi
-                fi
-            else
-                in_cooldown=false
-            fi
-        fi
-    done < "$DEPENDABOT_FILE"
+        else:
+            in_cooldown = False
 
-    if [ -z "$WORKFLOW_WARN" ]; then
-        if [ "$has_cooldown" != true ] || [ "$has_14day" != true ]; then
-            WORKFLOW_WARN="Dependabot configuration '.github/dependabot.yml' lacks a minimum 14-day cooldown"
-        fi
+if unsupported_key_err:
+    print("FAIL:" + unsupported_key_err)
+elif unknown_eco:
+    print(f"WARN:Dependabot configuration '.github/dependabot.yml' uses unknown package ecosystem '{unknown_eco}'")
+elif not has_cooldown or not has_14day:
+    print("WARN:Dependabot configuration '.github/dependabot.yml' lacks a minimum 14-day cooldown")
+else:
+    print("PASS")
+EOF
+)
+
+    if [[ "$DEP_VALIDATION" == FAIL:* ]]; then
+        WORKFLOW_ERR="${DEP_VALIDATION#FAIL:}"
+    elif [[ "$DEP_VALIDATION" == WARN:* ]]; then
+        WORKFLOW_WARN="${DEP_VALIDATION#WARN:}"
     fi
 fi
 
-if [ -n "$WORKFLOW_WARN" ]; then
+if [ -n "$WORKFLOW_ERR" ]; then
+    record_check 24 "GitHub Actions workflow action pinning and permissions" "FAIL" "$WORKFLOW_ERR"
+elif [ -n "$WORKFLOW_WARN" ]; then
     record_check 24 "GitHub Actions workflow action pinning and permissions" "WARN" "$WORKFLOW_WARN"
 else
     record_check 24 "GitHub Actions workflow action pinning and permissions" "PASS" ""
