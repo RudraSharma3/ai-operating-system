@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-29
+
+### Added
+- **Hallucination Defense Verification Layer (`scripts/ai_os_verify.py`)**: Stdlib-only Python 3.9+ verification engine with cross-platform wrappers (`scripts/ai-os-verify.sh`, `scripts/ai-os-verify.ps1`, `scripts/ai-os-run`, `scripts/ai-os-run.ps1`) targeting specific, testable coding-agent failure modes:
+  - `deps`: Manifest dependency extraction and human-approval enforcement against `.ai/deps-approved.txt`.
+  - `imports`: Static AST import scanning for Python (`ast.parse`) and regex-based scanning for JS/TS (`package.json`), resolving against standard library inventories, manifest dependencies, local module trees, and `.ai/import-aliases.txt`.
+  - `registry-check`: Offline-by-default package age and slopsquatting/typosquatting heuristic analysis requiring explicit `--online` flag.
+  - `run` & `evidence`: Evidence ledger generation and verification recording execution in `.ai/evidence/<sha>-<ts>-<rand>.json` with environment hashes, exit codes, output digests, and duration.
+- **Git Hook & Pre-Commit Integration**: Chained dependency verification (blocking unapproved dependencies) and import verification (warning by default) into `.githooks/pre-commit` and template hooks with low overhead (<2.0s benchmark limit).
+- **Project Health Doctor Checks (Checks 25, 26, 27)**: Added Doctor checks validating the presence and non-emptiness of `.ai/deps-approved.txt` and `.ai/import-aliases.txt`, validating `AGENTS.md` and template alignment with `## Evidence & Verification` and Section 1.3, and ensuring git hooks chain `ai-os-verify`.
+- **Reproducible Evaluation Tasks (Tasks 06, 07, 08)**: Added reproducible evals under `evals/tasks/`:
+  - `06-phantom-dependency`: Tests phantom/hallucinated dependency introduction against reference standard library implementation.
+  - `07-stale-api`: Tests stale API / parameter hallucination against vendored library source.
+  - `08-false-completion-claim`: Tests false completion claims against required test evidence records.
+- **Interactive Demonstration Script (`scripts/demo.sh` & `scripts/demo.ps1`)**: Live scratch repository demonstration verifying blocking of secret leaks, blocking of phantom dependencies, and permitting clean commits.
+- **Threat Model, Sources & User Guide Updates**: Documented the AI coding agent supply-chain threat model in `docs/threat-model.md` and added Section 8 to `docs/sources.md` citing slopsquatting literature (Endor Labs, Tian Pan, Trend Micro).
+- **Verification & Limitations Note**: What is verified: Offline static AST and regex import analysis, manifest dependency validation against `.ai/deps-approved.txt`, evidence ledger creation/replay, pre-commit hook enforcement, and eval reference solutions and negative controls for Tasks 06-08 (all passing). What is unmeasured: Live coding agent benchmark comparison under headless runner mode remains unmeasured in this release due to requirement for isolated container/VM sandboxes per `evals/README.md`.
+
 ### Changed
 - **Explicit Authorization Operating Rule Length Correction**: Rewrote Section 1.6 (`Explicit Authorization Gate`) in `AGENTS.md` and Rule 9 in `templates/project/AGENTS.md` to strictly <= 250 bytes (measured at 197 bytes UTF-8 without newline, 198 bytes with newline in `AGENTS.md`, and 201 bytes in template). Strengthened `tests/test_agents_contract.sh` to mechanically enforce both the <= 250 byte limit and coverage of all four required safety concepts (`merge`, `tag or release`, `repository settings`, `"continue"`).
 - **Table-Driven Dependabot Cooldown Doctor Validation (Check 24)**: Replaced hardcoded ecosystem checks in `scripts/doctor.sh` and `scripts/doctor.ps1` with an offline table-driven schema validator backed by `docs/dependabot-cooldown-keys.json` (33 package ecosystems derived from the official GitHub documentation). Configured the doctor check to record `FAIL` for unsupported keys under known ecosystems and `WARN` for unrecognized ecosystems. Added dual-direction unit tests in `tests/test_installer.sh`.
