@@ -151,11 +151,12 @@ ai-operating-system/
 │   ├── task-state.md                   # Active task progress tracker
 │   └── decisions/
 │       └── 001-ai-operating-system-architecture.md # Formal ADR 001
-├── playbooks/ (14 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
+├── playbooks/ (15 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
 │                              # testing, review, architecture-decisions,
 │                              # learning-loop, prompt-refinement,
 │                              # multi-agent-orchestration, stochastic-consensus,
-│                              # token-optimization, interview, release-and-learn
+│                              # token-optimization, interview, release-and-learn,
+│                              # hallucination-guard
 ├── prompts/ (7 Roles)         # architect, implementer, reviewer, tester,
 │                              # researcher, security-reviewer, data-ai-specialist
 ├── scripts/
