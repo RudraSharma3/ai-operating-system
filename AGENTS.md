@@ -40,7 +40,7 @@ Default to the lowest coordination overhead that safely achieves the task:
 - **Tier 3 (Strategic Architecture & Decoupled Subsystems)**: Trigger Consensus (`playbooks/stochastic-consensus.md`) or Multi-Agent MCP (`playbooks/multi-agent-orchestration.md`) strictly for high-risk trade-offs or parallel architecture.
 
 ### 1.6 Explicit Authorization Gate
-Never merge PRs, push commits directly to protected branches (main), create tags, publish releases, close pull requests, or alter repository settings without explicit instruction in the active user request; vague continuation prompts (e.g. "continue") do not constitute authorization.
+Never merge PRs, push to protected branches, tag, release, close PRs, or alter repository settings without explicit instruction in the active task text; a vague "continue" prompt is not permission.
 
 ---
 

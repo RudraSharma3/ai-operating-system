@@ -1,6 +1,6 @@
 {
     "ai_os_version": "2.4.5",
-    "generated_at": "2026-10-29T11:12:38Z",
+    "generated_at": "2026-10-29T12:15:11Z",
     "file_count": 56,
     "files": {
         ".ai-os/optional/claude-hooks/README.md": "39f2e4e136d1f5acd665a3d9f97c269d799c7f8b7983f407708e124bed59c185",
@@ -48,7 +48,7 @@
         ".githooks/pre-commit": "daef15dfe954427ffa2270582ab1c23c00297fc6159f1f7bdf268fa13a46cfd4",
         ".github/copilot-instructions.md": "1a0d713f4d0fb85ec3251f8e4f86c96fa35eaf926d4fbd8d73728ea724b1931a",
         ".gitignore": "eb117ab871271d8802d24906733c051922818606fc307f6c1430926e759a5cd3",
-        "AGENTS.md": "f65ead4768db7630fed95d32c4daabff6a4d29ba18073eda5d15d695af5893bb",
+        "AGENTS.md": "14137c28a395941a53fbd60f3d50afbe34700c789d679f46f3c6fbb419350566",
         "CLAUDE.md": "86d6e76fe697585093a293ab9a2f0ce67d885ae52af3e273f484ec527be57e39",
         "CODEX.md": "36bbea9b880ce5bb6a716d856e91f8a5bbbe053bc7cb9f4a8041277c75fa77d5",
         "GEMINI.md": "06d23b5157bffd0c1496bfd7061e87a97aad16b7efa098078d9900a2cf399a11",
