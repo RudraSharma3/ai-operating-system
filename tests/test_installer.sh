@@ -653,7 +653,7 @@ EOF
     local doc_out_dep_pass
     doc_out_dep_pass=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
 
-    # 6. Test warn when dependabot.yml includes unsupported semver keys for github-actions
+    # 6. Test FAIL when dependabot.yml includes unsupported semver keys for github-actions
     cat << 'EOF' > "$sandbox/.github/dependabot.yml"
 version: 2
 updates:
@@ -668,6 +668,37 @@ EOF
     local doc_out_dep_semver_invalid
     doc_out_dep_semver_invalid=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
 
+    # 7. Test PASS when an ecosystem supporting semver keys (e.g. npm) uses semver keys
+    cat << 'EOF' > "$sandbox/.github/dependabot.yml"
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+      semver-major-days: 30
+      semver-minor-days: 14
+      semver-patch-days: 7
+EOF
+    local doc_out_dep_semver_valid
+    doc_out_dep_semver_valid=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
+    # 8. Test WARN when dependabot.yml uses an unknown package ecosystem
+    cat << 'EOF' > "$sandbox/.github/dependabot.yml"
+version: 2
+updates:
+  - package-ecosystem: "unknown-ecosystem-xyz"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+EOF
+    local doc_out_dep_unknown_eco
+    doc_out_dep_unknown_eco=$("$REPO_ROOT/scripts/doctor.sh" "$sandbox" 2>&1) || true
+
     cleanup_sandbox "$sandbox"
 
     assert_contains "$doc_out_no_perm" "WARN] GitHub Actions workflow" "doctor.sh must warn when workflow lacks top-level permissions block" || return 1
@@ -678,8 +709,11 @@ EOF
     assert_contains "$doc_out_dep_warn" "WARN] GitHub Actions workflow" "doctor.sh must warn when dependabot.yml lacks cooldown" || return 1
     assert_contains "$doc_out_dep_warn" "lacks a minimum 14-day cooldown" "doctor.sh must identify missing dependabot cooldown" || return 1
     assert_contains "$doc_out_dep_pass" "PASS] GitHub Actions workflow" "doctor.sh must pass when dependabot.yml has 14-day cooldown" || return 1
-    assert_contains "$doc_out_dep_semver_invalid" "WARN] GitHub Actions workflow" "doctor.sh must warn when dependabot.yml uses unsupported cooldown keys" || return 1
+    assert_contains "$doc_out_dep_semver_invalid" "FAIL] GitHub Actions workflow" "doctor.sh must fail when dependabot.yml uses unsupported cooldown keys" || return 1
     assert_contains "$doc_out_dep_semver_invalid" "unsupported cooldown key" "doctor.sh must identify unsupported cooldown key" || return 1
+    assert_contains "$doc_out_dep_semver_valid" "PASS] GitHub Actions workflow" "doctor.sh must pass when semver-supporting ecosystem uses semver keys" || return 1
+    assert_contains "$doc_out_dep_unknown_eco" "WARN] GitHub Actions workflow" "doctor.sh must warn when dependabot.yml uses unknown ecosystem" || return 1
+    assert_contains "$doc_out_dep_unknown_eco" "unknown package ecosystem" "doctor.sh must identify unknown package ecosystem" || return 1
 }
 
 # Run installer tests
