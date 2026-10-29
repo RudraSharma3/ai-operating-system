@@ -309,3 +309,31 @@ All commit SHAs proposed in Dependabot PRs were independently queried and verifi
   3. Update `tests/test_installer.sh` check-runner test expectations.
 - **Automated Verification**: Run full multi-platform matrix CI (Ubuntu, macOS, Windows) and ensure 0 warnings across ShellCheck and PSScriptAnalyzer.
 - **Supercede & Close**: Merge the atomic PR and close PRs #3, #4, #5, #6 with reference to the atomic modernization commit.
+
+---
+
+## 8. Slopsquatting & Phantom Dependency Supply-Chain Research
+
+This section documents research on "slopsquatting" and package hallucination risks in autonomous AI coding agents, motivating the offline dependency approval gate (`.ai/deps-approved.txt`) and registry check cooldown policies.
+
+### 1. Endor Labs: Slopsquatting When AI Agents Hallucinate Malicious Packages
+- **URL**: `https://www.endorlabs.com/learn/slopsquatting-when-ai-agents-hallucinate-malicious-packages`
+- **Retrieval Date**: 2026-10-29
+- **Verification Status**: **VERIFIED**
+- **Verbatim Excerpt (<25 words)**: *"slopsquatting preys on AI hallucinations. Large language models output statistically plausible-sounding library or module names that do not actually exist"*
+- **Core Finding**: Autonomous agents install hallucinated package names without human oversight, allowing attackers who pre-register those names on npm/PyPI to deliver payloads directly into disk and CI/CD pipelines.
+
+### 2. Tian Pan: The Package Your Agent Hallucinated Now Exists
+- **URL**: `https://tianpan.co/blog/2026/07/02/the-package-your-agent-hallucinated-now-exists`
+- **Retrieval Date**: 2026-10-29
+- **Verification Status**: **VERIFIED**
+- **Verbatim Excerpt (<25 words)**: *"The Package Your Agent Hallucinated Now Exists... research shows these hallucinations aren't completely random noise; they are stable, repeating patterns"*
+- **Core Finding**: Hallucinated package names follow reproducible probabilistic patterns across model families, making it feasible for adversaries to mass-register predictive phantom names.
+
+### 3. Trend Micro: Technical Brief on Slopsquatting
+- **URL**: `https://documents.trendmicro.com/assets/white_papers/techbrief-slopsquatting.pdf`
+- **Retrieval Date**: 2026-10-29
+- **Verification Status**: **VERIFIED**
+- **Verbatim Excerpt (<25 words)**: *"Instead of taking advantage of human typing mistakes, it exploits AI hallucinations... pulling malware straight into their codebase"*
+- **Core Finding**: Recommends strict human-in-the-loop approval gates before package installation, isolated container execution, and cooldown periods for newly published packages in automated environments.
+
