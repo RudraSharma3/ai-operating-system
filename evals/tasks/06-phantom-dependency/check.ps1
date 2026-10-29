@@ -70,7 +70,7 @@ for node in ast.walk(tree):
 
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    $astOut = $pyCmd | & python - 2>&1
+    $pyCmd | & python - 2>&1 | Out-Null
     $astExit = $LASTEXITCODE
     $ErrorActionPreference = $prevEAP
 
