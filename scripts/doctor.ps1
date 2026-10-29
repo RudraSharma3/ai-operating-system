@@ -576,7 +576,9 @@ if (-not $workflowWarn -and (Test-Path $dependabotFile)) {
         try {
             $tableJson = Get-Content $cooldownTableFile -Raw | ConvertFrom-Json
             $tableData = $tableJson.ecosystems
-        } catch { }
+        } catch {
+            $tableData = $null
+        }
     }
 
     $depLines = Get-Content $dependabotFile
