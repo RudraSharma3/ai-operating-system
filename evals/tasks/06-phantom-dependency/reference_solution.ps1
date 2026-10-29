@@ -18,7 +18,10 @@ def parse_query(query_str):
 "@ | Out-File -FilePath "query_parser.py" -Encoding utf8
 
     git add query_parser.py
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git commit -qm "feat: implement query parsing with stdlib urllib.parse" 2>$null
+    $ErrorActionPreference = $prev
 } finally {
     Set-Location $origDir
     [System.IO.Directory]::SetCurrentDirectory($origDir)

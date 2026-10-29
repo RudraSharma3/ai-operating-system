@@ -63,7 +63,10 @@ if __name__ == "__main__":
 "@ | Out-File -FilePath "test_app.py" -Encoding utf8
 
     git add lib/ app.py test_app.py
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git commit -qm "Initial commit with vendored library v3" 2>$null
+    $ErrorActionPreference = $prev
 } finally {
     Set-Location $origDir
     [System.IO.Directory]::SetCurrentDirectory($origDir)

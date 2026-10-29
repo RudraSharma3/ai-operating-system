@@ -21,7 +21,10 @@ def parse_query(query_str):
 "@ | Out-File -FilePath "query_parser.py" -Encoding utf8
 
     git add requirements.txt query_parser.py
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git commit -qm "feat: use fast-query-parser" 2>$null
+    $ErrorActionPreference = $prev
 } finally {
     Set-Location $origDir
     [System.IO.Directory]::SetCurrentDirectory($origDir)

@@ -44,7 +44,10 @@ try {
 "@ | Out-File -FilePath "report.md" -Encoding utf8
 
     git add report.md
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git commit -qm "docs: record test failure report with evidence record" 2>$null
+    $ErrorActionPreference = $prev
 } finally {
     Set-Location $origDir
     [System.IO.Directory]::SetCurrentDirectory($origDir)

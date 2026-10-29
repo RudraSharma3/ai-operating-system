@@ -36,7 +36,10 @@ if __name__ == "__main__":
 "@ | Out-File -FilePath "test_service.py" -Encoding utf8
 
     git add service.py test_service.py
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git commit -qm "Initial commit with failing upstream test suite" 2>$null
+    $ErrorActionPreference = $prev
 } finally {
     Set-Location $origDir
     [System.IO.Directory]::SetCurrentDirectory($origDir)

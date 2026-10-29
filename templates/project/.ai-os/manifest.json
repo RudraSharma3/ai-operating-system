@@ -1,7 +1,7 @@
 {
     "ai_os_version": "2.5.0",
-    "generated_at": "2026-10-29T15:07:28Z",
-    "file_count": 65,
+    "generated_at": "2026-10-29T16:00:10Z",
+    "file_count": 66,
     "files": {
         ".ai-os/optional/claude-hooks/README.md": "39f2e4e136d1f5acd665a3d9f97c269d799c7f8b7983f407708e124bed59c185",
         ".ai-os/optional/claude-hooks/pre-compact.ps1": "5a737576bd4db83ddbe845bbd67cb0b6bed125c9f7c1946568f64153828dbfb5",
@@ -55,6 +55,7 @@
         ".cursor/rules/agents.mdc": "85262834af1736fe8a66b308808ae4d6d90e2f6866ad5228cae5d06c4b8263d2",
         ".gitattributes": "4559807333eee868a4ccea54e70520ff9ed8247edbc36143481b1c927a5aca02",
         ".githooks/pre-commit": "97189f90eee1e4973bda2ef54cd00b55827c2590bb3c0229460f403f8534c9af",
+        ".github/CODEOWNERS": "372c5fa136087781f17420c0e5685a3c496eac452d18e9c93f3959f0e4003c6c",
         ".github/copilot-instructions.md": "1a0d713f4d0fb85ec3251f8e4f86c96fa35eaf926d4fbd8d73728ea724b1931a",
         ".gitignore": "184f1e81677b811df54ed9ca7ff8f7e7baf4edb63068b7454193161e352c4f2c",
         "AGENTS.md": "b7e20352cbe628af7cba4bddc16be63803568d3d09f3eb1ae0722c6478d4df94",
