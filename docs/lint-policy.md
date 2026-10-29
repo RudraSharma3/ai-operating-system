@@ -32,7 +32,12 @@ Get-ChildItem -Path . -Recurse -Filter "*.ps1" |
 | File | Suppressed Rule | Findings Hidden | Justification |
 | :--- | :--- | :--- | :--- |
 | `evals/run_task.ps1` | `PSReviewUnusedParameter` | **6** (`Mode`, `AgentCmd`, `Reference`, `Negative`, `CheckOnly`, `TargetDir`) | Parameters define the standard CLI parameter contract for the evaluation runner and are consumed dynamically within internal execution contexts (`Invoke-SingleTask`). |
-| `evals/run_task.ps1` | `PSAvoidUsingInvokeExpression` | **1** (line 138) | The evaluation harness dynamically executes arbitrary agent benchmark commands passed by the benchmark caller. |
+| `evals/run_task.ps1` | `PSAvoidUsingInvokeExpression` | **1** (line 147) | Executes the caller-supplied agent command string and must never be given untrusted input; the suppression is maintained solely for this benchmark harness boundary. |
+
+### Evaluation Harness Dynamic Execution Boundary (`evals/run_task.ps1`)
+`evals/run_task.ps1` executes the caller-supplied agent command string via `Invoke-Expression` to benchmark external agent CLIs.
+- **Untrusted Input Warning**: `evals/run_task.ps1` executes the caller-supplied agent command string and must never be given untrusted input. The `PSAvoidUsingInvokeExpression` suppression is maintained solely with that justification.
+- **Input Validation**: Empty or whitespace-only commands are strictly rejected with an immediate non-zero exit code (verified by `evals/test_eval_harness.sh`).
 
 ---
 
