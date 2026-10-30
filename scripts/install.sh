@@ -5,11 +5,20 @@ set -e
 
 WITH_CLAUDE_HOOKS=false
 TARGET_PATH="."
+OWNER_HANDLE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --with-claude-hooks)
             WITH_CLAUDE_HOOKS=true
+            shift
+            ;;
+        --owner)
+            OWNER_HANDLE="$2"
+            shift 2
+            ;;
+        --owner=*)
+            OWNER_HANDLE="${1#*=}"
             shift
             ;;
         *)
@@ -18,6 +27,22 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [ -z "$OWNER_HANDLE" ]; then
+    REMOTE_URL=$(git -C "$TARGET_PATH" remote get-url origin 2>/dev/null || true)
+    if [ -n "$REMOTE_URL" ]; then
+        DERIVED_OWNER=$(echo "$REMOTE_URL" | sed -E -e 's#(https?://[^/]+/|git@[^:]+:|ssh://git@[^/]+/)##' -e 's#/.*##' -e 's#\.git$##')
+        if [ -n "$DERIVED_OWNER" ]; then
+            if [[ ! "$DERIVED_OWNER" =~ ^@ ]]; then
+                OWNER_HANDLE="@$DERIVED_OWNER"
+            else
+                OWNER_HANDLE="$DERIVED_OWNER"
+            fi
+        fi
+    fi
+elif [[ ! "$OWNER_HANDLE" =~ ^@ ]]; then
+    OWNER_HANDLE="@$OWNER_HANDLE"
+fi
 
 GIT_USER=$(git config user.name 2>/dev/null || echo "$USER")
 [ -z "$GIT_USER" ] && GIT_USER="Developer"
@@ -53,6 +78,9 @@ echo "[1/3] Copying AI-OS architecture, rule files, and playbooks..."
 cd "$TEMPLATE_DIR"
 find . -type f | while IFS= read -r rel_file; do
     rel_path="${rel_file#./}"
+    if [ "$rel_path" = ".github/CODEOWNERS" ]; then
+        continue
+    fi
     dest_file="$TARGET_PATH/$rel_path"
     dest_dir="$(dirname "$dest_file")"
     mkdir -p "$dest_dir"
@@ -89,6 +117,45 @@ if [ -f "$GITIGNORE_DEST" ]; then
 else
     cp "$GITIGNORE_SRC" "$GITIGNORE_DEST"
     echo "  + Created .gitignore with AI-OS rules"
+fi
+
+# Non-destructive CODEOWNERS configuration
+EXISTING_CO=""
+for co_loc in "$TARGET_PATH/.github/CODEOWNERS" "$TARGET_PATH/CODEOWNERS" "$TARGET_PATH/docs/CODEOWNERS"; do
+    if [ -f "$co_loc" ]; then
+        EXISTING_CO="$co_loc"
+        break
+    fi
+done
+
+if [ -n "$EXISTING_CO" ]; then
+    if ! grep -q "\.ai/deps-approved\.txt" "$EXISTING_CO" 2>/dev/null; then
+        if [ -n "$OWNER_HANDLE" ]; then
+            echo ".ai/deps-approved.txt $OWNER_HANDLE" >> "$EXISTING_CO"
+        else
+            echo ".ai/deps-approved.txt" >> "$EXISTING_CO"
+        fi
+        echo "  + Appended .ai/deps-approved.txt to existing $(basename "$EXISTING_CO")"
+    else
+        echo "  = Existing $(basename "$EXISTING_CO") already covers .ai/deps-approved.txt"
+    fi
+else
+    mkdir -p "$TARGET_PATH/.github"
+    DEST_CO="$TARGET_PATH/.github/CODEOWNERS"
+    SRC_CO="$TEMPLATE_DIR/.github/CODEOWNERS"
+    if [ -n "$OWNER_HANDLE" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line// }" ]]; then
+                echo "$line"
+            else
+                echo "$line $OWNER_HANDLE"
+            fi
+        done < "$SRC_CO" > "$DEST_CO"
+        echo "  + Created .github/CODEOWNERS assigned to $OWNER_HANDLE"
+    else
+        cp "$SRC_CO" "$DEST_CO"
+        echo "  + Created .github/CODEOWNERS without owner line"
+    fi
 fi
 
 mkdir -p "$TARGET_PATH/.ai"

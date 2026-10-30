@@ -135,7 +135,7 @@ This document records the official documentation URLs, retrieval dates, and veri
 - **Retrieval Date**: 2026-10-28
 - **Verification Status**: **VERIFIED**
 - **14-Day Maturity Policy**:
-  All MCP servers declared in `mcp.json` must be pinned to immutable, exact package versions that were published at least 14 days prior to pinning. This mitigates supply-chain risks and ensures upstream releases are stable.
+  All MCP servers declared in `mcp.json` must be pinned to exact package versions that were published at least 14 days prior to pinning. This mitigates supply-chain risks and ensures upstream releases are stable.
 - **Tracked MCP Packages & Upstream Sources**:
   - `@modelcontextprotocol/server-filesystem`: npm registry (`https://registry.npmjs.org/@modelcontextprotocol/server-filesystem`). Pinned to `1.0.0` (published `2026-10-11T02:44:10Z`, 17 days old).
   - `@modelcontextprotocol/server-memory`: npm registry (`https://registry.npmjs.org/@modelcontextprotocol/server-memory`). Pinned to `1.0.0` (published `2026-10-11T02:42:27Z`, 17 days old).
@@ -262,7 +262,7 @@ This document records the official documentation URLs, retrieval dates, and veri
   - **Changed Inputs & Breaking Changes**:
     - v6.0.0: Removed deprecated `pyproject-file` and `uv-file` inputs; added explicit `activate-environment` boolean input (defaults to false, replacing automatic root venv creation); added `working-directory` input; changed default `cache-dependency-glob`.
     - v7.0.0: Removed deprecated `server-url` input; changed default binary download source to Astral mirror (`releases.astral.sh`).
-    - v8.0.0: Removed deprecated custom `manifest-file` format; stopped publishing mutable major/minor tags (`@v8`, `@v8.0`), enforcing immutable exact tags (`v8.0.0`).
+    - v8.0.0: Removed deprecated custom `manifest-file` format; stopped publishing mutable major/minor tags (`@v8`, `@v8.0`), enforcing exact version tags (`v8.0.0`).
     - v9.0.0: Disabled default cache pruning (`prune-cache: false`), increasing cache hit rates at the expense of higher cache storage consumption.
     - v10.0.0: Default `enable-cache: auto` automatically disables cache for `pull_request_target`, `workflow_run`, and `release` events to prevent cache poisoning attacks; added `version: latest-known`.
     - v10.3.2: Added `python-arch` input for selecting target architecture independently of Python version.

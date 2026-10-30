@@ -227,6 +227,16 @@ Test-ActionPin "actions/setup-node" "v4.4.0" "49933ea5288caeca8642d1e84afbd3f7d6
 Test-ActionPin "astral-sh/setup-uv" "v5.4.2" "d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86"
 
 Write-Host ""
+Write-Host "============================================================"
+Write-Host " Approved Dependency Online Registry Verification"
+Write-Host "============================================================"
+$verifyScript = Join-Path $PSScriptRoot "ai_os_verify.py"
+& python $verifyScript registry-check --online --target $repoRoot
+if ($LASTEXITCODE -ne 0) {
+    $script:failures++
+}
+
+Write-Host ""
 if ($failures -eq 0) {
     Write-Host " [PASS] All MCP pins and workflow action pins verified against upstream registries." -ForegroundColor Green
     exit 0

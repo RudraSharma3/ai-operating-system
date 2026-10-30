@@ -59,6 +59,22 @@ status_without_noop=0
 bash "$SCRIPT_DIR/run_task.sh" --task 01-bug-fix --mode without --agent-cmd "$STUB_NOOP_BASH" >/dev/null 2>&1 || status_without_noop=$?
 assert_eq 1 "$status_without_noop" "run_task.sh with noop-stub in --mode without must FAIL (exit 1)"
 
+# Tasks 06, 07, 08: Bash with/without stub-agent runs
+for task_id in "06-phantom-dependency" "07-stale-api" "08-false-completion-claim"; do
+    echo "▶️ Testing Bash: $task_id with/without stub-agent..."
+    st_b_wa=0; bash "$SCRIPT_DIR/run_task.sh" --task "$task_id" --mode with --agent-cmd "$STUB_APPLY_BASH" >/dev/null 2>&1 || st_b_wa=$?
+    assert_eq 0 "$st_b_wa" "run_task.sh ($task_id) with apply-stub in --mode with must PASS (exit 0)"
+
+    st_b_wn=0; bash "$SCRIPT_DIR/run_task.sh" --task "$task_id" --mode with --agent-cmd "$STUB_NOOP_BASH" >/dev/null 2>&1 || st_b_wn=$?
+    assert_eq 1 "$st_b_wn" "run_task.sh ($task_id) with noop-stub in --mode with must FAIL (exit 1)"
+
+    st_b_woa=0; bash "$SCRIPT_DIR/run_task.sh" --task "$task_id" --mode without --agent-cmd "$STUB_APPLY_BASH" >/dev/null 2>&1 || st_b_woa=$?
+    assert_eq 0 "$st_b_woa" "run_task.sh ($task_id) with apply-stub in --mode without must PASS (exit 0)"
+
+    st_b_won=0; bash "$SCRIPT_DIR/run_task.sh" --task "$task_id" --mode without --agent-cmd "$STUB_NOOP_BASH" >/dev/null 2>&1 || st_b_won=$?
+    assert_eq 1 "$st_b_won" "run_task.sh ($task_id) with noop-stub in --mode without must FAIL (exit 1)"
+done
+
 # --- 2. PowerShell Harness Tests (evals/run_task.ps1) ---
 if command -v powershell.exe >/dev/null 2>&1 || command -v pwsh >/dev/null 2>&1; then
     PS_BIN="powershell.exe"
@@ -98,6 +114,22 @@ if command -v powershell.exe >/dev/null 2>&1 || command -v pwsh >/dev/null 2>&1;
     status_ps_without_noop=0
     $PS_BIN -ExecutionPolicy Bypass -File "$PS_SCRIPT_DIR/run_task.ps1" -Task 01-bug-fix -Mode without -AgentCmd "$STUB_NOOP_PS" >/dev/null 2>&1 || status_ps_without_noop=$?
     assert_eq 1 "$status_ps_without_noop" "run_task.ps1 with noop-stub in -Mode without must FAIL"
+
+    # Tasks 06, 07, 08: PowerShell with/without stub-agent runs
+    for task_id in "06-phantom-dependency" "07-stale-api" "08-false-completion-claim"; do
+        echo "▶️ Testing PowerShell: $task_id with/without stub-agent..."
+        st_ps_wa=0; $PS_BIN -ExecutionPolicy Bypass -File "$PS_SCRIPT_DIR/run_task.ps1" -Task "$task_id" -Mode with -AgentCmd "$STUB_APPLY_PS" >/dev/null 2>&1 || st_ps_wa=$?
+        assert_eq 0 "$st_ps_wa" "run_task.ps1 ($task_id) with apply-stub in -Mode with must PASS"
+
+        st_ps_wn=0; $PS_BIN -ExecutionPolicy Bypass -File "$PS_SCRIPT_DIR/run_task.ps1" -Task "$task_id" -Mode with -AgentCmd "$STUB_NOOP_PS" >/dev/null 2>&1 || st_ps_wn=$?
+        assert_eq 1 "$st_ps_wn" "run_task.ps1 ($task_id) with noop-stub in -Mode with must FAIL"
+
+        st_ps_woa=0; $PS_BIN -ExecutionPolicy Bypass -File "$PS_SCRIPT_DIR/run_task.ps1" -Task "$task_id" -Mode without -AgentCmd "$STUB_APPLY_PS" >/dev/null 2>&1 || st_ps_woa=$?
+        assert_eq 0 "$st_ps_woa" "run_task.ps1 ($task_id) with apply-stub in -Mode without must PASS"
+
+        st_ps_won=0; $PS_BIN -ExecutionPolicy Bypass -File "$PS_SCRIPT_DIR/run_task.ps1" -Task "$task_id" -Mode without -AgentCmd "$STUB_NOOP_PS" >/dev/null 2>&1 || st_ps_won=$?
+        assert_eq 1 "$st_ps_won" "run_task.ps1 ($task_id) with noop-stub in -Mode without must FAIL"
+    done
 fi
 
 # --- 3. Sandbox Isolation & Safety Tests ---

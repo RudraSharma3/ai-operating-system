@@ -2,7 +2,9 @@ param (
     [Parameter(Mandatory=$false)]
     [string]$TargetPath = (Get-Location).Path,
     [Parameter(Mandatory=$false)]
-    [switch]$WithClaudeHooks
+    [switch]$WithClaudeHooks,
+    [Parameter(Mandatory=$false)]
+    [string]$Owner
 )
 
 # Detect Git User and Project Name
@@ -15,6 +17,23 @@ $projectName = (Split-Path -Leaf $TargetPath)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
 $TemplateDir = Join-Path $RepoRoot "templates\project"
+
+# Derive owner handle if not passed
+if (-not $Owner) {
+    try {
+        $remoteUrl = git -C $TargetPath remote get-url origin 2>$null
+        if ($remoteUrl -and ($remoteUrl -match '(?:https?://[^/]+/|git@[^:]+:|ssh://git@[^/]+/)([^/]+)/')) {
+            $derivedOwner = $Matches[1]
+            if ($derivedOwner -notmatch '^@') {
+                $Owner = "@$derivedOwner"
+            } else {
+                $Owner = $derivedOwner
+            }
+        }
+    } catch {}
+} elseif ($Owner -notmatch '^@') {
+    $Owner = "@$Owner"
+}
 
 # ASCII Logo Header
 Write-Host ""
@@ -44,6 +63,10 @@ Write-Host "`n[1/3] Copying AI-OS architecture, rule files, and playbooks..." -F
 $templateFiles = Get-ChildItem -Path $TemplateDir -Recurse -File
 foreach ($file in $templateFiles) {
     $relative = $file.FullName.Substring($TemplateDir.Length).TrimStart("\", "/")
+    $normalizedRel = $relative.Replace("\", "/")
+    if ($normalizedRel -eq ".github/CODEOWNERS") {
+        continue
+    }
     $destFile = Join-Path $TargetPath $relative
     $destDir = Split-Path -Parent $destFile
     if (-not (Test-Path $destDir)) {
@@ -72,6 +95,47 @@ if (Test-Path $destGitignore) {
 } else {
     Copy-Item -Path $srcGitignore -Destination $destGitignore -Force
     Write-Host "  + Created .gitignore with AI-OS rules" -ForegroundColor Gray
+}
+
+# Non-destructive CODEOWNERS configuration
+$existingCo = $null
+foreach ($cand in @(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")) {
+    $candPath = Join-Path $TargetPath $cand
+    if (Test-Path $candPath) {
+        $existingCo = $candPath
+        break
+    }
+}
+
+if ($existingCo) {
+    $coContent = Get-Content $existingCo -Raw -ErrorAction SilentlyContinue
+    if ($coContent -notmatch "\.ai/deps-approved\.txt") {
+        $line = if ($Owner) { "`n.ai/deps-approved.txt $Owner`n" } else { "`n.ai/deps-approved.txt`n" }
+        Add-Content -Path $existingCo -Value $line
+        Write-Host "  + Appended .ai/deps-approved.txt to existing $(Split-Path -Leaf $existingCo)" -ForegroundColor Gray
+    } else {
+        Write-Host "  = Existing $(Split-Path -Leaf $existingCo) already covers .ai/deps-approved.txt" -ForegroundColor DarkGray
+    }
+} else {
+    $destGithub = Join-Path $TargetPath ".github"
+    if (-not (Test-Path $destGithub)) { New-Item -ItemType Directory -Path $destGithub -Force | Out-Null }
+    $destCo = Join-Path $destGithub "CODEOWNERS"
+    $srcCo = Join-Path $TemplateDir ".github\CODEOWNERS"
+    if ($Owner) {
+        $lines = Get-Content $srcCo
+        $outLines = foreach ($line in $lines) {
+            if ($line -match '^\s*#' -or [string]::IsNullOrWhiteSpace($line)) {
+                $line
+            } else {
+                "$line $Owner"
+            }
+        }
+        $outLines | Set-Content -Path $destCo -Encoding utf8
+        Write-Host "  + Created .github/CODEOWNERS assigned to $Owner" -ForegroundColor Gray
+    } else {
+        Copy-Item -Path $srcCo -Destination $destCo -Force
+        Write-Host "  + Created .github/CODEOWNERS without owner line" -ForegroundColor Gray
+    }
 }
 
 $destAiDir = Join-Path $TargetPath ".ai"

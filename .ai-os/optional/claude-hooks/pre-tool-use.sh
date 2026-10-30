@@ -29,8 +29,8 @@ if tool_name in write_tools:
     # Normalize path
     target_path = str(target_path).replace("\\", "/").strip()
     
-    # Check if target is a governance path or evidence record
-    is_governance = bool(re.search(r"(^|/)(AGENTS\.md|\.ai/rules/.*|\.githooks/.*|scripts/.*|\.ai/evidence/.*)$", target_path))
+    # Check if target is a governance path or dependency approvals file
+    is_governance = bool(re.search(r"(^|/)(AGENTS\.md|\.ai/rules/.*|\.githooks/.*|scripts/.*|\.ai/deps-approved\.txt)$", target_path))
     if is_governance:
         allow_override = os.environ.get("AI_OS_ALLOW_GOVERNANCE_EDIT") == "1"
         if not allow_override:
@@ -38,7 +38,7 @@ if tool_name in write_tools:
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
                     "permissionDecision": "deny",
-                    "permissionDecisionReason": "Direct edits to AI-OS governance and evidence files (AGENTS.md, .ai/rules/, .githooks/, scripts/, .ai/evidence/) are blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
+                    "permissionDecisionReason": "Direct edits to AI-OS governance files (AGENTS.md, .ai/rules/, .githooks/, scripts/, .ai/deps-approved.txt) are blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
                 }
             }
             print(json.dumps(decision, indent=2))

@@ -690,7 +690,7 @@ This document tracks the current development milestones and task state for the m
   - **Threat Model (`docs/threat-model.md`)**: Created comprehensive 1-page threat model detailing protected assets, 4 threat actors (careless agent, prompt-injected agent, malicious dependency, compromised contributor), defense-in-depth controls diagram, and honest operational limits (best-effort heuristic injection filters, human review as the real boundary, directory-isolated sandbox vs hypervisor/microVM).
   - **Workflow Security & Action SHA Pinning**:
     - Added top-level `permissions: contents: read` to `.github/workflows/ci.yml` and `.github/workflows/registry-check.yml`.
-    - Pinned all third-party GitHub actions to full immutable commit SHAs with version comments:
+    - Pinned all third-party GitHub actions to full 40-character commit SHAs with version comments:
       * `actions/checkout@11d5960a326750d5838078e36cf38b85af677262` # v4.2.2
       * `actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065` # v5.6.0
       * `actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020` # v4.4.0
@@ -976,3 +976,36 @@ This document tracks the current development milestones and task state for the m
   * Exact test suite, doctor, eval, and demo commands executed and documented in session report.
 - **Not Verified**:
   * Live coding agent benchmark comparison under headless runner mode (recorded as unmeasured per container/VM sandbox isolation requirements).
+---
+
+## 2026-10-30 - Fix Round on PR #14 (hallucination-guard)
+- **Goal**: Address review findings across Sections A through F on PR #14 without merging.
+- **What Changed**:
+  - **Section A (Imports False-Positive Mitigation)**:
+    * Re-ran static imports check across root repo (0 undeclared), sibling 1 (0 undeclared), sibling 2 (reduced from 10 to 9 genuine unmanifested dependencies).
+    * Generic causes resolved: namespace package prefix matching, src-layout discovery, tsconfig path mapping, guarded conditional imports.
+    * Added 4 synthetic regression tests to tests/test_verify.sh (demonstrated failing first, then passing: 15 Passed | 0 Failed).
+  - **Section B (--online Mode Wiring & Isolation)**:
+    * Wired --online into scripts/registry-check.sh and registry-check.ps1; kept strictly out of default CI and doctor.
+    * Added test-only fixture hook AI_OS_REGISTRY_MOCK_FILE to scripts/ai_os_verify.py and added offline fixture regression test to tests/test_verify.sh (16 Passed | 0 Failed).
+    * Executed real-registry check once with requests (PyPI, 5737 days) and express (npm, 5784 days) with exit code 0.
+  - **Section C (CODEOWNERS in Template & Installer)**:
+    * Stripped hardcoded handles from templates/project/.github/CODEOWNERS.
+    * Updated scripts/install.sh and scripts/install.ps1 with --owner / -Owner flag, auto-deriving from git remote or omitting handle safely.
+    * Updated Doctor Check 26 to inspect all 3 CODEOWNERS locations (.github/CODEOWNERS, CODEOWNERS, docs/CODEOWNERS) and emit WARN with one-line fix for unowned repos.
+    * Added 3 installer CODEOWNERS scenarios to tests/test_installer.sh (27 Passed | 0 Failed).
+  - **Section D (Self-Approval Gap & Notice)**:
+    * Demonstrated self-approval gap in scratch repo (adding dep + approval line passes local hook).
+    * Added distinct notice in scripts/ai_os_verify.py deps when approvals file changed; added approvals_changed=warn|block config in .ai/verify.conf (default warn) and doctor validation.
+    * Added 2 new tests to tests/test_verify.sh (demonstrated failing first, then passing: 18 Passed | 0 Failed).
+    * Reverted unverified .ai/evidence/.* Claude Code hook block; extended PreToolUse to block edits to .ai/deps-approved.txt; verified with tests/test_claude_hooks.sh (15 Passed | 0 Failed).
+    * Updated docs/threat-model.md and playbooks/hallucination-guard.md documenting that true enforcement requires CODEOWNERS + branch protection requiring review.
+  - **Section E (Evidence & Claims Reconciliation)**:
+    * Demonstrated untouched fixtures fail for tasks 06, 07, 08 using documented commands.
+    * Demonstrated contract test fails first on origin/main worktree (Criteria 10 & 11 failing).
+    * Added --help to evals/run_task.sh; verified --mode and --agent-cmd documentation in evals/README.md.
+    * Extended evals/test_eval_harness.sh with stub-agent with/without runs for tasks 06, 07, 08 on bash and PowerShell (44 Passed | 0 Failed).
+    * Replaced all occurrences of forbidden words (immutable, tamper-proof, prevents hallucination) with honest wording; verified empty grep result.
+    * Re-measured hook overhead with raw, unsorted run order across 5 runs on 50 staged files.
+    * Updated CHANGELOG.md [2.5.0] notes.
+

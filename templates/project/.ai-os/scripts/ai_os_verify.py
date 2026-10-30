@@ -291,10 +291,73 @@ def get_manifest_deps_from_git_ref(target_dir: str, ref: str) -> dict[str, set[s
     return deps
 
 
+def load_verify_config(target_dir: str) -> dict[str, str]:
+    """Load configuration from .ai/verify.conf."""
+    conf_path = os.path.join(target_dir, ".ai", "verify.conf")
+    config = {
+        "deps": "block",
+        "imports": "warn",
+        "on_missing_python": "warn",
+        "approvals_changed": "warn",
+    }
+    if os.path.isfile(conf_path):
+        try:
+            with open(conf_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        k, v = line.split("=", 1)
+                        config[k.strip()] = v.strip()
+        except Exception:
+            pass
+    return config
+
+
+def is_approvals_file_modified(target_dir: str, approvals_file: str) -> bool:
+    """Check whether the approvals file was modified relative to HEAD in worktree or index."""
+    try:
+        rel_path = os.path.relpath(approvals_file, target_dir).replace("\\", "/")
+    except Exception:
+        rel_path = approvals_file
+
+    try:
+        diff_res = subprocess.run(
+            ["git", "diff", "HEAD", "--", rel_path],
+            cwd=target_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False
+        )
+        if diff_res.returncode == 0 and diff_res.stdout.strip():
+            return True
+
+        stat_res = subprocess.run(
+            ["git", "status", "--porcelain", "--", rel_path],
+            cwd=target_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False
+        )
+        if stat_res.stdout.strip():
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def cmd_deps(args: argparse.Namespace) -> int:
     """Subcommand: deps - audit newly added dependencies against approvals."""
     target_dir = os.path.abspath(args.target)
+    approvals_path = args.approvals if args.approvals else os.path.join(target_dir, ".ai", "deps-approved.txt")
     approved = get_approved_dependencies(target_dir, args.approvals)
+
+    vconf = load_verify_config(target_dir)
+    approvals_policy = vconf.get("approvals_changed", "warn").lower()
+    approvals_changed = is_approvals_file_modified(target_dir, approvals_path)
 
     # Current tree / staged dependencies
     current_deps = get_manifest_deps_from_tree(target_dir)
@@ -315,16 +378,27 @@ def cmd_deps(args: argparse.Namespace) -> int:
             else:
                 unapproved.append((eco, pkg))
 
+    has_error = bool(unapproved) or (approvals_changed and approvals_policy == "block")
+
     result = {
-        "status": "PASS" if not unapproved else "FAIL",
+        "status": "PASS" if not has_error else "FAIL",
         "unapproved": [{"ecosystem": e, "package": p} for e, p in unapproved],
         "newly_approved": new_approved,
-        "total_approved_tracked": len(approved)
+        "total_approved_tracked": len(approved),
+        "approvals_changed": approvals_changed,
+        "approvals_policy": approvals_policy
     }
 
     if args.json:
         print(json.dumps(result, indent=2))
     else:
+        if approvals_changed:
+            notice = "approval file changed in this commit; require a human code-owner review"
+            if approvals_policy == "block":
+                print(f"[AI-OS Verifier] ❌ {notice}")
+            else:
+                print(f"[AI-OS Verifier] ⚠️  {notice}")
+
         if unapproved:
             print("[AI-OS Verifier] ❌ Unapproved dependency detected:")
             for eco, pkg in unapproved:
@@ -333,11 +407,10 @@ def cmd_deps(args: argparse.Namespace) -> int:
             for eco, pkg in unapproved:
                 today = datetime.date.today().isoformat()
                 print(f"  {eco}|{pkg}|<justification>|{today}|@your-username")
-            return 1
-        else:
+        elif not (approvals_changed and approvals_policy == "block"):
             print("[AI-OS Verifier] ✅ All newly added dependencies are approved.")
 
-    return 1 if unapproved else 0
+    return 1 if has_error else 0
 
 
 def get_import_aliases(target_dir: str, custom_file: str | None = None) -> dict[str, str]:
@@ -357,53 +430,152 @@ def get_import_aliases(target_dir: str, custom_file: str | None = None) -> dict[
     return aliases
 
 
-def extract_python_imports(filepath: str) -> set[str]:
-    """Extract imported top-level modules from a Python file using AST."""
-    imports = set()
+class PythonImportVisitor(ast.NodeVisitor):
+    """AST visitor extracting imported modules, respecting try/except guards and TYPE_CHECKING."""
+    def __init__(self):
+        self.imports = set()
+        self.compound_imports = set()
+        self.compound_by_top = {}
+        self.in_try_import = False
+        self.in_type_checking = False
+
+    def visit_Try(self, node: ast.Try):
+        # Check if any handler catches ImportError, ModuleNotFoundError, Exception, or bare except
+        is_import_guarded = False
+        for h in node.handlers:
+            if h.type is None:
+                is_import_guarded = True
+            elif isinstance(h.type, ast.Name) and h.type.id in ("ImportError", "ModuleNotFoundError", "Exception", "BaseException"):
+                is_import_guarded = True
+            elif isinstance(h.type, ast.Tuple):
+                for elt in h.type.elts:
+                    if isinstance(elt, ast.Name) and elt.id in ("ImportError", "ModuleNotFoundError", "Exception", "BaseException"):
+                        is_import_guarded = True
+
+        old_try = self.in_try_import
+        if is_import_guarded:
+            self.in_try_import = True
+        for stmt in node.body:
+            self.visit(stmt)
+        self.in_try_import = old_try
+
+        for h in node.handlers:
+            self.visit(h)
+        for stmt in node.orelse:
+            self.visit(stmt)
+        for stmt in node.finalbody:
+            self.visit(stmt)
+
+    def visit_If(self, node: ast.If):
+        is_tc = False
+        if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
+            is_tc = True
+        elif isinstance(node.test, ast.Attribute) and node.test.attr == "TYPE_CHECKING":
+            is_tc = True
+
+        old_tc = self.in_type_checking
+        if is_tc:
+            self.in_type_checking = True
+        for stmt in node.body:
+            self.visit(stmt)
+        self.in_type_checking = old_tc
+
+        for stmt in node.orelse:
+            self.visit(stmt)
+
+    def visit_Import(self, node: ast.Import):
+        if self.in_try_import or self.in_type_checking:
+            return
+        for alias in node.names:
+            top_name = alias.name.split(".")[0]
+            self.imports.add(top_name)
+            if "." in alias.name:
+                self.compound_imports.add(alias.name)
+                self.compound_by_top.setdefault(top_name, set()).add(alias.name)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom):
+        if self.in_try_import or self.in_type_checking:
+            return
+        if node.level == 0 and node.module:
+            top_name = node.module.split(".")[0]
+            self.imports.add(top_name)
+            for alias in node.names:
+                full_mod = f"{node.module}.{alias.name}"
+                self.compound_imports.add(full_mod)
+                self.compound_by_top.setdefault(top_name, set()).add(full_mod)
+
+
+def extract_python_imports(filepath: str) -> tuple[set[str], dict[str, set[str]]]:
+    """Extract imported top-level and compound modules from a Python file using AST."""
+    visitor = PythonImportVisitor()
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             tree = ast.parse(f.read(), filename=filepath)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    top_name = alias.name.split(".")[0]
-                    imports.add(top_name)
-            elif isinstance(node, ast.ImportFrom):
-                if node.level == 0 and node.module:
-                    top_name = node.module.split(".")[0]
-                    imports.add(top_name)
+        visitor.visit(tree)
     except Exception:
         pass
-    return imports
+    return visitor.imports, visitor.compound_by_top
 
 
-def extract_js_imports(filepath: str) -> set[str]:
+def get_js_path_alias_prefixes(target_dir: str) -> set[str]:
+    """Extract path alias prefixes from tsconfig.json or jsconfig.json."""
+    prefixes = {"@/", "~/"}
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [d for d in dirs if d not in (".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next", "out")]
+        for f in files:
+            if f in ("tsconfig.json", "jsconfig.json"):
+                fpath = os.path.join(root, f)
+                try:
+                    with open(fpath, "r", encoding="utf-8-sig", errors="ignore") as jf:
+                        content = jf.read()
+                        content = re.sub(r'//.*', '', content)
+                        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+                        data = json.loads(content)
+                        compiler_opts = data.get("compilerOptions", {})
+                        base_url = compiler_opts.get("baseUrl")
+                        if base_url:
+                            base_dir = os.path.normpath(os.path.join(root, base_url))
+                            if os.path.isdir(base_dir):
+                                for item in os.listdir(base_dir):
+                                    if not item.startswith("."):
+                                        prefixes.add(f"{item}/")
+                        paths = compiler_opts.get("paths", {})
+                        for key in paths:
+                            clean_key = key.replace("*", "")
+                            if clean_key:
+                                prefixes.add(clean_key)
+                except Exception:
+                    pass
+    return prefixes
+
+
+def extract_js_imports(filepath: str, path_prefixes: set[str] | None = None) -> set[str]:
     """Extract imported packages from JS/TS files using regex."""
     imports = set()
+    if path_prefixes is None:
+        path_prefixes = {"@/", "~/"}
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
-        # Matches: import ... from 'pkg' or require('pkg') or import('pkg')
         patterns = [
-            r'(?:import|from)\s+[\'"]([^\'"\r\n]+)[\'"]',
-            r'require\(\s*[\'"]([^\'"\r\n]+)[\'"]\s*\)',
-            r'import\(\s*[\'"]([^\'"\r\n]+)[\'"]\s*\)'
+            r"(?:import|from)\s+['\"]([^'\"\r\n]+)['\"]",
+            r"require\(\s*['\"]([^'\"\r\n]+)['\"]\s*\)",
+            r"import\(\s*['\"]([^'\"\r\n]+)['\"]\s*\)"
         ]
         for pat in patterns:
             for m in re.finditer(pat, content):
                 spec = m.group(1).strip()
-                # Skip relative paths, root paths, or path aliases (@/, ~/)
-                if spec.startswith((".", "/", "\\", "@/", "~/")):
+                if spec.startswith((".", "/", "\\")):
+                    continue
+                if any(spec.startswith(p) for p in path_prefixes):
                     continue
                 if spec.startswith("node:"):
                     continue
-                # Skip JS directives, template variables, and syntax fragments
                 if spec in ("use strict", "use client", "use server"):
                     continue
                 if any(c in spec for c in ("${", "+", "(", ")", ",", ";", "\n", "\r", " ")):
                     continue
 
-                # Scoped package: @scope/name
                 if spec.startswith("@"):
                     parts = spec.split("/")
                     if len(parts) >= 2:
@@ -431,6 +603,22 @@ def cmd_imports(args: argparse.Namespace) -> int:
             workspace_modules.add(item[:-3])
         elif os.path.isdir(full) and not item.startswith((".", "node_modules", "venv", "__pycache__")):
             workspace_modules.add(item)
+            if item in ("src", "lib", "packages"):
+                for sub in os.listdir(full):
+                    sub_full = os.path.join(full, sub)
+                    if sub.endswith(".py"):
+                        workspace_modules.add(sub[:-3])
+                    elif os.path.isdir(sub_full) and not sub.startswith((".", "__")):
+                        workspace_modules.add(sub)
+
+    # Also discover all internal package directories with __init__.py
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [d for d in dirs if d not in (".git", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".ai", "dist", "build", ".next", "out", "coverage")]
+        if "__init__.py" in files:
+            workspace_modules.add(os.path.basename(root))
+
+    # Path prefixes for JS/TS path aliases
+    js_path_prefixes = get_js_path_alias_prefixes(target_dir)
 
     undeclared = []
 
@@ -452,7 +640,7 @@ def cmd_imports(args: argparse.Namespace) -> int:
         fname = os.path.basename(path)
 
         if fname.endswith(".py"):
-            imported = extract_python_imports(path)
+            imported, compound_by_top = extract_python_imports(path)
             for mod in imported:
                 norm_mod = normalize_pkg_name(mod)
                 # Check 1: Standard library
@@ -464,6 +652,12 @@ def cmd_imports(args: argparse.Namespace) -> int:
                 # Check 3: Declared in python dependencies
                 resolved_pkg = aliases.get(mod.lower(), norm_mod)
                 if resolved_pkg in manifest_deps["python"] or norm_mod in manifest_deps["python"]:
+                    continue
+                # Check 3b: Namespace package prefix in manifest (e.g. google from google-genai)
+                if any(p.startswith(f"{norm_mod}-") or p.startswith(f"{norm_mod}_") for p in manifest_deps["python"]):
+                    continue
+                # Check 3c: Compound import matching manifest (e.g. google.genai -> google-genai)
+                if any(normalize_pkg_name(c) in manifest_deps["python"] for c in compound_by_top.get(mod, set())):
                     continue
                 # Check 4: Local file relative to file directory
                 file_dir = os.path.dirname(path)
@@ -478,7 +672,7 @@ def cmd_imports(args: argparse.Namespace) -> int:
                 })
 
         elif fname.endswith((".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")):
-            imported = extract_js_imports(path)
+            imported = extract_js_imports(path, js_path_prefixes)
             for pkg in imported:
                 norm_pkg = normalize_pkg_name(pkg)
                 underscore_pkg = pkg.replace("-", "_")
@@ -509,12 +703,12 @@ def cmd_imports(args: argparse.Namespace) -> int:
         print(json.dumps(result, indent=2))
     else:
         if undeclared:
-            print("[AI-OS Verifier] ⚠️  Undeclared imports detected:")
+            print("[AI-OS Verifier] [WARN] Undeclared imports detected:")
             for item in undeclared:
                 print(f"  • {item['file']}: '{item['import']}' (expected in manifest as '{item['resolved_pkg']}')")
             return 1
         else:
-            print(f"[AI-OS Verifier] ✅ All imports in {len(files_to_check)} files resolved successfully.")
+            print(f"[AI-OS Verifier] [OK] All imports in {len(files_to_check)} files resolved successfully.")
 
     return 1 if undeclared else 0
 
@@ -576,36 +770,53 @@ def cmd_registry_check(args: argparse.Namespace) -> int:
         is_young = False
         error_msg = None
 
-        try:
-            if eco == "python":
-                url = f"https://pypi.org/pypi/{pkg}/json"
-                req = urllib.request.Request(url, headers={"User-Agent": "AI-OS-Verifier/1.0"})
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    data = json.loads(resp.read().decode())
-                    releases = data.get("releases", {})
-                    # Find earliest release date
-                    dates = []
-                    for ver, files in releases.items():
-                        for fl in files:
-                            dt = fl.get("upload_time_iso_8601") or fl.get("upload_time")
-                            if dt:
-                                dates.append(dt)
-                    if dates:
-                        earliest = min(dates)
-                        pub_date = earliest[:10]
-            elif eco == "npm":
-                url = f"https://registry.npmjs.org/{pkg}"
-                req = urllib.request.Request(url, headers={"User-Agent": "AI-OS-Verifier/1.0"})
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    data = json.loads(resp.read().decode())
-                    times = data.get("time", {})
-                    created = times.get("created")
-                    if created:
-                        pub_date = created[:10]
-        except urllib.error.HTTPError as he:
-            error_msg = f"HTTP {he.code}: package not found or forbidden"
-        except Exception as e:
-            error_msg = f"Lookup error: {e}"
+        # Test-only fixture hook: AI_OS_REGISTRY_MOCK_FILE allows offline testing of flags
+        mock_file = os.environ.get("AI_OS_REGISTRY_MOCK_FILE")
+        mock_entry = None
+        if mock_file and os.path.isfile(mock_file):
+            try:
+                with open(mock_file, "r", encoding="utf-8-sig") as mf:
+                    mock_data = json.load(mf)
+                    mock_entry = mock_data.get(key)
+            except Exception as me:
+                error_msg = f"Mock fixture error: {me}"
+
+        if mock_entry is not None:
+            if not mock_entry.get("exists", True) or "error" in mock_entry:
+                error_msg = mock_entry.get("error", "HTTP 404: package not found")
+            else:
+                pub_date = mock_entry.get("publish_date")
+        else:
+            try:
+                if eco == "python":
+                    url = f"https://pypi.org/pypi/{pkg}/json"
+                    req = urllib.request.Request(url, headers={"User-Agent": "AI-OS-Verifier/1.0"})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read().decode())
+                        releases = data.get("releases", {})
+                        # Find earliest release date
+                        dates = []
+                        for ver, files in releases.items():
+                            for fl in files:
+                                dt = fl.get("upload_time_iso_8601") or fl.get("upload_time")
+                                if dt:
+                                    dates.append(dt)
+                        if dates:
+                            earliest = min(dates)
+                            pub_date = earliest[:10]
+                elif eco == "npm":
+                    url = f"https://registry.npmjs.org/{pkg}"
+                    req = urllib.request.Request(url, headers={"User-Agent": "AI-OS-Verifier/1.0"})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read().decode())
+                        times = data.get("time", {})
+                        created = times.get("created")
+                        if created:
+                            pub_date = created[:10]
+            except urllib.error.HTTPError as he:
+                error_msg = f"HTTP {he.code}: package not found or forbidden"
+            except Exception as e:
+                error_msg = f"Lookup error: {e}"
 
         if pub_date:
             try:
@@ -641,7 +852,7 @@ def cmd_registry_check(args: argparse.Namespace) -> int:
     else:
         has_failure = False
         for f in findings:
-            symbol = "✅" if f["status"] == "PASS" else ("⚠️" if f["status"] == "WARN" else "❌")
+            symbol = "[PASS]" if f["status"] == "PASS" else ("[WARN]" if f["status"] == "WARN" else "[FAIL]")
             print(f" {symbol} {f['key']}: age {f['age_days']} days, status {f['status']}")
             if f["error"]:
                 print(f"    Error: {f['error']}")

@@ -76,7 +76,7 @@ mkdir -p "$TARGET_DIR/.cursor/rules"
 cp "$ROOT_DIR/.cursor/rules/agents.mdc" "$TARGET_DIR/.cursor/rules/agents.mdc"
 mkdir -p "$TARGET_DIR/.github"
 cp "$ROOT_DIR/.github/copilot-instructions.md" "$TARGET_DIR/.github/copilot-instructions.md"
-cp "$ROOT_DIR/.github/CODEOWNERS" "$TARGET_DIR/.github/CODEOWNERS"
+sed -E 's/ @[a-zA-Z0-9_\-]+//g' "$ROOT_DIR/.github/CODEOWNERS" > "$TARGET_DIR/.github/CODEOWNERS"
 
 for ad in "CLAUDE.md" "GEMINI.md" "CODEX.md"; do
     cp "$ROOT_DIR/$ad" "$TARGET_DIR/$ad"
