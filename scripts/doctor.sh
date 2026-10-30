@@ -688,11 +688,9 @@ DEPS_FILE="$PROJECT_PATH/.ai/deps-approved.txt"
 if [ ! -f "$DEPS_FILE" ]; then
     record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
 else
-    CO_FOUND=""
     CO_HAS_OWNER=false
     for co in ".github/CODEOWNERS" "CODEOWNERS" "docs/CODEOWNERS"; do
         if [ -f "$PROJECT_PATH/$co" ]; then
-            CO_FOUND="$co"
             if grep -E '^\s*\.ai/deps-approved\.txt\s+@[a-zA-Z0-9_\-]+' "$PROJECT_PATH/$co" >/dev/null 2>&1; then
                 CO_HAS_OWNER=true
                 break

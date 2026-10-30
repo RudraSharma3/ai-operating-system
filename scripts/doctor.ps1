@@ -695,7 +695,9 @@ if (-not (Test-Path $depsFile)) {
         if ((Resolve-Path $target).Path -eq (Resolve-Path $repoRoot).Path) {
             $isRootRepo = $true
         }
-    } catch {}
+    } catch {
+        $null = $_
+    }
 
     if ($coHasOwner) {
         Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "PASS"

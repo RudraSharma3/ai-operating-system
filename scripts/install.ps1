@@ -30,7 +30,9 @@ if (-not $Owner) {
                 $Owner = $derivedOwner
             }
         }
-    } catch {}
+    } catch {
+        $null = $_
+    }
 } elseif ($Owner -notmatch '^@') {
     $Owner = "@$Owner"
 }
