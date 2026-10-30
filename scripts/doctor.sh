@@ -689,8 +689,17 @@ if [ ! -f "$DEPS_FILE" ]; then
     record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
 else
     CO_HAS_OWNER=false
+    CO_HAS_UNOWNED_PATTERN=false
     for co in ".github/CODEOWNERS" "CODEOWNERS" "docs/CODEOWNERS"; do
         if [ -f "$PROJECT_PATH/$co" ]; then
+            while IFS= read -r line || [ -n "$line" ]; do
+                clean_l=$(echo "$line" | sed -e 's/#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+                [ -z "$clean_l" ] && continue
+                if [[ ! "$clean_l" =~ @[a-zA-Z0-9_\-]+ ]]; then
+                    CO_HAS_UNOWNED_PATTERN=true
+                fi
+            done < "$PROJECT_PATH/$co"
+
             if grep -E '^\s*\.ai/deps-approved\.txt\s+@[a-zA-Z0-9_\-]+' "$PROJECT_PATH/$co" >/dev/null 2>&1; then
                 CO_HAS_OWNER=true
                 break
@@ -703,13 +712,21 @@ else
         IS_ROOT_REPO=true
     fi
 
-    if [ "$CO_HAS_OWNER" = true ]; then
+    if [ "$CO_HAS_OWNER" = true ] && [ "$CO_HAS_UNOWNED_PATTERN" = false ]; then
         record_check 26 "Dependency approval list and CODEOWNERS coverage" "PASS" ""
     else
         if [ "$IS_ROOT_REPO" = true ]; then
-            record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+            if [ "$CO_HAS_UNOWNED_PATTERN" = true ]; then
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "CODEOWNERS contains unowned pattern line without an owner handle"
+            else
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+            fi
         else
-            record_check 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+            if [ "$CO_HAS_UNOWNED_PATTERN" = true ]; then
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS contains unowned pattern line; add '@your-handle' to each pattern line"
+            else
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+            fi
         fi
     fi
 fi

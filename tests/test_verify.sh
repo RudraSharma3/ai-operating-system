@@ -535,6 +535,60 @@ EOF
     assert_contains "$output" "approval file changed in this commit; require a human code-owner review" "Must print notice when approvals file changed in block mode" || return 1
 }
 
+test_namespace_distribution_soundness() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    echo "google-genai==0.1.0" > requirements.txt
+    cat << 'EOF' > good.py
+import google.genai
+EOF
+    cat << 'EOF' > bad.py
+import google.cloud.storage
+EOF
+    cat << 'EOF' > phantom.py
+import google.not_a_real_module
+EOF
+    git add requirements.txt good.py bad.py phantom.py
+    git commit -q -m "google-genai test files"
+
+    # good.py should have NO findings
+    local out_good
+    out_good=$(python3 "$VERIFIER_PY" imports --target "$sandbox" --file good.py 2>&1) || true
+
+    # bad.py and phantom.py MUST have undeclared findings
+    local out_bad out_phantom
+    out_bad=$(python3 "$VERIFIER_PY" imports --target "$sandbox" --file bad.py 2>&1) || true
+    out_phantom=$(python3 "$VERIFIER_PY" imports --target "$sandbox" --file phantom.py 2>&1) || true
+
+    cleanup_sandbox "$sandbox"
+
+    assert_not_contains "$out_good" "undeclared package imported: google" "google.genai must be accepted when google-genai is declared" || return 1
+    assert_contains "$out_bad" "undeclared package imported: google" "google.cloud.storage must be rejected when only google-genai is declared" || return 1
+    assert_contains "$out_phantom" "undeclared package imported: google" "google.not_a_real_module must be rejected when only google-genai is declared" || return 1
+}
+
+test_guarded_phantom_package_emits_distinct_warning() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    echo "requests==2.31.0" > requirements.txt
+    cat << 'EOF' > test_guarded.py
+try:
+    import phantom_accelerator
+except ImportError:
+    phantom_accelerator = None
+EOF
+    git add requirements.txt test_guarded.py
+    git commit -q -m "guarded import test"
+
+    local out
+    out=$(python3 "$VERIFIER_PY" imports --target "$sandbox" --file test_guarded.py 2>&1) || true
+    cleanup_sandbox "$sandbox"
+
+    assert_contains "$out" "guarded import of undeclared package: phantom_accelerator" "Guarded phantom package import must emit distinct warning" || return 1
+}
+
 run_test "Verifier: Approved dependency passes" test_approved_dep_passes
 run_test "Verifier: Unapproved dependency fails with instructions" test_unapproved_dep_fails
 run_test "Verifier: Removal of dependency passes" test_removal_of_dep_passes
@@ -547,6 +601,8 @@ run_test "Verifier: Registry check strictly requires --online flag" test_offline
 run_test "Verifier: Evidence run records metadata and evidence --require validates clean HEAD" test_evidence_run_and_require
 run_test "Verifier: Bash and PowerShell wrappers exist and are executable" test_bash_and_powershell_wrappers
 run_test "Verifier: Namespace package resolves to declared manifest dependency" test_imports_namespace_package
+run_test "Verifier: Namespace distribution soundness rejects undeclared siblings" test_namespace_distribution_soundness
+run_test "Verifier: Guarded phantom package emits distinct warning" test_guarded_phantom_package_emits_distinct_warning
 run_test "Verifier: Src layout package resolves as internal workspace package" test_imports_src_layout
 run_test "Verifier: tsconfig path alias is recognized as internal module" test_imports_tsconfig_paths
 run_test "Verifier: Optional conditional import in try/except is ignored" test_imports_optional_conditional

@@ -118,6 +118,40 @@ POPULAR_PACKAGES = {
     "webpack", "babel-core", "rxjs", "inquirer", "semver", "glob", "uuid"
 }
 
+# Documented mapping table for common multi-module or namespace distributions
+# maps normalized distribution name -> set of top-level modules or compound prefixes
+COMMON_DISTRIBUTION_MODULES = {
+    "google-genai": {"google.genai"},
+    "google-api-python-client": {"googleapiclient"},
+    "google-auth": {"google.auth", "google.oauth2"},
+    "google-cloud-storage": {"google.cloud.storage"},
+    "google-cloud-bigquery": {"google.cloud.bigquery"},
+    "google-cloud-core": {"google.cloud"},
+    "protobuf": {"google.protobuf"},
+    "azure-storage-blob": {"azure.storage.blob"},
+    "azure-identity": {"azure.identity"},
+    "azure-core": {"azure.core"},
+    "aws-lambda-powertools": {"aws_lambda_powertools"},
+}
+
+
+def get_distribution_provided_modules(dist: str) -> set[str]:
+    """Return the set of top-level and compound modules provided by a distribution."""
+    norm = normalize_pkg_name(dist)
+    if norm in COMMON_DISTRIBUTION_MODULES:
+        return set(COMMON_DISTRIBUTION_MODULES[norm])
+    # Check installed package metadata via top_level.txt if locally installed
+    try:
+        import importlib.metadata as md
+        d = md.distribution(dist)
+        top = d.read_text("top_level.txt")
+        if top:
+            return {t.strip() for t in top.splitlines() if t.strip()}
+    except Exception:
+        pass
+    # Default: normalized name with hyphen replaced by underscore
+    return {norm.replace("-", "_")}
+
 
 def normalize_pkg_name(name: str) -> str:
     """Normalize package name according to PEP 503 / npm rules."""
@@ -434,8 +468,11 @@ class PythonImportVisitor(ast.NodeVisitor):
     """AST visitor extracting imported modules, respecting try/except guards and TYPE_CHECKING."""
     def __init__(self):
         self.imports = set()
+        self.guarded_imports = set()
         self.compound_imports = set()
+        self.guarded_compound_imports = set()
         self.compound_by_top = {}
+        self.guarded_compound_by_top = {}
         self.in_try_import = False
         self.in_type_checking = False
 
@@ -484,28 +521,48 @@ class PythonImportVisitor(ast.NodeVisitor):
             self.visit(stmt)
 
     def visit_Import(self, node: ast.Import):
-        if self.in_try_import or self.in_type_checking:
+        if self.in_type_checking:
             return
         for alias in node.names:
             top_name = alias.name.split(".")[0]
-            self.imports.add(top_name)
-            if "." in alias.name:
-                self.compound_imports.add(alias.name)
-                self.compound_by_top.setdefault(top_name, set()).add(alias.name)
+            if self.in_try_import:
+                self.guarded_imports.add(top_name)
+                if "." in alias.name:
+                    self.guarded_compound_imports.add(alias.name)
+                    self.guarded_compound_by_top.setdefault(top_name, set()).add(alias.name)
+            else:
+                self.imports.add(top_name)
+                if "." in alias.name:
+                    self.compound_imports.add(alias.name)
+                    self.compound_by_top.setdefault(top_name, set()).add(alias.name)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
-        if self.in_try_import or self.in_type_checking:
+        if self.in_type_checking:
             return
         if node.level == 0 and node.module:
             top_name = node.module.split(".")[0]
-            self.imports.add(top_name)
-            for alias in node.names:
-                full_mod = f"{node.module}.{alias.name}"
-                self.compound_imports.add(full_mod)
-                self.compound_by_top.setdefault(top_name, set()).add(full_mod)
+            full_mod = node.module
+            if self.in_try_import:
+                self.guarded_imports.add(top_name)
+                if "." in full_mod:
+                    self.guarded_compound_imports.add(full_mod)
+                    self.guarded_compound_by_top.setdefault(top_name, set()).add(full_mod)
+                for alias in node.names:
+                    compound = f"{full_mod}.{alias.name}"
+                    self.guarded_compound_imports.add(compound)
+                    self.guarded_compound_by_top.setdefault(top_name, set()).add(compound)
+            else:
+                self.imports.add(top_name)
+                if "." in full_mod:
+                    self.compound_imports.add(full_mod)
+                    self.compound_by_top.setdefault(top_name, set()).add(full_mod)
+                for alias in node.names:
+                    compound = f"{full_mod}.{alias.name}"
+                    self.compound_imports.add(compound)
+                    self.compound_by_top.setdefault(top_name, set()).add(compound)
 
 
-def extract_python_imports(filepath: str) -> tuple[set[str], dict[str, set[str]]]:
+def extract_python_imports(filepath: str) -> tuple[set[str], set[str], dict[str, set[str]], dict[str, set[str]]]:
     """Extract imported top-level and compound modules from a Python file using AST."""
     visitor = PythonImportVisitor()
     try:
@@ -514,7 +571,8 @@ def extract_python_imports(filepath: str) -> tuple[set[str], dict[str, set[str]]
         visitor.visit(tree)
     except Exception:
         pass
-    return visitor.imports, visitor.compound_by_top
+    guarded_only = visitor.guarded_imports - visitor.imports
+    return visitor.imports, guarded_only, visitor.compound_by_top, visitor.guarded_compound_by_top
 
 
 def get_js_path_alias_prefixes(target_dir: str) -> set[str]:
@@ -640,36 +698,52 @@ def cmd_imports(args: argparse.Namespace) -> int:
         fname = os.path.basename(path)
 
         if fname.endswith(".py"):
-            imported, compound_by_top = extract_python_imports(path)
-            for mod in imported:
+            imported, guarded_imported, compound_by_top, guarded_compound_by_top = extract_python_imports(path)
+            file_dir = os.path.dirname(path)
+
+            def check_py_module(mod: str, compounds_map: dict[str, set[str]], is_guarded: bool):
                 norm_mod = normalize_pkg_name(mod)
                 # Check 1: Standard library
                 if mod in stdlib or mod.startswith("_"):
-                    continue
+                    return
                 # Check 2: Workspace internal package / sibling
                 if mod in workspace_modules:
-                    continue
-                # Check 3: Declared in python dependencies
-                resolved_pkg = aliases.get(mod.lower(), norm_mod)
-                if resolved_pkg in manifest_deps["python"] or norm_mod in manifest_deps["python"]:
-                    continue
-                # Check 3b: Namespace package prefix in manifest (e.g. google from google-genai)
-                if any(p.startswith(f"{norm_mod}-") or p.startswith(f"{norm_mod}_") for p in manifest_deps["python"]):
-                    continue
-                # Check 3c: Compound import matching manifest (e.g. google.genai -> google-genai)
-                if any(normalize_pkg_name(c) in manifest_deps["python"] for c in compound_by_top.get(mod, set())):
-                    continue
-                # Check 4: Local file relative to file directory
-                file_dir = os.path.dirname(path)
+                    return
+                # Check 3: Local file relative to file directory
                 if os.path.exists(os.path.join(file_dir, f"{mod}.py")) or os.path.exists(os.path.join(file_dir, mod)):
-                    continue
+                    return
+
+                # Check 4: Declared in python dependencies
+                resolved_pkg = aliases.get(mod.lower(), norm_mod)
+                is_declared = False
+                if resolved_pkg in manifest_deps["python"] or norm_mod in manifest_deps["python"]:
+                    is_declared = True
+                else:
+                    compounds = compounds_map.get(mod, set())
+                    for p in manifest_deps["python"]:
+                        prov_mods = get_distribution_provided_modules(p)
+                        if norm_mod in prov_mods or mod in prov_mods:
+                            is_declared = True
+                            break
+                        if compounds and any(any(c == prov or c.startswith(f"{prov}.") for prov in prov_mods) for c in compounds):
+                            is_declared = True
+                            break
+
+                if is_declared:
+                    return
 
                 undeclared.append({
                     "file": rel_path,
                     "language": "python",
                     "import": mod,
-                    "resolved_pkg": resolved_pkg
+                    "resolved_pkg": resolved_pkg,
+                    "guarded": is_guarded
                 })
+
+            for mod in imported:
+                check_py_module(mod, compound_by_top, is_guarded=False)
+            for mod in guarded_imported:
+                check_py_module(mod, guarded_compound_by_top, is_guarded=True)
 
         elif fname.endswith((".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")):
             imported = extract_js_imports(path, js_path_prefixes)
@@ -690,11 +764,15 @@ def cmd_imports(args: argparse.Namespace) -> int:
                     "file": rel_path,
                     "language": "javascript",
                     "import": pkg,
-                    "resolved_pkg": norm_pkg
+                    "resolved_pkg": norm_pkg,
+                    "guarded": False
                 })
 
+    has_unguarded = any(not item.get("guarded") for item in undeclared)
+    has_guarded = any(item.get("guarded") for item in undeclared)
+
     result = {
-        "status": "PASS" if not undeclared else "FAIL",
+        "status": "FAIL" if has_unguarded else ("WARN" if has_guarded else "PASS"),
         "undeclared": undeclared,
         "scanned_files": len(files_to_check)
     }
@@ -703,14 +781,20 @@ def cmd_imports(args: argparse.Namespace) -> int:
         print(json.dumps(result, indent=2))
     else:
         if undeclared:
-            print("[AI-OS Verifier] [WARN] Undeclared imports detected:")
-            for item in undeclared:
-                print(f"  • {item['file']}: '{item['import']}' (expected in manifest as '{item['resolved_pkg']}')")
-            return 1
+            if has_unguarded:
+                print("[AI-OS Verifier] [WARN] Undeclared imports detected:")
+                for item in undeclared:
+                    if not item.get("guarded"):
+                        print(f"  • {item['file']}: undeclared package imported: {item['import']} (expected in manifest as '{item['resolved_pkg']}')")
+            if has_guarded:
+                print("[AI-OS Verifier] [WARN] Guarded imports of undeclared packages detected:")
+                for item in undeclared:
+                    if item.get("guarded"):
+                        print(f"  • {item['file']}: guarded import of undeclared package: {item['import']}")
         else:
             print(f"[AI-OS Verifier] [OK] All imports in {len(files_to_check)} files resolved successfully.")
 
-    return 1 if undeclared else 0
+    return 1 if has_unguarded else 0
 
 
 def levenshtein_distance(s1: str, s2: str) -> int:

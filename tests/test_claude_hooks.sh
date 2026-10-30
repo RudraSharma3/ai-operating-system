@@ -103,6 +103,15 @@ json_legit_git='{"tool_name":"Bash","tool_input":{"command":"git push origin har
 out_legit_git=$(echo "$json_legit_git" | bash "$HOOKS_DIR/pre-tool-use.sh")
 assert_eq "" "$out_legit_git" "PreToolUse allows legitimate git push"
 
+# Test 9b: pre-tool-use.sh blocks shell-write redirects to .ai/deps-approved.txt (heuristic)
+json_shell_write_redirect='{"tool_name":"Bash","tool_input":{"command":"echo '\''python|phantom|hack|2026-10-30|@attacker'\'' >> .ai/deps-approved.txt"}}'
+out_shell_redirect=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_shell_write_redirect" | bash "$HOOKS_DIR/pre-tool-use.sh")
+assert_contains '"permissionDecision": "deny"' "$out_shell_redirect" "PreToolUse blocks shell redirection to .ai/deps-approved.txt"
+
+json_shell_write_tee='{"tool_name":"Bash","tool_input":{"command":"echo evil | tee -a .ai/deps-approved.txt"}}'
+out_shell_tee=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_shell_write_tee" | bash "$HOOKS_DIR/pre-tool-use.sh")
+assert_contains '"permissionDecision": "deny"' "$out_shell_tee" "PreToolUse blocks tee -a redirection to .ai/deps-approved.txt"
+
 # Test 10: pre-tool-use.sh never executes tool input (injection defense)
 MARKER_FILE="$TMP_DIR/injected_execution.txt"
 json_injected="{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"test.txt; touch $MARKER_FILE\",\"content\":\"malicious\"}}"

@@ -92,4 +92,8 @@ Autonomous agents must **never** add dependencies without human authorization.
 4. **Offline by Default**:
    - All default test, hook, and doctor paths operate 100% offline without network calls.
    - Registry checks execute strictly when explicitly requested with `--online`.
+5. **Self-Approval & Shell Redirection Heuristics**:
+   - The opt-in Claude Code `PreToolUse` hook blocks direct edits to `.ai/deps-approved.txt` and uses regex heuristics to intercept shell commands appending to it (e.g. `echo ... >> .ai/deps-approved.txt`, `tee -a .ai/deps-approved.txt`).
+   - However, shell command interception is strictly a best-effort heuristic. An autonomous agent with native shell access can bypass string matching via obfuscation or helper scripts.
+   - Authoritative enforcement against unauthorized dependency additions requires `.github/CODEOWNERS` protection over `.ai/deps-approved.txt` and GitHub branch protection requiring code-owner reviews.
 

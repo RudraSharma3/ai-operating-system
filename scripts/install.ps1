@@ -33,6 +33,27 @@ if (-not $Owner) {
     } catch {
         $null = $_
     }
+    if (-not $Owner) {
+        try {
+            $gitU = git -C $TargetPath config user.name 2>$null
+            if (-not $gitU) { $gitU = git config user.name 2>$null }
+            if ($gitU -and ($gitU -notmatch '\s')) {
+                $Owner = "@$gitU"
+            }
+        } catch {
+            $null = $_
+        }
+    }
+    if (-not $Owner -and $env:AI_OS_ONLINE) {
+        try {
+            $ghUser = & gh api user --jq .login 2>$null
+            if ($ghUser) {
+                $Owner = "@$ghUser"
+            }
+        } catch {
+            $null = $_
+        }
+    }
 } elseif ($Owner -notmatch '^@') {
     $Owner = "@$Owner"
 }
@@ -112,9 +133,13 @@ foreach ($cand in @(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")) {
 if ($existingCo) {
     $coContent = Get-Content $existingCo -Raw -ErrorAction SilentlyContinue
     if ($coContent -notmatch "\.ai/deps-approved\.txt") {
-        $line = if ($Owner) { "`n.ai/deps-approved.txt $Owner`n" } else { "`n.ai/deps-approved.txt`n" }
-        Add-Content -Path $existingCo -Value $line
-        Write-Host "  + Appended .ai/deps-approved.txt to existing $(Split-Path -Leaf $existingCo)" -ForegroundColor Gray
+        if ($Owner) {
+            $line = "`n.ai/deps-approved.txt $Owner`n"
+            Add-Content -Path $existingCo -Value $line
+            Write-Host "  + Appended .ai/deps-approved.txt to existing $(Split-Path -Leaf $existingCo)" -ForegroundColor Gray
+        } else {
+            Write-Host "  = Preserved existing $(Split-Path -Leaf $existingCo) without unowned pattern (no owner derived)" -ForegroundColor DarkGray
+        }
     } else {
         Write-Host "  = Existing $(Split-Path -Leaf $existingCo) already covers .ai/deps-approved.txt" -ForegroundColor DarkGray
     }
@@ -135,8 +160,21 @@ if ($existingCo) {
         $outLines | Set-Content -Path $destCo -Encoding utf8
         Write-Host "  + Created .github/CODEOWNERS assigned to $Owner" -ForegroundColor Gray
     } else {
-        Copy-Item -Path $srcCo -Destination $destCo -Force
-        Write-Host "  + Created .github/CODEOWNERS without owner line" -ForegroundColor Gray
+        $commentLines = @(
+            "# AI Operating System Code Owners",
+            "# Core AI-OS security boundary: requires human CODEOWNER review for rule promotion, hook modification, or harness changes.",
+            "# Any pull request modifying these critical infrastructure paths requires an approving review from a human CODEOWNER.",
+            "#",
+            "# To activate CODEOWNERS protection, add '@your-handle' to each path below:",
+            "# AGENTS.md @your-handle",
+            "# .ai/rules/ @your-handle",
+            "# .githooks/ @your-handle",
+            "# scripts/ @your-handle",
+            "# .github/workflows/ @your-handle",
+            "# .ai/deps-approved.txt @your-handle"
+        )
+        $commentLines | Set-Content -Path $destCo -Encoding utf8
+        Write-Host "  + Created .github/CODEOWNERS with comments only (no owner derived)" -ForegroundColor Gray
     }
 }
 

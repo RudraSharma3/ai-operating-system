@@ -1009,3 +1009,45 @@ This document tracks the current development milestones and task state for the m
     * Re-measured hook overhead with raw, unsorted run order across 5 runs on 50 staged files.
     * Updated CHANGELOG.md [2.5.0] notes.
 
+---
+
+## 2026-10-30 - Round 3 Fixes on PR #14 (hallucination-guard)
+- **Goal**: Address review findings across Sections A through F on PR #14 without merging. Evidence-gated.
+- **What Changed**:
+  - **Section A (CI Durations Reconciled)**:
+    * Retrieved and verified exact per-job start and completion timestamps via GitHub API for runs 40878192364 (main), 40908142770 (initial PR #14), and 41027174832 (PR #14 Round 2).
+    * Reconciled A.2 discrepancy: Report 1 (Linux 1m09s, macOS 2m46s, Windows 5m38s) matched GitHub API timestamps; Report 2 (Linux 2m55s, macOS 4m02s, Windows 10m52s) was erroneous.
+    * Dissected step-level breakdown for >2x duration increases: eval harness stub-agent suite (+62s on Linux, +142s on Windows), master test harness (+19s on Linux, +178s on Windows), replayable task suite (+11s on Linux, +30s on Windows).
+    * Documented CI duration impacts in CHANGELOG.md.
+  - **Section B (Template CODEOWNERS)**:
+    * Confirmed git show 33c1d61:templates/project/.github/CODEOWNERS had 6 protected pattern lines; updated templates/project/.github/CODEOWNERS to have no unowned pattern lines.
+    * Upgraded scripts/install.sh and scripts/install.ps1 to take --owner / -Owner, derive owner locally/offline from origin remote or git config user.name, or write comments only without bare pattern lines if no owner is derivable.
+    * Updated Check 26 in scripts/doctor.sh and doctor.ps1 to verify every pattern line has @owner handle (WARN in downstream, FAIL in root repo).
+    * Added tests/test_doctor.sh with test_doctor_unowned_codeowners_pattern; added to tests/run_tests.sh.
+    * Validated GitHub API codeowners errors endpoint for hallucination-guard branch: returns {"errors": []} (0 errors).
+  - **Section C (Import Resolver Soundness)**:
+    * Replaced prefix matching in scripts/ai_os_verify.py with explicit COMMON_DISTRIBUTION_MODULES mapping and namespace package heuristics; confirmed google-genai validates google.genai while rejecting google.cloud.storage and nonexistent submodules.
+    * Added guarded import detection in PythonImportVisitor to identify unmanifested imports in try/except blocks, emitting non-blocking "guarded import of undeclared package: <pkg>" warning under imports=warn.
+    * Added unit tests for distribution soundness and guarded imports to tests/test_verify.sh (20 Passed | 0 Failed).
+    * Re-audited root repo and sibling repos (counts only): Root (0 unguarded, 0 guarded), Sibling 1 (9 unguarded, 0 guarded), Sibling 2 (0 unguarded, 0 guarded). Verified Sibling 1 manifests (4 files) confirm 9 genuine unmanifested dependencies.
+    * Re-measured hook latency on 50 staged files (5 runs, median overhead +0.0141s).
+  - **Section D (Hook Evidence & Self-Approval Heuristic)**:
+    * Explained PreToolUse verification vs unverified shell execution protection using docs/sources.md Section 4 citations.
+    * Added heuristic intercept in .ai-os/optional/claude-hooks/pre-tool-use.sh and pre-tool-use.ps1 blocking shell redirection (>> and tee -a) to governance files (.ai/deps-approved.txt, etc.).
+    * Added redirection unit tests to tests/test_claude_hooks.sh (17 Passed | 0 Failed).
+    * Updated docs/threat-model.md and playbooks/hallucination-guard.md documenting heuristic boundaries.
+    * Re-verified self-approval behavior in scratch repo under warn (exits 0 with notice) and block (exits 1) modes.
+  - **Section E (Omitted Items Verification)**:
+    * Verified evals/run_task.sh --help and evals/README.md documentation for --agent-cmd.
+    * Located demo test test_demo_script_execution in tests/test_installer.sh.
+    * Cited 3 slopsquatting papers in docs/sources.md Section 8 and verified README comparison table backing.
+    * Documented why Evidence & Verification belongs in AGENTS.md Section 1 Universal Operating Rules.
+    * Updated CHANGELOG.md [2.5.0] with all 4 disclosures.
+  - **Section F (Clean Tree Verification & Checks)**:
+    * Built templates with build-templates.sh and build-templates.ps1 (66 files indexed, zero drift).
+    * Ran full 13-command verification suite: all 13 passed with exit code 0.
+    * Measured AGENTS.md sizes: AGENTS.md is 5,534 bytes, template is 4,341 bytes, Evidence block is 538 bytes.
+- **What Was Verified**:
+  * All 13 suite commands, unit tests, doctor, evals, demo, template parity, and rules compilation passed cleanly with exit code 0.
+
+
