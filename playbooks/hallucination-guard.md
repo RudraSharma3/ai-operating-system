@@ -96,4 +96,5 @@ Autonomous agents must **never** add dependencies without human authorization.
    - The opt-in Claude Code `PreToolUse` hook blocks direct edits to `.ai/deps-approved.txt` and uses regex heuristics to intercept shell commands appending to it (e.g. `echo ... >> .ai/deps-approved.txt`, `tee -a .ai/deps-approved.txt`).
    - However, shell command interception is strictly a best-effort heuristic. An autonomous agent with native shell access can bypass string matching via obfuscation or helper scripts.
    - Authoritative enforcement against unauthorized dependency additions requires `.github/CODEOWNERS` protection over `.ai/deps-approved.txt` and GitHub branch protection requiring code-owner reviews.
+   - Note that GitHub prohibits a PR author from approving their own PR. Consequently, CODEOWNERS review enforcement does not function out of the box for solo-maintainer repositories; a solo developer requires either a secondary review account or an administrative bypass workflow.
 

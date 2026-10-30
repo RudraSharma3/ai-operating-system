@@ -533,6 +533,7 @@ EOF
 
     assert_eq "1" "$status" "deps with approvals_changed=block must exit non-zero when approvals file is changed" || return 1
     assert_contains "$output" "approval file changed in this commit; require a human code-owner review" "Must print notice when approvals file changed in block mode" || return 1
+    assert_not_contains "$output" "Unapproved dependency detected" "Must not report unapproved dependencies when only approvals file changed" || return 1
 }
 
 test_namespace_distribution_soundness() {

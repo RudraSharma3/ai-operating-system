@@ -293,10 +293,9 @@ if [ -f "$VERIFIER_SCRIPT" ] && { [ "$CONF_DEPS" != "off" ] || [ "$CONF_IMPORTS"
             echo "🔍 [AI-OS Verifier] Auditing newly added dependencies against .ai/deps-approved.txt..."
             if ! "$PY_BIN" "$VERIFIER_SCRIPT" deps --target "$REPO_ROOT"; then
                 if [ "$CONF_DEPS" = "block" ]; then
-                    echo "❌ [AI-OS Verifier BLOCKED COMMIT]: Unapproved dependencies detected!" >&2
                     exit 1
                 else
-                    echo "⚠️  [AI-OS Verifier Warning]: Unapproved dependencies detected." >&2
+                    echo "⚠️  [AI-OS Verifier Warning]: Dependency verification check reported warnings." >&2
                 fi
             fi
         fi
