@@ -21,8 +21,8 @@ test_doctor_check26_unowned_pattern_fails() {
 EOF
 
     # In sandbox repo, an unowned pattern line must produce WARN and flag unowned pattern
-    local doc_out doc_status=0
-    doc_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status=$?
+    local doc_out
+    doc_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || true
     assert_contains "$doc_out" "unowned pattern line" "doctor.sh must flag unowned pattern line" || return 1
 
     # In PowerShell
