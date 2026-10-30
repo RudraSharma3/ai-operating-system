@@ -429,12 +429,12 @@ def cmd_deps(args: argparse.Namespace) -> int:
         if approvals_changed:
             notice = "approval file changed in this commit; require a human code-owner review"
             if approvals_policy == "block":
-                print(f"[AI-OS Verifier] ❌ {notice}")
+                print(f"❌ [AI-OS Verifier BLOCKED COMMIT]: {notice}")
             else:
                 print(f"[AI-OS Verifier] ⚠️  {notice}")
 
         if unapproved:
-            print("[AI-OS Verifier] ❌ Unapproved dependency detected:")
+            print("❌ [AI-OS Verifier BLOCKED COMMIT]: Unapproved dependencies detected:")
             for eco, pkg in unapproved:
                 print(f"  • {eco}:{pkg}")
             print("\nTo approve, add a human-approved line to .ai/deps-approved.txt:")

@@ -98,19 +98,40 @@ json_force='{"tool_name":"Bash","tool_input":{"command":"git push origin main --
 out_force=$(echo "$json_force" | bash "$HOOKS_DIR/pre-tool-use.sh")
 assert_contains '"permissionDecision": "deny"' "$out_force" "PreToolUse blocks git push --force"
 
+# Test 8b: pre-tool-use.sh blocks NotebookEdit on governance files
+json_notebook='{"tool_name":"NotebookEdit","tool_input":{"file_path":".ai/deps-approved.txt","content":"tamper"}}'
+out_block_nb=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_notebook" | bash "$HOOKS_DIR/pre-tool-use.sh")
+assert_contains '"permissionDecision": "deny"' "$out_block_nb" "PreToolUse blocks NotebookEdit on .ai/deps-approved.txt"
+
 # Test 9: pre-tool-use.sh allows legitimate git commands
 json_legit_git='{"tool_name":"Bash","tool_input":{"command":"git push origin hardening"}}'
 out_legit_git=$(echo "$json_legit_git" | bash "$HOOKS_DIR/pre-tool-use.sh")
 assert_eq "" "$out_legit_git" "PreToolUse allows legitimate git push"
 
-# Test 9b: pre-tool-use.sh blocks shell-write redirects to .ai/deps-approved.txt (heuristic)
-json_shell_write_redirect='{"tool_name":"Bash","tool_input":{"command":"echo '\''python|phantom|hack|2026-10-30|@attacker'\'' >> .ai/deps-approved.txt"}}'
-out_shell_redirect=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_shell_write_redirect" | bash "$HOOKS_DIR/pre-tool-use.sh")
-assert_contains '"permissionDecision": "deny"' "$out_shell_redirect" "PreToolUse blocks shell redirection to .ai/deps-approved.txt"
+# Test 9b: Shell heuristic deny cases for .ai/deps-approved.txt: >, >>, tee, sed -i, cp, mv, dd of=
+for deny_cmd in \
+    "echo x > .ai/deps-approved.txt" \
+    "echo x >> .ai/deps-approved.txt" \
+    "echo x | tee .ai/deps-approved.txt" \
+    "echo x | tee -a .ai/deps-approved.txt" \
+    "sed -i 's/a/b/' .ai/deps-approved.txt" \
+    "cp /tmp/evil .ai/deps-approved.txt" \
+    "mv /tmp/evil .ai/deps-approved.txt" \
+    "dd if=/dev/zero of=.ai/deps-approved.txt"; do
+    json_deny=$(printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$deny_cmd")
+    out_deny=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_deny" | bash "$HOOKS_DIR/pre-tool-use.sh")
+    assert_contains '"permissionDecision": "deny"' "$out_deny" "PreToolUse blocks shell write: $deny_cmd"
+done
 
-json_shell_write_tee='{"tool_name":"Bash","tool_input":{"command":"echo evil | tee -a .ai/deps-approved.txt"}}'
-out_shell_tee=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_shell_write_tee" | bash "$HOOKS_DIR/pre-tool-use.sh")
-assert_contains '"permissionDecision": "deny"' "$out_shell_tee" "PreToolUse blocks tee -a redirection to .ai/deps-approved.txt"
+# Test 9c: Shell heuristic allow cases: cat, grep, cat AGENTS.md > /dev/null
+for allow_cmd in \
+    "cat .ai/deps-approved.txt" \
+    "grep x .ai/deps-approved.txt" \
+    "cat AGENTS.md > /dev/null"; do
+    json_allow=$(printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$allow_cmd")
+    out_allow=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_allow" | bash "$HOOKS_DIR/pre-tool-use.sh")
+    assert_eq "" "$out_allow" "PreToolUse allows benign shell command: $allow_cmd"
+done
 
 # Test 10: pre-tool-use.sh never executes tool input (injection defense)
 MARKER_FILE="$TMP_DIR/injected_execution.txt"

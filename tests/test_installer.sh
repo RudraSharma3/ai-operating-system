@@ -941,6 +941,75 @@ test_installer_codeowners_no_owner_derivable_gives_warn() {
     cleanup_sandbox "$sandbox"
 }
 
+test_installer_owner_validation_and_notice() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+
+    # 1. Accepted values in install.sh: @alice, @my-org/team, user@example.com
+    local out1
+    out1=$("$REPO_ROOT/scripts/install.sh" --owner @alice "$sandbox" 2>&1) || {
+        echo "install.sh rejected valid @alice: $out1"
+        cleanup_sandbox "$sandbox"
+        return 1
+    }
+
+    local out2
+    out2=$("$REPO_ROOT/scripts/install.sh" --owner @my-org/team "$sandbox" 2>&1) || {
+        echo "install.sh rejected valid @my-org/team: $out2"
+        cleanup_sandbox "$sandbox"
+        return 1
+    }
+
+    local out3
+    out3=$("$REPO_ROOT/scripts/install.sh" --owner user@example.com "$sandbox" 2>&1) || {
+        echo "install.sh rejected valid email: $out3"
+        cleanup_sandbox "$sandbox"
+        return 1
+    }
+
+    # 2. Rejected values in install.sh: must fail with clear error
+    local bad_out bad_status=0
+    bad_out=$("$REPO_ROOT/scripts/install.sh" --owner "invalid owner with spaces" "$sandbox" 2>&1) || bad_status=$?
+    assert_eq 1 "$bad_status" "install.sh must exit 1 on owner with spaces" || { cleanup_sandbox "$sandbox"; return 1; }
+    assert_contains "$bad_out" "Invalid CODEOWNERS handle" "install.sh must report invalid handle" || { cleanup_sandbox "$sandbox"; return 1; }
+
+    bad_status=0
+    bad_out=$("$REPO_ROOT/scripts/install.sh" --owner "bad!user" "$sandbox" 2>&1) || bad_status=$?
+    assert_eq 1 "$bad_status" "install.sh must exit 1 on invalid characters" || { cleanup_sandbox "$sandbox"; return 1; }
+
+    # 3. Origin remote derivation notice test
+    local sb_remote
+    sb_remote=$(create_sandbox_repo)
+    git -C "$sb_remote" remote add origin "https://github.com/test-org/test-repo.git"
+    local notice_out
+    notice_out=$("$REPO_ROOT/scripts/install.sh" "$sb_remote" 2>&1)
+    assert_contains "$notice_out" "[AI-OS Installer Notice]: Owner handle derived from origin remote: @test-org" "install.sh must display origin derivation notice" || { cleanup_sandbox "$sb_remote"; return 1; }
+    local co_content
+    co_content=$(cat "$sb_remote/.github/CODEOWNERS" 2>/dev/null || true)
+    assert_contains "$co_content" "owner derived from origin remote; for organization repositories replace with @org/team; verify with: gh api repos/OWNER/REPO/codeowners/errors" "CODEOWNERS must include origin derivation comment" || { cleanup_sandbox "$sb_remote"; return 1; }
+    cleanup_sandbox "$sb_remote"
+
+    # 4. PowerShell check
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local win_sb win_script
+        win_sb=$(cygpath -w "$sandbox" 2>/dev/null || echo "$sandbox")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+
+        # Valid owner in PS1
+        local ps_out
+        ps_out=$(powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb" -Owner "@alice" 2>&1)
+        [ $? -eq 0 ] || { echo "install.ps1 rejected valid @alice: $ps_out"; cleanup_sandbox "$sandbox"; return 1; }
+
+        # Rejected owner in PS1
+        local ps_bad_status=0 ps_bad_out
+        ps_bad_out=$(powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb" -Owner "invalid owner with spaces" 2>&1) || ps_bad_status=$?
+        assert_eq 1 "$ps_bad_status" "install.ps1 must exit 1 on owner with spaces" || { cleanup_sandbox "$sandbox"; return 1; }
+        assert_contains "$ps_bad_out" "Invalid CODEOWNERS handle" "install.ps1 must report invalid handle" || { cleanup_sandbox "$sandbox"; return 1; }
+    fi
+
+    cleanup_sandbox "$sandbox"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -969,6 +1038,7 @@ run_test "demo.sh: Executes demonstration blocking secrets and phantom deps" tes
 run_test "install: No CODEOWNERS plus --owner creates CODEOWNERS with specified owner" test_installer_codeowners_no_codeowners_with_owner
 run_test "install: Existing CODEOWNERS preserved and appended without overwriting" test_installer_codeowners_existing_preserved_and_appended
 run_test "install: No owner derivable gives WARN with one-line fix in doctor" test_installer_codeowners_no_owner_derivable_gives_warn
+run_test "install: Owner syntax validation and derivation notice" test_installer_owner_validation_and_notice
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"

@@ -18,44 +18,34 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
 $TemplateDir = Join-Path $RepoRoot "templates\project"
 
+function Test-ValidOwner([string]$h) {
+    if ($h -match '^@[a-zA-Z0-9]([a-zA-Z0-9._-]*)(/[a-zA-Z0-9._-]+)?$') { return $true }
+    if ($h -match '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$') { return $true }
+    return $false
+}
+
 # Derive owner handle if not passed
-if (-not $Owner) {
+$derivedFromRemote = $false
+if ($Owner) {
+    if (-not (Test-ValidOwner $Owner)) {
+        Write-Error "Invalid CODEOWNERS handle '$Owner'. Must be a GitHub username (@user), team (@org/team), or valid email address."
+        exit 1
+    }
+} else {
     try {
         $remoteUrl = git -C $TargetPath remote get-url origin 2>$null
         if ($remoteUrl -and ($remoteUrl -match '(?:https?://[^/]+/|git@[^:]+:|ssh://git@[^/]+/)([^/]+)/')) {
-            $derivedOwner = $Matches[1]
-            if ($derivedOwner -notmatch '^@') {
-                $Owner = "@$derivedOwner"
-            } else {
-                $Owner = $derivedOwner
+            $cand = $Matches[1]
+            if ($cand -notmatch '^@') { $cand = "@$cand" }
+            if (Test-ValidOwner $cand) {
+                $Owner = $cand
+                $derivedFromRemote = $true
+                Write-Host "`n  [AI-OS Installer Notice]: Owner handle derived from origin remote: $Owner. For organization repositories, replace with @org/team. Verify with: gh api repos/OWNER/REPO/codeowners/errors" -ForegroundColor Yellow
             }
         }
     } catch {
         $null = $_
     }
-    if (-not $Owner) {
-        try {
-            $gitU = git -C $TargetPath config user.name 2>$null
-            if (-not $gitU) { $gitU = git config user.name 2>$null }
-            if ($gitU -and ($gitU -notmatch '\s')) {
-                $Owner = "@$gitU"
-            }
-        } catch {
-            $null = $_
-        }
-    }
-    if (-not $Owner -and $env:AI_OS_ONLINE) {
-        try {
-            $ghUser = & gh api user --jq .login 2>$null
-            if ($ghUser) {
-                $Owner = "@$ghUser"
-            }
-        } catch {
-            $null = $_
-        }
-    }
-} elseif ($Owner -notmatch '^@') {
-    $Owner = "@$Owner"
 }
 
 # ASCII Logo Header
@@ -150,11 +140,15 @@ if ($existingCo) {
     $srcCo = Join-Path $TemplateDir ".github\CODEOWNERS"
     if ($Owner) {
         $lines = Get-Content $srcCo
-        $outLines = foreach ($line in $lines) {
+        $outLines = [System.Collections.Generic.List[string]]::new()
+        if ($derivedFromRemote) {
+            $outLines.Add("# owner derived from origin remote; for organization repositories replace with @org/team; verify with: gh api repos/OWNER/REPO/codeowners/errors")
+        }
+        foreach ($line in $lines) {
             if ($line -match '^\s*#' -or [string]::IsNullOrWhiteSpace($line)) {
-                $line
+                $outLines.Add($line)
             } else {
-                "$line $Owner"
+                $outLines.Add("$line $Owner")
             }
         }
         $outLines | Set-Content -Path $destCo -Encoding utf8

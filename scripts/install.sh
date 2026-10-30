@@ -28,32 +28,44 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [ -z "$OWNER_HANDLE" ]; then
+validate_owner_handle() {
+    local h="$1"
+    if [[ "$h" =~ ^@[a-zA-Z0-9]([a-zA-Z0-9._-]*)(/[a-zA-Z0-9._-]+)?$ ]]; then
+        return 0
+    fi
+    if [[ "$h" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+        return 0
+    fi
+    return 1
+}
+
+DERIVED_FROM_REMOTE=false
+if [ -n "$OWNER_HANDLE" ]; then
+    if ! validate_owner_handle "$OWNER_HANDLE"; then
+        echo "Error: Invalid CODEOWNERS handle '$OWNER_HANDLE'. Must be a GitHub username (@user), team (@org/team), or valid email address." >&2
+        exit 1
+    fi
+else
     REMOTE_URL=$(git -C "$TARGET_PATH" remote get-url origin 2>/dev/null || true)
     if [ -n "$REMOTE_URL" ]; then
         DERIVED_OWNER=$(echo "$REMOTE_URL" | sed -E -e 's#(https?://[^/]+/|git@[^:]+:|ssh://git@[^/]+/)##' -e 's#/.*##' -e 's#\.git$##')
         if [ -n "$DERIVED_OWNER" ]; then
             if [[ ! "$DERIVED_OWNER" =~ ^@ ]]; then
-                OWNER_HANDLE="@$DERIVED_OWNER"
+                CANDIDATE_OWNER="@$DERIVED_OWNER"
             else
-                OWNER_HANDLE="$DERIVED_OWNER"
+                CANDIDATE_OWNER="$DERIVED_OWNER"
+            fi
+            if validate_owner_handle "$CANDIDATE_OWNER"; then
+                OWNER_HANDLE="$CANDIDATE_OWNER"
+                DERIVED_FROM_REMOTE=true
+                echo ""
+                echo "  ℹ️  [AI-OS Installer Notice]: Owner handle derived from origin remote: $OWNER_HANDLE. For organization repositories, replace with @org/team. Verify with: gh api repos/OWNER/REPO/codeowners/errors"
             fi
         fi
     fi
-    if [ -z "$OWNER_HANDLE" ]; then
-        GIT_U=$(git -C "$TARGET_PATH" config user.name 2>/dev/null || git config user.name 2>/dev/null || true)
-        if [ -n "$GIT_U" ] && [[ ! "$GIT_U" =~ [[:space:]] ]]; then
-            OWNER_HANDLE="@$GIT_U"
-        fi
-    fi
-    if [ -z "$OWNER_HANDLE" ] && [ -n "${AI_OS_ONLINE:-}" ]; then
-        GH_USER=$(gh api user --jq .login 2>/dev/null || true)
-        [ -n "$GH_USER" ] && OWNER_HANDLE="@$GH_USER"
-    fi
-elif [[ ! "$OWNER_HANDLE" =~ ^@ ]]; then
-    OWNER_HANDLE="@$OWNER_HANDLE"
 fi
 
+TARGET_PATH="$(cd "$TARGET_PATH" 2>/dev/null && pwd || echo "$TARGET_PATH")"
 GIT_USER=$(git config user.name 2>/dev/null || echo "$USER")
 [ -z "$GIT_USER" ] && GIT_USER="Developer"
 PROJECT_NAME=$(basename "$TARGET_PATH")
@@ -154,13 +166,18 @@ else
     DEST_CO="$TARGET_PATH/.github/CODEOWNERS"
     SRC_CO="$TEMPLATE_DIR/.github/CODEOWNERS"
     if [ -n "$OWNER_HANDLE" ]; then
-        while IFS= read -r line || [ -n "$line" ]; do
-            if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line// }" ]]; then
-                echo "$line"
-            else
-                echo "$line $OWNER_HANDLE"
+        {
+            if [ "$DERIVED_FROM_REMOTE" = "true" ]; then
+                echo "# owner derived from origin remote; for organization repositories replace with @org/team; verify with: gh api repos/OWNER/REPO/codeowners/errors"
             fi
-        done < "$SRC_CO" > "$DEST_CO"
+            while IFS= read -r line || [ -n "$line" ]; do
+                if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line// }" ]]; then
+                    echo "$line"
+                else
+                    echo "$line $OWNER_HANDLE"
+                fi
+            done < "$SRC_CO"
+        } > "$DEST_CO"
         echo "  + Created .github/CODEOWNERS assigned to $OWNER_HANDLE"
     else
         cat << 'EOF' > "$DEST_CO"

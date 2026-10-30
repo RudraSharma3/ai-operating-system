@@ -39,12 +39,19 @@ This document records the official documentation URLs, retrieval dates, and veri
 ## 4. Claude Code Lifecycle Hooks Specification
 
 - **Official Source**: `https://code.claude.com/docs/en/hooks` (Markdown version: `https://code.claude.com/docs/en/hooks.md`)
-- **Retrieval Date**: 2026-10-27
+- **Retrieval Date**: 2026-10-30
 - **Verification Status**: **VERIFIED**
+- **Verified Tool Names**:
+  - File-edit tools: `Write`, `Edit`, `NotebookEdit`.
+  - Shell execution tools: `Bash`, `PowerShell`.
+- **Bash Tool Input Payload Schema**:
+  - Tool payload delivered via stdin contains `"tool_input": { "command": "..." }` with shell command string in the `command` field.
+- **Deny Output Decision Format**:
+  - Hook denies execution by outputting JSON on stdout: `{"permissionDecision": "deny", "permissionDecisionReason": "..."}` or `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "..."}}`.
 - **Lifecycle Events Utilized**:
   - `SessionStart`: Fires when a session begins or resumes. Passes session context on stdin. Used in AI-OS to print task state summary and token budget metrics.
   - `PreCompact`: Fires before context window compaction. Passes conversation metrics on stdin. Used in AI-OS to record a state checkpoint into `docs/task-state.md`.
-  - `PreToolUse`: Fires before tool call execution (Write, Edit, Bash, PowerShell). Input arrives on stdin containing `{"tool_name": "...", "tool_input": { ... }}`. Hook outputs JSON with `permissionDecision: "allow" | "deny"` and `permissionDecisionReason: "..."` to enforce governance boundaries.
+  - `PreToolUse`: Fires before tool call execution (Write, Edit, NotebookEdit, Bash, PowerShell). Input arrives on stdin containing `{"tool_name": "...", "tool_input": { ... }}`. Hook outputs JSON with `permissionDecision: "allow" | "deny"` and `permissionDecisionReason: "..."` to enforce governance boundaries.
   - `Stop`: Fires when Claude finishes responding on a turn.
 - **Configuration Schema (`.claude/settings.json`)**:
   ```json
@@ -74,7 +81,7 @@ This document records the official documentation URLs, retrieval dates, and veri
       ],
       "PreToolUse": [
         {
-          "matcher": "Write|Edit|Bash|PowerShell",
+          "matcher": "Write|Edit|NotebookEdit|Bash|PowerShell",
           "hooks": [
             {
               "type": "command",
@@ -312,28 +319,53 @@ All commit SHAs proposed in Dependabot PRs were independently queried and verifi
 
 ---
 
-## 8. Slopsquatting & Phantom Dependency Supply-Chain Research
+## 9. Slopsquatting & Phantom Dependency Supply-Chain Research
 
 This section documents research on "slopsquatting" and package hallucination risks in autonomous AI coding agents, motivating the offline dependency approval gate (`.ai/deps-approved.txt`) and registry check cooldown policies.
 
 ### 1. Endor Labs: Slopsquatting When AI Agents Hallucinate Malicious Packages
 - **URL**: `https://www.endorlabs.com/learn/slopsquatting-when-ai-agents-hallucinate-malicious-packages`
-- **Retrieval Date**: 2026-10-29
+- **Retrieval Date**: 2026-10-30
 - **Verification Status**: **VERIFIED**
-- **Verbatim Excerpt (<25 words)**: *"slopsquatting preys on AI hallucinations. Large language models output statistically plausible-sounding library or module names that do not actually exist"*
+- **Title**: Slopsquatting: When AI Agents Hallucinate Malicious Packages | Endor Labs
+- **Author**: Endor Labs
+- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is a software supply chain attack that turns AI hallucinations into malware delivery."* (14 words)
 - **Core Finding**: Autonomous agents install hallucinated package names without human oversight, allowing attackers who pre-register those names on npm/PyPI to deliver payloads directly into disk and CI/CD pipelines.
 
 ### 2. Tian Pan: The Package Your Agent Hallucinated Now Exists
 - **URL**: `https://tianpan.co/blog/2026/07/02/the-package-your-agent-hallucinated-now-exists`
-- **Retrieval Date**: 2026-10-29
+- **Retrieval Date**: 2026-10-30
 - **Verification Status**: **VERIFIED**
-- **Verbatim Excerpt (<25 words)**: *"The Package Your Agent Hallucinated Now Exists... research shows these hallucinations aren't completely random noise; they are stable, repeating patterns"*
+- **Title**: The Package Your Agent Hallucinated Now Exists – and It's Malicious
+- **Author**: Tian Pan
+- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is worse, because the \"typo\" isn't random."* (8 words)
 - **Core Finding**: Hallucinated package names follow reproducible probabilistic patterns across model families, making it feasible for adversaries to mass-register predictive phantom names.
 
 ### 3. Trend Micro: Technical Brief on Slopsquatting
 - **URL**: `https://documents.trendmicro.com/assets/white_papers/techbrief-slopsquatting.pdf`
-- **Retrieval Date**: 2026-10-29
+- **Retrieval Date**: 2026-10-30
 - **Verification Status**: **VERIFIED**
-- **Verbatim Excerpt (<25 words)**: *"Instead of taking advantage of human typing mistakes, it exploits AI hallucinations... pulling malware straight into their codebase"*
+- **Title**: Slopsquatting: Hallucination in Coding Agents and Vibe Coding
+- **Author**: Trend Micro Research
+- **Verbatim Excerpt (<25 words)**: *"Verifying a package name against PyPI no longer guarantees security. Under the slopsquatting threat model, malicious actors can preemptively register AI-hallucinated names"* (22 words)
 - **Core Finding**: Recommends strict human-in-the-loop approval gates before package installation, isolated container execution, and cooldown periods for newly published packages in automated environments.
+
+### 4. Disclosed Erroneous Citations from Prior Rounds (Removed)
+- `https://arxiv.org/abs/2403.04132`: Page fetched returned title *"Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference"*; completely unrelated to package hallucination or slopsquatting. Removed from repository.
+- `https://www.endorlabs.com/blog/slopsquatting-how-attackers-can-weaponize-ai-hallucinations`: Server returned `HTTP Error 404: Not Found`. Removed from repository.
+- `https://www.trendmicro.com/en_us/research/24/d/ai-hallucinations-package-squatting.html`: Server returned `HTTP Error 404: Not Found`. Removed from repository.
+
+---
+
+## 10. GitHub CODEOWNERS Syntax & Unowned Pattern Specification
+
+- **Official Source**: `https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners`
+- **Retrieval Date**: 2026-10-30
+- **Verification Status**: **VERIFIED**
+- **Verbatim Excerpt 1 (<25 words)**: *"If any line in your CODEOWNERS file contains invalid syntax, that line will be skipped."* (14 words)
+- **Verbatim Excerpt 2 (<25 words)**: *"The pattern is followed by one or more GitHub usernames or team names using the standard @username or @org/team-name format."* (20 words)
+- **Syntax & Behavior Specification**:
+  - GitHub requires each pattern line to specify at least one owner handle (`@username` or `@org/team-name`) or a valid user email address.
+  - A bare pattern line without an owner handle violates CODEOWNERS syntax; per GitHub's specification, any line with invalid syntax is skipped silently without assigning reviewers.
+  - Earlier statements asserting "GitHub ignores or warns on unowned patterns" were inaccurate: GitHub does not emit standalone repository-level warnings; it silently skips the invalid pattern line.
 
