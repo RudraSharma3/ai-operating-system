@@ -1,7 +1,7 @@
 {
     "ai_os_version": "2.5.0",
-    "generated_at": "2026-10-30T07:33:22Z",
-    "file_count": 67,
+    "generated_at": "2026-10-30T08:31:51Z",
+    "file_count": 66,
     "files": {
         ".ai-os/optional/claude-hooks/README.md": "39f2e4e136d1f5acd665a3d9f97c269d799c7f8b7983f407708e124bed59c185",
         ".ai-os/optional/claude-hooks/pre-compact.ps1": "5a737576bd4db83ddbe845bbd67cb0b6bed125c9f7c1946568f64153828dbfb5",
@@ -41,7 +41,6 @@
         ".ai/deps-approved.txt": "928314f326ffe92bf89ac18bc1bddc784a00c188b218fb648865c1dcd4d362bc",
         ".ai/import-aliases.txt": "fa7e30020c502a3ccc120cb1ef3880353dd898ab0f478e552713fbbcb036460a",
         ".ai/mistakes-candidates.md": "a756813da14e24033776fad56d5e342af5337efeb8813993a6f91e2d38ffafa1",
-        ".ai/private-names.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         ".ai/routing.md": "fdfbc2544a96e5be4626218490f1b3ef17645d37d0c19d3f1c2f2dc46415a3dc",
         ".ai/rules/0001-read-task-state.md": "62b5d7459cbe90e2b2f7fd9fb8daa8e3d8993e82222087f757f6d754d767eb5d",
         ".ai/rules/0002-never-hardcode-secrets.md": "4785804d8741dc21e0ea1c2567c04397fc68fe63e49871f7d12d92b5597bff35",
