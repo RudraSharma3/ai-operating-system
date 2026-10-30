@@ -1,5 +1,6 @@
 param (
     [Parameter(Mandatory=$false)]
+    [Alias("TargetPath")]
     [string]$ProjectPath = (Get-Location).Path,
     [switch]$Ci = $false,
     [switch]$Json = $false
@@ -360,9 +361,9 @@ if (Test-Path $readmePath) {
     }
     if ($readmeContent -match '(\d+)-point diagnostic doctor') {
         $claimedDoctor = [int]$matches[1]
-        if ($claimedDoctor -ne 24) {
+        if ($claimedDoctor -ne 27) {
             $docCountsOk = $false
-            $docErr = "README claims $claimedDoctor-point doctor, expected 24"
+            $docErr = "README claims $claimedDoctor-point doctor, expected 27"
         }
     }
 }
@@ -371,16 +372,16 @@ if (Test-Path $userGuidePath) {
     $ugContent = Get-Content $userGuidePath -Raw
     if ($ugContent -match '(\d+)-point diagnostic') {
         $ugClaimedDoctor = [int]$matches[1]
-        if ($ugClaimedDoctor -ne 24) {
+        if ($ugClaimedDoctor -ne 27) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 24"
+            $docErr = "User Guide claims $ugClaimedDoctor-point doctor, expected 27"
         }
     }
     if ($ugContent -match 'tests\s+(\d+)\s+key integrity checks') {
         $ugClaimedChecks = [int]$matches[1]
-        if ($ugClaimedChecks -ne 24) {
+        if ($ugClaimedChecks -ne 27) {
             $docCountsOk = $false
-            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 24"
+            $docErr = "User Guide claims $ugClaimedChecks integrity checks, expected 27"
         }
     }
 }
@@ -653,6 +654,106 @@ if ($workflowErr) {
     Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "WARN" $workflowWarn
 } else {
     Register-CheckRecord 24 "GitHub Actions workflow action pinning and permissions" "PASS"
+}
+
+# 25. Python 3.9+ runtime availability (warn if missing)
+$pyAvail = $false
+$pyBin = if (Get-Command "python3" -ErrorAction SilentlyContinue) { "python3" } elseif (Get-Command "python" -ErrorAction SilentlyContinue) { "python" } else { $null }
+if ($pyBin) {
+    $pyAvail = $true
+}
+
+if ($pyAvail) {
+    Register-CheckRecord 25 "Python 3.9+ runtime availability" "PASS"
+} else {
+    Register-CheckRecord 25 "Python 3.9+ runtime availability" "WARN" "Python 3.9+ not found in PATH; verification layer features will be disabled"
+}
+
+# 26. Dependency approval list and CODEOWNERS coverage
+$depsFile = Join-Path $target ".ai/deps-approved.txt"
+if (-not (Test-Path $depsFile)) {
+    Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
+} else {
+    $coHasOwner = $false
+    $coHasUnownedPattern = $false
+    foreach ($cand in @(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")) {
+        $coPath = Join-Path $target $cand
+        if (Test-Path $coPath) {
+            $coLines = Get-Content $coPath -ErrorAction SilentlyContinue
+            foreach ($line in $coLines) {
+                $cleanLine = ($line -replace '#.*$', '').Trim()
+                if ([string]::IsNullOrWhiteSpace($cleanLine)) { continue }
+                if ($cleanLine -notmatch '@[a-zA-Z0-9_\-]+') {
+                    $coHasUnownedPattern = $true
+                }
+                if ($line -match '^\s*\.ai/deps-approved\.txt\s+@[a-zA-Z0-9_\-]+') {
+                    $coHasOwner = $true
+                }
+            }
+            if ($coHasOwner) { break }
+        }
+    }
+
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    $isRootRepo = $false
+    try {
+        if ((Resolve-Path $target).Path -eq (Resolve-Path $repoRoot).Path) {
+            $isRootRepo = $true
+        }
+    } catch {
+        $null = $_
+    }
+
+    if ($coHasOwner -and (-not $coHasUnownedPattern)) {
+        Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "PASS"
+    } else {
+        if ($isRootRepo) {
+            if ($coHasUnownedPattern) {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "CODEOWNERS contains unowned pattern line without an owner handle"
+            } else {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+            }
+        } else {
+            if ($coHasUnownedPattern) {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS contains unowned pattern line; add '@your-handle' to each pattern line"
+            } else {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+            }
+        }
+    }
+}
+
+# 27. Pre-commit verification configuration
+$vconfFile = Join-Path $target ".ai/verify.conf"
+$vconfErr = $null
+if (-not (Test-Path $vconfFile)) {
+    $vconfErr = "Missing .ai/verify.conf configuration file"
+} else {
+    $vlines = Get-Content $vconfFile
+    foreach ($vl in $vlines) {
+        $cleanVl = ($vl -replace '#.*$', '').Trim()
+        if ([string]::IsNullOrWhiteSpace($cleanVl)) { continue }
+        $parts = $cleanVl -split '='
+        if ($parts.Length -eq 2) {
+            $k = $parts[0].Trim()
+            $v = $parts[1].Trim()
+            if ($k -eq "deps" -and $v -notmatch '^(block|warn|off)$') {
+                $vconfErr = "Invalid verify.conf setting for deps: '$v'"
+            } elseif ($k -eq "imports" -and $v -notmatch '^(block|warn|off)$') {
+                $vconfErr = "Invalid verify.conf setting for imports: '$v'"
+            } elseif ($k -eq "on_missing_python" -and $v -notmatch '^(warn|block)$') {
+                $vconfErr = "Invalid verify.conf setting for on_missing_python: '$v'"
+            } elseif ($k -eq "approvals_changed" -and $v -notmatch '^(warn|block)$') {
+                $vconfErr = "Invalid verify.conf setting for approvals_changed: '$v'"
+            }
+        }
+    }
+}
+
+if ($vconfErr) {
+    Register-CheckRecord 27 "Pre-commit verification configuration" "FAIL" $vconfErr
+} else {
+    Register-CheckRecord 27 "Pre-commit verification configuration" "PASS"
 }
 
 if ($Json) {

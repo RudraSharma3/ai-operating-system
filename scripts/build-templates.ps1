@@ -49,14 +49,24 @@ if (Test-Path $optSrc) {
     Copy-Item -Path (Join-Path $optSrc "*") -Destination $optDest -Recurse -Force
 }
 
-# 2. Sync security filters and githooks
+# 2. Sync security filters, verification layer, and githooks
 $aiDir = Join-Path $targetDir ".ai"
 $hooksDir = Join-Path $targetDir ".githooks"
+$scriptsDir = Join-Path $targetDir ".ai-os/scripts"
 if (-not (Test-Path $aiDir)) { New-Item -ItemType Directory -Path $aiDir -Force | Out-Null }
 if (-not (Test-Path $hooksDir)) { New-Item -ItemType Directory -Path $hooksDir -Force | Out-Null }
+if (-not (Test-Path $scriptsDir)) { New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null }
 Copy-Item -Path (Join-Path $root ".ai/secret-patterns.txt") -Destination (Join-Path $aiDir "secret-patterns.txt") -Force
 Copy-Item -Path (Join-Path $root ".ai/secret-allowlist.txt") -Destination (Join-Path $aiDir "secret-allowlist.txt") -Force
+if (Test-Path (Join-Path $root ".ai/deps-approved.txt")) { Copy-Item -Path (Join-Path $root ".ai/deps-approved.txt") -Destination (Join-Path $aiDir "deps-approved.txt") -Force }
+if (Test-Path (Join-Path $root ".ai/import-aliases.txt")) { Copy-Item -Path (Join-Path $root ".ai/import-aliases.txt") -Destination (Join-Path $aiDir "import-aliases.txt") -Force }
+if (Test-Path (Join-Path $root ".ai/verify.conf")) { Copy-Item -Path (Join-Path $root ".ai/verify.conf") -Destination (Join-Path $aiDir "verify.conf") -Force }
 Copy-Item -Path (Join-Path $root ".githooks/pre-commit") -Destination (Join-Path $hooksDir "pre-commit") -Force
+Copy-Item -Path (Join-Path $root "scripts/ai_os_verify.py") -Destination (Join-Path $scriptsDir "ai_os_verify.py") -Force
+Copy-Item -Path (Join-Path $root "scripts/ai-os-verify.sh") -Destination (Join-Path $scriptsDir "ai-os-verify.sh") -Force
+Copy-Item -Path (Join-Path $root "scripts/ai-os-verify.ps1") -Destination (Join-Path $scriptsDir "ai-os-verify.ps1") -Force
+Copy-Item -Path (Join-Path $root "scripts/ai-os-run") -Destination (Join-Path $scriptsDir "ai-os-run") -Force
+Copy-Item -Path (Join-Path $root "scripts/ai-os-run.ps1") -Destination (Join-Path $scriptsDir "ai-os-run.ps1") -Force
 
 # 3. Sync Git and provider configurations
 Copy-Item -Path (Join-Path $root ".gitattributes") -Destination (Join-Path $targetDir ".gitattributes") -Force
@@ -68,6 +78,9 @@ Copy-Item -Path (Join-Path $root ".cursor/rules/agents.mdc") -Destination (Join-
 $githubDir = Join-Path $targetDir ".github"
 if (-not (Test-Path $githubDir)) { New-Item -ItemType Directory -Path $githubDir -Force | Out-Null }
 Copy-Item -Path (Join-Path $root ".github/copilot-instructions.md") -Destination (Join-Path $githubDir "copilot-instructions.md") -Force
+$rawCo = Get-Content (Join-Path $root ".github/CODEOWNERS") -Raw
+$cleanCo = $rawCo -replace ' @[a-zA-Z0-9_\-]+', ''
+Set-Content -Path (Join-Path $githubDir "CODEOWNERS") -Value $cleanCo -NoNewline
 
 foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md")) {
     Copy-Item -Path (Join-Path $root $ad) -Destination (Join-Path $targetDir $ad) -Force
@@ -91,7 +104,7 @@ foreach ($f in ($files | Sort-Object FullName)) {
     $rel = $f.FullName.Substring($targetDir.Length + 1).Replace("\", "/")
     $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
     $ext = [System.IO.Path]::GetExtension($f.FullName).ToLower()
-    if ($ext -in @(".md", ".mdc", ".txt", ".json", ".sh", ".ps1", ".gitattributes", ".gitignore", "")) {
+    if ($ext -in @(".md", ".mdc", ".txt", ".json", ".sh", ".ps1", ".py", ".conf", ".gitattributes", ".gitignore", "")) {
         $text = [System.Text.Encoding]::UTF8.GetString($bytes)
         $normalizedText = $text.Replace("`r`n", "`n")
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalizedText)

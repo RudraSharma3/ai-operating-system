@@ -43,6 +43,14 @@ Before taking action, review:
 8. Practice Proportional Effort: Use Solo Model execution for routine tasks; reserve Multi-Agent MCP orchestration and Consensus sampling strictly for high-complexity architectural decisions.
 9. Never merge PRs, push to protected branches, tag, release, close PRs, or alter repository settings without explicit instruction in the active task text; a vague "continue" prompt is not permission.
 
+## Evidence & Verification
+- Never claim tests pass, a build works, or a package/API exists without evidence from this session; label anything unverified as unverified.
+- New dependencies need a human-approved line in .ai/deps-approved.txt; never edit that file yourself.
+- Cite file:line for claims about existing code.
+- For unfamiliar APIs, read installed source or docs; never guess signatures.
+- Run tests via scripts/ai-os-run; mark a task done only with a matching evidence record.
+Details: .ai-os/playbooks/hallucination-guard.md
+
 ---
 
 ## 5. Self-Correcting Rules Engine

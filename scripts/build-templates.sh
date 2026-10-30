@@ -52,13 +52,23 @@ if [ -d "$ROOT_DIR/.ai-os/optional/claude-hooks" ]; then
     cp -r "$ROOT_DIR/.ai-os/optional/claude-hooks/"* "$TARGET_DIR/.ai-os/optional/claude-hooks/"
 fi
 
-# 2. Sync security filters and githooks
+# 2. Sync security filters, verification layer, and githooks
 mkdir -p "$TARGET_DIR/.ai"
 mkdir -p "$TARGET_DIR/.githooks"
+mkdir -p "$TARGET_DIR/.ai-os/scripts"
 cp "$ROOT_DIR/.ai/secret-patterns.txt" "$TARGET_DIR/.ai/secret-patterns.txt"
 cp "$ROOT_DIR/.ai/secret-allowlist.txt" "$TARGET_DIR/.ai/secret-allowlist.txt"
+[ -f "$ROOT_DIR/.ai/deps-approved.txt" ] && cp "$ROOT_DIR/.ai/deps-approved.txt" "$TARGET_DIR/.ai/deps-approved.txt"
+[ -f "$ROOT_DIR/.ai/import-aliases.txt" ] && cp "$ROOT_DIR/.ai/import-aliases.txt" "$TARGET_DIR/.ai/import-aliases.txt"
+[ -f "$ROOT_DIR/.ai/verify.conf" ] && cp "$ROOT_DIR/.ai/verify.conf" "$TARGET_DIR/.ai/verify.conf"
 cp "$ROOT_DIR/.githooks/pre-commit" "$TARGET_DIR/.githooks/pre-commit"
 chmod +x "$TARGET_DIR/.githooks/pre-commit"
+cp "$ROOT_DIR/scripts/ai_os_verify.py" "$TARGET_DIR/.ai-os/scripts/ai_os_verify.py"
+cp "$ROOT_DIR/scripts/ai-os-verify.sh" "$TARGET_DIR/.ai-os/scripts/ai-os-verify.sh"
+cp "$ROOT_DIR/scripts/ai-os-verify.ps1" "$TARGET_DIR/.ai-os/scripts/ai-os-verify.ps1"
+cp "$ROOT_DIR/scripts/ai-os-run" "$TARGET_DIR/.ai-os/scripts/ai-os-run"
+cp "$ROOT_DIR/scripts/ai-os-run.ps1" "$TARGET_DIR/.ai-os/scripts/ai-os-run.ps1"
+chmod +x "$TARGET_DIR/.ai-os/scripts/"*
 
 # 3. Sync Git and provider configurations
 cp "$ROOT_DIR/.gitattributes" "$TARGET_DIR/.gitattributes"
@@ -66,6 +76,7 @@ mkdir -p "$TARGET_DIR/.cursor/rules"
 cp "$ROOT_DIR/.cursor/rules/agents.mdc" "$TARGET_DIR/.cursor/rules/agents.mdc"
 mkdir -p "$TARGET_DIR/.github"
 cp "$ROOT_DIR/.github/copilot-instructions.md" "$TARGET_DIR/.github/copilot-instructions.md"
+sed -E 's/ @[a-zA-Z0-9_\-]+//g' "$ROOT_DIR/.github/CODEOWNERS" > "$TARGET_DIR/.github/CODEOWNERS"
 
 for ad in "CLAUDE.md" "GEMINI.md" "CODEX.md"; do
     cp "$ROOT_DIR/$ad" "$TARGET_DIR/$ad"
@@ -88,7 +99,7 @@ check_mode = sys.argv[3] == 'true'
 real_template_dir = sys.argv[4]
 
 manifest_path = os.path.join(target_dir, '.ai-os', 'manifest.json')
-text_extensions = {'.md', '.mdc', '.txt', '.json', '.sh', '.ps1', '.gitattributes', '.gitignore', ''}
+text_extensions = {'.md', '.mdc', '.txt', '.json', '.sh', '.ps1', '.py', '.conf', '.gitattributes', '.gitignore', ''}
 
 file_hashes = {}
 for root, dirs, files in os.walk(target_dir):

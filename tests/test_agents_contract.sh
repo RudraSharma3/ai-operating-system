@@ -100,6 +100,40 @@ verify_agents_contract() {
         return 1
     fi
     
+    # 10. Evidence & Verification block (must exist, be <= 700 bytes, and match all 5 required clauses)
+    local ev_block
+    ev_block=$(sed -n '/Evidence & Verification/,/Details:.*hallucination-guard/p' "$target_file" || true)
+    if [ -z "$ev_block" ]; then
+        echo "ASSERTION FAILED: $label: Must contain Evidence & Verification block" >&2
+        return 1
+    fi
+    local ev_len
+    ev_len=$(echo "$ev_block" | wc -c)
+    if [ "$ev_len" -gt 700 ]; then
+        echo "ASSERTION FAILED: $label: Evidence & Verification block length ($ev_len bytes) exceeds 700 bytes limit" >&2
+        return 1
+    fi
+    if ! echo "$ev_block" | grep -qiE "never claim tests pass.*without evidence"; then
+        echo "ASSERTION FAILED: $label: Evidence block must match 'never claim tests pass without evidence'" >&2
+        return 1
+    fi
+    if ! echo "$ev_block" | grep -qi "deps-approved.txt"; then
+        echo "ASSERTION FAILED: $label: Evidence block must match 'deps-approved.txt'" >&2
+        return 1
+    fi
+    if ! echo "$ev_block" | grep -qi "file:line"; then
+        echo "ASSERTION FAILED: $label: Evidence block must match 'file:line'" >&2
+        return 1
+    fi
+    if ! echo "$ev_block" | grep -qi "never guess signatures"; then
+        echo "ASSERTION FAILED: $label: Evidence block must match 'never guess signatures'" >&2
+        return 1
+    fi
+    if ! echo "$ev_block" | grep -qi "ai-os-run"; then
+        echo "ASSERTION FAILED: $label: Evidence block must match 'ai-os-run'" >&2
+        return 1
+    fi
+    
     return 0
 }
 
@@ -135,9 +169,23 @@ test_template_agents_satisfies_contract() {
     verify_agents_contract "$REPO_ROOT/templates/project/AGENTS.md" "Template AGENTS.md"
 }
 
+test_codeowners_covers_deps_approved() {
+    local codeowners_file="$REPO_ROOT/.github/CODEOWNERS"
+    if [ ! -f "$codeowners_file" ]; then
+        echo "ASSERTION FAILED: .github/CODEOWNERS not found" >&2
+        return 1
+    fi
+    if ! grep -q "\.ai/deps-approved\.txt" "$codeowners_file"; then
+        echo "ASSERTION FAILED: .github/CODEOWNERS must cover .ai/deps-approved.txt" >&2
+        return 1
+    fi
+    return 0
+}
+
 run_test "AGENTS.md Contract: Stripped file FAILS safety criteria" test_stripped_agents_fails_contract
 run_test "AGENTS.md Contract: Master AGENTS.md PASSES safety criteria" test_master_agents_satisfies_contract
 run_test "AGENTS.md Contract: Template AGENTS.md PASSES safety criteria" test_template_agents_satisfies_contract
+run_test "AGENTS.md Contract: CODEOWNERS covers .ai/deps-approved.txt" test_codeowners_covers_deps_approved
 
 echo ""
 echo "AGENTS Contract Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"

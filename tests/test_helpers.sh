@@ -68,7 +68,7 @@ assert_contains() {
     local haystack="$1"
     local needle="$2"
     local msg="${3:-Assertion failed: output does not contain '$needle'}"
-    if ! echo "$haystack" | grep -F -q "$needle"; then
+    if ! echo "$haystack" | grep -F -q -e "$needle"; then
         echo "ASSERTION FAILED: $msg"
         echo "Full text: $haystack"
         return 1
@@ -80,7 +80,7 @@ assert_not_contains() {
     local haystack="$1"
     local needle="$2"
     local msg="${3:-Assertion failed: output unexpectedly contains '$needle'}"
-    if echo "$haystack" | grep -F -q "$needle"; then
+    if echo "$haystack" | grep -F -q -e "$needle"; then
         echo "ASSERTION FAILED: $msg"
         echo "Full text: $haystack"
         return 1

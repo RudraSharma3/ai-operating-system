@@ -5,6 +5,7 @@
 set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 CI_MODE=false
 JSON_MODE=false
@@ -362,22 +363,22 @@ if [ -f "$README_PATH" ]; then
         DOC_ERR="README claims $claimed_pb playbooks, but $actual_pb exist"
     fi
     claimed_doc=$(grep -oE '[0-9]+-point diagnostic doctor' "$README_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 24 ]; then
+    if [ -n "$claimed_doc" ] && [ "$claimed_doc" -ne 27 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="README claims $claimed_doc-point doctor, expected 24"
+        DOC_ERR="README claims $claimed_doc-point doctor, expected 27"
     fi
 fi
 
 if [ -f "$UG_PATH" ]; then
     ug_claimed_doc=$(grep -oE '[0-9]+-point diagnostic' "$UG_PATH" | head -n1 | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 24 ]; then
+    if [ -n "$ug_claimed_doc" ] && [ "$ug_claimed_doc" -ne 27 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 24"
+        DOC_ERR="User Guide claims $ug_claimed_doc-point doctor, expected 27"
     fi
     ug_claimed_chk=$(grep -oE 'tests[[:space:]]+[0-9]+[[:space:]]+key integrity checks' "$UG_PATH" | grep -oE '[0-9]+' || true)
-    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 24 ]; then
+    if [ -n "$ug_claimed_chk" ] && [ "$ug_claimed_chk" -ne 27 ]; then
         DOC_COUNTS_OK=false
-        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 24"
+        DOC_ERR="User Guide claims $ug_claimed_chk integrity checks, expected 27"
     fi
 fi
 
@@ -666,6 +667,102 @@ elif [ -n "$WORKFLOW_WARN" ]; then
     record_check 24 "GitHub Actions workflow action pinning and permissions" "WARN" "$WORKFLOW_WARN"
 else
     record_check 24 "GitHub Actions workflow action pinning and permissions" "PASS" ""
+fi
+
+# 25. Python 3.9+ runtime availability (warn if missing)
+PY_AVAIL=false
+if command -v python3 >/dev/null 2>&1; then
+    PY_AVAIL=true
+elif command -v python >/dev/null 2>&1; then
+    PY_AVAIL=true
+fi
+
+if [ "$PY_AVAIL" = true ]; then
+    record_check 25 "Python 3.9+ runtime availability" "PASS" ""
+else
+    record_check 25 "Python 3.9+ runtime availability" "WARN" "Python 3.9+ not found in PATH; verification layer features will be disabled"
+fi
+
+# 26. Dependency approval list and CODEOWNERS coverage
+DEPS_FILE="$PROJECT_PATH/.ai/deps-approved.txt"
+if [ ! -f "$DEPS_FILE" ]; then
+    record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
+else
+    CO_HAS_OWNER=false
+    CO_HAS_UNOWNED_PATTERN=false
+    for co in ".github/CODEOWNERS" "CODEOWNERS" "docs/CODEOWNERS"; do
+        if [ -f "$PROJECT_PATH/$co" ]; then
+            while IFS= read -r line || [ -n "$line" ]; do
+                clean_l=$(echo "$line" | sed -e 's/#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+                [ -z "$clean_l" ] && continue
+                if [[ ! "$clean_l" =~ @[a-zA-Z0-9_\-]+ ]]; then
+                    CO_HAS_UNOWNED_PATTERN=true
+                fi
+            done < "$PROJECT_PATH/$co"
+
+            if grep -E '^\s*\.ai/deps-approved\.txt\s+@[a-zA-Z0-9_\-]+' "$PROJECT_PATH/$co" >/dev/null 2>&1; then
+                CO_HAS_OWNER=true
+                break
+            fi
+        fi
+    done
+
+    IS_ROOT_REPO=false
+    if [ "$PROJECT_PATH" = "$REPO_ROOT" ]; then
+        IS_ROOT_REPO=true
+    fi
+
+    if [ "$CO_HAS_OWNER" = true ] && [ "$CO_HAS_UNOWNED_PATTERN" = false ]; then
+        record_check 26 "Dependency approval list and CODEOWNERS coverage" "PASS" ""
+    else
+        if [ "$IS_ROOT_REPO" = true ]; then
+            if [ "$CO_HAS_UNOWNED_PATTERN" = true ]; then
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "CODEOWNERS contains unowned pattern line without an owner handle"
+            else
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+            fi
+        else
+            if [ "$CO_HAS_UNOWNED_PATTERN" = true ]; then
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS contains unowned pattern line; add '@your-handle' to each pattern line"
+            else
+                record_check 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+            fi
+        fi
+    fi
+fi
+
+# 27. Pre-commit verification configuration
+VCONF_FILE="$PROJECT_PATH/.ai/verify.conf"
+VCONF_ERR=""
+if [ ! -f "$VCONF_FILE" ]; then
+    VCONF_ERR="Missing .ai/verify.conf configuration file"
+else
+    while IFS='=' read -r k v || [ -n "$k" ]; do
+        k=$(echo "$k" | tr -d '[:space:]')
+        v=$(echo "$v" | tr -d '[:space:]')
+        [[ "$k" =~ ^# ]] && continue
+        [ -z "$k" ] && continue
+        case "$k" in
+            deps)
+                [[ "$v" =~ ^(block|warn|off)$ ]] || VCONF_ERR="Invalid verify.conf setting for deps: '$v'"
+                ;;
+            imports)
+                [[ "$v" =~ ^(block|warn|off)$ ]] || VCONF_ERR="Invalid verify.conf setting for imports: '$v'"
+                ;;
+            on_missing_python)
+                [[ "$v" =~ ^(warn|block)$ ]] || VCONF_ERR="Invalid verify.conf setting for on_missing_python: '$v'"
+                ;;
+            approvals_changed)
+                [[ "$v" =~ ^(warn|block)$ ]] || VCONF_ERR="Invalid verify.conf setting for approvals_changed: '$v'"
+                ;;
+        esac
+    done < "$VCONF_FILE"
+fi
+
+if [ -n "$VCONF_ERR" ]; then
+    record_check 27 "Pre-commit verification configuration" "FAIL" "$VCONF_ERR"
+else
+    record_check 27 "Pre-commit verification configuration" "PASS" ""
 fi
 
 if [ "$JSON_MODE" = true ]; then

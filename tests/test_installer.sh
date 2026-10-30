@@ -716,6 +716,300 @@ EOF
     assert_contains "$doc_out_dep_unknown_eco" "unknown package ecosystem" "doctor.sh must identify unknown package ecosystem" || return 1
 }
 
+test_installer_scenario1_empty_repo_blocks_phantom_dependency() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Run install.sh on empty repo
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # Attempt to commit unapproved dependency
+    echo "phantom-slop-pkg==1.0.0" > requirements.txt
+    git add requirements.txt
+
+    local status=0
+    .githooks/pre-commit >/dev/null 2>&1 || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "1" "$status" "Scenario 1 (empty repo): pre-commit hook must BLOCK commit with unapproved phantom dependency"
+}
+
+test_installer_scenario2_existing_docs_gitignore_blocks_phantom_dependency() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Existing docs and .gitignore
+    mkdir -p docs
+    echo "# Custom Doc" > docs/custom.md
+    echo "node_modules/" > .gitignore
+    git add docs/custom.md .gitignore
+    git commit -q -m "existing project baseline"
+
+    # Run install.sh
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # Verify existing docs preserved
+    [ -f docs/custom.md ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: docs/custom.md lost" >&2; return 1; }
+
+    # Attempt to commit unapproved dependency in package.json
+    cat << 'EOF' > package.json
+{
+  "dependencies": {
+    "phantom-slop-npm": "^1.0.0"
+  }
+}
+EOF
+    git add package.json
+
+    local status=0
+    .githooks/pre-commit >/dev/null 2>&1 || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "1" "$status" "Scenario 2 (existing docs/.gitignore): pre-commit hook must BLOCK phantom dependency"
+}
+
+test_installer_scenario3_husky_hookspath_blocks_phantom_dependency() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Existing husky hooksPath
+    mkdir -p .husky
+    git config core.hooksPath .husky
+    echo "#!/bin/sh" > .husky/pre-commit
+    chmod +x .husky/pre-commit
+    git add .husky/pre-commit
+    git commit -q -m "initial husky repo"
+
+    # Run install.sh
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # Verify core.hooksPath is still .husky
+    local hp
+    hp=$(git config core.hooksPath)
+    [ "$hp" = ".husky" ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: core.hooksPath overwritten" >&2; return 1; }
+
+    # Attempt to commit unapproved dependency
+    echo "malicious-ai-pkg==2.0.0" > requirements.txt
+    git add requirements.txt
+
+    local status=0
+    # Execute the chained husky hook
+    .husky/pre-commit >/dev/null 2>&1 || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "1" "$status" "Scenario 3 (husky hooksPath): chained hook must BLOCK phantom dependency"
+}
+
+test_demo_script_execution() {
+    local demo_out
+    local demo_status=0
+    demo_out=$(bash "$REPO_ROOT/scripts/demo.sh" 2>&1) || demo_status=$?
+
+    assert_eq "0" "$demo_status" "scripts/demo.sh must execute cleanly (exit code 0)" || return 1
+    assert_contains "$demo_out" "Secret leak commit rejected" "demo output must show secret leak blocked" || return 1
+    assert_contains "$demo_out" "Unapproved dependency rejected" "demo output must show phantom dependency blocked" || return 1
+    assert_contains "$demo_out" "Clean change committed successfully" "demo output must show clean change allowed" || return 1
+}
+
+test_installer_codeowners_no_codeowners_with_owner() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # 1. Bash install with --owner @customlead
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" --owner "@customlead" >/dev/null 2>&1
+    local co_file="$sandbox/.github/CODEOWNERS"
+    [ -f "$co_file" ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: .github/CODEOWNERS not created" >&2; return 1; }
+    local co_content
+    co_content=$(cat "$co_file")
+    assert_contains "$co_content" ".ai/deps-approved.txt @customlead" "CODEOWNERS must set provided owner" || return 1
+    assert_not_contains "$co_content" "@RudraSharma3" "Installed CODEOWNERS must not contain hardcoded template handle" || return 1
+
+    # Doctor check 26 should PASS with valid owner
+    local doc_out doc_status=0
+    doc_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status=$?
+    assert_eq "0" "$doc_status" "doctor.sh must pass when CODEOWNERS covers deps-approved.txt" || return 1
+
+    # 2. PowerShell install with -Owner @custompwsh
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local sb2
+        sb2=$(create_sandbox_repo)
+        local win_sb2 win_script
+        win_sb2=$(cygpath -w "$sb2" 2>/dev/null || echo "$sb2")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+        powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb2" -Owner "@custompwsh" >/dev/null 2>&1
+        local co_content2
+        co_content2=$(cat "$sb2/.github/CODEOWNERS" 2>/dev/null || true)
+        cleanup_sandbox "$sb2"
+        assert_contains "$co_content2" ".ai/deps-approved.txt @custompwsh" "install.ps1 must set provided -Owner" || return 1
+        assert_not_contains "$co_content2" "@RudraSharma3" "install.ps1 must not contain hardcoded template handle" || return 1
+    fi
+    cleanup_sandbox "$sandbox"
+}
+
+test_installer_codeowners_existing_preserved_and_appended() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Create existing docs/CODEOWNERS with custom rules
+    mkdir -p "$sandbox/docs"
+    cat << 'EOF' > "$sandbox/docs/CODEOWNERS"
+* @existinglead
+docs/ @docsteam
+EOF
+    git add docs/CODEOWNERS
+    git commit -q -m "initial repo with docs/CODEOWNERS"
+
+    # Run install.sh with --owner @newowner
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" --owner "@newowner" >/dev/null 2>&1
+
+    # Verify docs/CODEOWNERS preserved and appended
+    local co_content
+    co_content=$(cat "$sandbox/docs/CODEOWNERS")
+    assert_contains "$co_content" "* @existinglead" "Existing CODEOWNERS rules must be preserved" || return 1
+    assert_contains "$co_content" "docs/ @docsteam" "Existing CODEOWNERS rules must be preserved" || return 1
+    assert_contains "$co_content" ".ai/deps-approved.txt @newowner" "Appended line must cover .ai/deps-approved.txt" || return 1
+
+    # Verify .github/CODEOWNERS was NOT created
+    [ ! -f "$sandbox/.github/CODEOWNERS" ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: .github/CODEOWNERS was created despite existing docs/CODEOWNERS" >&2; return 1; }
+
+    # Test PowerShell existing CODEOWNERS
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local sb2
+        sb2=$(create_sandbox_repo)
+        mkdir -p "$sb2/docs"
+        cat << 'EOF' > "$sb2/docs/CODEOWNERS"
+* @existinglead
+docs/ @docsteam
+EOF
+        git -C "$sb2" add docs/CODEOWNERS
+        git -C "$sb2" commit -q -m "initial docs/CODEOWNERS"
+        local win_sb2 win_script
+        win_sb2=$(cygpath -w "$sb2" 2>/dev/null || echo "$sb2")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+        powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb2" -Owner "@pwshowner" >/dev/null 2>&1
+        local co2
+        co2=$(cat "$sb2/docs/CODEOWNERS" 2>/dev/null || true)
+        cleanup_sandbox "$sb2"
+        assert_contains "$co2" "* @existinglead" "install.ps1 must preserve existing CODEOWNERS" || return 1
+        assert_contains "$co2" ".ai/deps-approved.txt @pwshowner" "install.ps1 must append deps-approved.txt line" || return 1
+    fi
+    cleanup_sandbox "$sandbox"
+}
+
+test_installer_codeowners_no_owner_derivable_gives_warn() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    # Ensure no git remote origin
+    git remote remove origin 2>/dev/null || true
+
+    # Run install without --owner
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # CODEOWNERS should not have @RudraSharma3 or any personal handle
+    local co_content
+    co_content=$(cat "$sandbox/.github/CODEOWNERS" 2>/dev/null || true)
+    assert_not_contains "$co_content" "@RudraSharma3" "Template CODEOWNERS must not contain hardcoded handle" || return 1
+
+    # Doctor check 26 should produce a WARN (not FAIL) in downstream repo when owner is missing
+    local doc_out doc_status=0
+    doc_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status=$?
+    assert_contains "$doc_out" "WARN] Dependency approval list and CODEOWNERS coverage" "doctor.sh must warn when CODEOWNERS has no owner coverage" || return 1
+    assert_contains "$doc_out" "fix:" "doctor.sh must print the one-line fix" || return 1
+
+    # PowerShell check
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local sb2
+        sb2=$(create_sandbox_repo)
+        git -C "$sb2" remote remove origin 2>/dev/null || true
+        local win_sb2 win_script win_doc
+        win_sb2=$(cygpath -w "$sb2" 2>/dev/null || echo "$sb2")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+        win_doc=$(cygpath -w "$REPO_ROOT/scripts/doctor.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/doctor.ps1")
+        powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb2" >/dev/null 2>&1
+        local doc_ps1_out
+        doc_ps1_out=$(powershell.exe -ExecutionPolicy Bypass -File "$win_doc" -Ci -ProjectPath "$win_sb2" 2>&1) || true
+        cleanup_sandbox "$sb2"
+        assert_contains "$doc_ps1_out" "WARN] Dependency approval list and CODEOWNERS coverage" "doctor.ps1 must warn when CODEOWNERS has no owner coverage" || return 1
+        assert_contains "$doc_ps1_out" "fix:" "doctor.ps1 must print the one-line fix" || return 1
+    fi
+    cleanup_sandbox "$sandbox"
+}
+
+test_installer_owner_validation_and_notice() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+
+    # 1. Accepted values in install.sh: @alice, @my-org/team, user@example.com
+    local out1
+    out1=$("$REPO_ROOT/scripts/install.sh" --owner @alice "$sandbox" 2>&1) || {
+        echo "install.sh rejected valid @alice: $out1"
+        cleanup_sandbox "$sandbox"
+        return 1
+    }
+
+    local out2
+    out2=$("$REPO_ROOT/scripts/install.sh" --owner @my-org/team "$sandbox" 2>&1) || {
+        echo "install.sh rejected valid @my-org/team: $out2"
+        cleanup_sandbox "$sandbox"
+        return 1
+    }
+
+    local out3
+    out3=$("$REPO_ROOT/scripts/install.sh" --owner user@example.com "$sandbox" 2>&1) || {
+        echo "install.sh rejected valid email: $out3"
+        cleanup_sandbox "$sandbox"
+        return 1
+    }
+
+    # 2. Rejected values in install.sh: must fail with clear error
+    local bad_out bad_status=0
+    bad_out=$("$REPO_ROOT/scripts/install.sh" --owner "invalid owner with spaces" "$sandbox" 2>&1) || bad_status=$?
+    assert_eq 1 "$bad_status" "install.sh must exit 1 on owner with spaces" || { cleanup_sandbox "$sandbox"; return 1; }
+    assert_contains "$bad_out" "Invalid CODEOWNERS handle" "install.sh must report invalid handle" || { cleanup_sandbox "$sandbox"; return 1; }
+
+    bad_status=0
+    bad_out=$("$REPO_ROOT/scripts/install.sh" --owner "bad!user" "$sandbox" 2>&1) || bad_status=$?
+    assert_eq 1 "$bad_status" "install.sh must exit 1 on invalid characters" || { cleanup_sandbox "$sandbox"; return 1; }
+
+    # 3. Origin remote derivation notice test
+    local sb_remote
+    sb_remote=$(create_sandbox_repo)
+    git -C "$sb_remote" remote add origin "https://github.com/test-org/test-repo.git"
+    local notice_out
+    notice_out=$("$REPO_ROOT/scripts/install.sh" "$sb_remote" 2>&1)
+    assert_contains "$notice_out" "[AI-OS Installer Notice]: Owner handle derived from origin remote: @test-org" "install.sh must display origin derivation notice" || { cleanup_sandbox "$sb_remote"; return 1; }
+    local co_content
+    co_content=$(cat "$sb_remote/.github/CODEOWNERS" 2>/dev/null || true)
+    assert_contains "$co_content" "owner derived from origin remote; for organization repositories replace with @org/team; verify with: gh api repos/OWNER/REPO/codeowners/errors" "CODEOWNERS must include origin derivation comment" || { cleanup_sandbox "$sb_remote"; return 1; }
+    cleanup_sandbox "$sb_remote"
+
+    # 4. PowerShell check
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local win_sb win_script
+        win_sb=$(cygpath -w "$sandbox" 2>/dev/null || echo "$sandbox")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+
+        # Valid owner in PS1
+        local ps_out
+        ps_out=$(powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb" -Owner "@alice" 2>&1)
+        [ $? -eq 0 ] || { echo "install.ps1 rejected valid @alice: $ps_out"; cleanup_sandbox "$sandbox"; return 1; }
+
+        # Rejected owner in PS1
+        local ps_bad_status=0 ps_bad_out
+        ps_bad_out=$(powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb" -Owner "invalid owner with spaces" 2>&1) || ps_bad_status=$?
+        assert_eq 1 "$ps_bad_status" "install.ps1 must exit 1 on owner with spaces" || { cleanup_sandbox "$sandbox"; return 1; }
+        assert_contains "$ps_bad_out" "Invalid CODEOWNERS handle" "install.ps1 must report invalid handle" || { cleanup_sandbox "$sandbox"; return 1; }
+    fi
+
+    cleanup_sandbox "$sandbox"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -725,6 +1019,9 @@ run_test "install.sh: Installs Claude Code hooks only when --with-claude-hooks i
 run_test "install.ps1: Installs template docs into existing docs/ dir" test_ps1_copies_into_existing_docs_dir
 run_test "install.ps1: Merges .gitignore without overwriting" test_ps1_merges_gitignore
 run_test "install.ps1: Preserves and chains existing core.hooksPath" test_ps1_preserves_and_chains_hookspath
+run_test "installer scenario 1: Empty repo installation blocks phantom dependency" test_installer_scenario1_empty_repo_blocks_phantom_dependency
+run_test "installer scenario 2: Existing docs and .gitignore installation blocks phantom dependency" test_installer_scenario2_existing_docs_gitignore_blocks_phantom_dependency
+run_test "installer scenario 3: Husky hooksPath installation chains and blocks phantom dependency" test_installer_scenario3_husky_hookspath_blocks_phantom_dependency
 run_test "upgrade.sh: Upgrades template and preserves customizations" test_sh_upgrade_preserves_customizations
 run_test "upgrade.sh: Preserves customized file on conflict with side-by-side update" test_upgrade_conflict_preserves_both
 run_test "upgrade.sh: Upgrades legacy pre-manifest install without data loss" test_upgrade_legacy_pre_manifest
@@ -737,6 +1034,11 @@ run_test "doctor.sh: Warns if docs contain headless command not listed in docs/s
 run_test "doctor.sh: Warns if mcp-pins.json contains young pin or stale record" test_doctor_mcp_pins_maturity_and_freshness
 run_test "doctor.sh: Warns if workflows lack permissions or use unpinned action SHAs" test_doctor_workflow_pinning_and_permissions
 run_test "offline: Default tests, doctor scripts, and evals do not invoke network tools" test_offline_test_and_doctor_scripts_no_network_invocations
+run_test "demo.sh: Executes demonstration blocking secrets and phantom deps" test_demo_script_execution
+run_test "install: No CODEOWNERS plus --owner creates CODEOWNERS with specified owner" test_installer_codeowners_no_codeowners_with_owner
+run_test "install: Existing CODEOWNERS preserved and appended without overwriting" test_installer_codeowners_existing_preserved_and_appended
+run_test "install: No owner derivable gives WARN with one-line fix in doctor" test_installer_codeowners_no_owner_derivable_gives_warn
+run_test "install: Owner syntax validation and derivation notice" test_installer_owner_validation_and_notice
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"

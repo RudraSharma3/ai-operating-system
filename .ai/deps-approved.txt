@@ -1,0 +1,4 @@
+# AI-OS Approved External Dependencies
+# Format: ecosystem|name|justification|date|approver
+# Modifications to this file require human CODEOWNER review.
+

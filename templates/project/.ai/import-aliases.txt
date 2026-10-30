@@ -1,0 +1,4 @@
+# AI-OS Custom Import Aliases
+# Format: import_name|package_name
+# Used by ai_os_verify.py to map code imports to package names.
+
