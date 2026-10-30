@@ -40,6 +40,16 @@ if [ -z "$OWNER_HANDLE" ]; then
             fi
         fi
     fi
+    if [ -z "$OWNER_HANDLE" ]; then
+        GIT_U=$(git -C "$TARGET_PATH" config user.name 2>/dev/null || git config user.name 2>/dev/null || true)
+        if [ -n "$GIT_U" ] && [[ ! "$GIT_U" =~ [[:space:]] ]]; then
+            OWNER_HANDLE="@$GIT_U"
+        fi
+    fi
+    if [ -z "$OWNER_HANDLE" ] && [ -n "${AI_OS_ONLINE:-}" ]; then
+        GH_USER=$(gh api user --jq .login 2>/dev/null || true)
+        [ -n "$GH_USER" ] && OWNER_HANDLE="@$GH_USER"
+    fi
 elif [[ ! "$OWNER_HANDLE" =~ ^@ ]]; then
     OWNER_HANDLE="@$OWNER_HANDLE"
 fi
@@ -132,10 +142,10 @@ if [ -n "$EXISTING_CO" ]; then
     if ! grep -q "\.ai/deps-approved\.txt" "$EXISTING_CO" 2>/dev/null; then
         if [ -n "$OWNER_HANDLE" ]; then
             echo ".ai/deps-approved.txt $OWNER_HANDLE" >> "$EXISTING_CO"
+            echo "  + Appended .ai/deps-approved.txt to existing $(basename "$EXISTING_CO")"
         else
-            echo ".ai/deps-approved.txt" >> "$EXISTING_CO"
+            echo "  = Preserved existing $(basename "$EXISTING_CO") without unowned pattern (no owner derived)"
         fi
-        echo "  + Appended .ai/deps-approved.txt to existing $(basename "$EXISTING_CO")"
     else
         echo "  = Existing $(basename "$EXISTING_CO") already covers .ai/deps-approved.txt"
     fi
@@ -153,8 +163,20 @@ else
         done < "$SRC_CO" > "$DEST_CO"
         echo "  + Created .github/CODEOWNERS assigned to $OWNER_HANDLE"
     else
-        cp "$SRC_CO" "$DEST_CO"
-        echo "  + Created .github/CODEOWNERS without owner line"
+        cat << 'EOF' > "$DEST_CO"
+# AI Operating System Code Owners
+# Core AI-OS security boundary: requires human CODEOWNER review for rule promotion, hook modification, or harness changes.
+# Any pull request modifying these critical infrastructure paths requires an approving review from a human CODEOWNER.
+#
+# To activate CODEOWNERS protection, add '@your-handle' to each path below:
+# AGENTS.md @your-handle
+# .ai/rules/ @your-handle
+# .githooks/ @your-handle
+# scripts/ @your-handle
+# .github/workflows/ @your-handle
+# .ai/deps-approved.txt @your-handle
+EOF
+        echo "  + Created .github/CODEOWNERS with comments only (no owner derived)"
     fi
 fi
 

@@ -59,6 +59,21 @@ if ($toolName -in $shellTools) {
         } | ConvertTo-Json -Depth 4
         exit 0
     }
+
+    # Check 3: Best-effort heuristic deny for shell writes / appends to governance or dependency approval files
+    $shellWriteGovernance = $cmd -match "(>>?|\btee(\s+-a)?)\s+['""]?.*(\.ai/deps-approved\.txt|AGENTS\.md|\.ai/rules/|\.githooks/|scripts/)"
+    if ($shellWriteGovernance) {
+        if ($env:AI_OS_ALLOW_GOVERNANCE_EDIT -ne "1") {
+            @{
+                hookSpecificOutput = @{
+                    hookEventName = "PreToolUse"
+                    permissionDecision = "deny"
+                    permissionDecisionReason = "Shell write redirection to governance or dependency approvals file detected (heuristic). Direct modification blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
+                }
+            } | ConvertTo-Json -Depth 4
+            exit 0
+        }
+    }
 }
 
 exit 0

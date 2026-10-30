@@ -66,6 +66,22 @@ if tool_name in shell_tools:
         print(json.dumps(decision, indent=2))
         sys.exit(0)
 
+    # Check 3: Best-effort heuristic deny for shell writes / appends to governance or dependency approval files
+    shell_write_governance = bool(re.search(r"(>>?|\btee(\s+-a)?)\s+[\"\x27\s]*.*(\.ai/deps-approved\.txt|AGENTS\.md|\.ai/rules/|\.githooks/|scripts/)", cmd))
+    if shell_write_governance:
+        allow_override = os.environ.get("AI_OS_ALLOW_GOVERNANCE_EDIT") == "1"
+        if not allow_override:
+            reason = "Shell write redirection to governance or dependency approvals file detected (heuristic). Direct modification blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
+            decision = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason
+                }
+            }
+            print(json.dumps(decision, indent=2))
+            sys.exit(0)
+
 sys.exit(0)
 '
 else
@@ -96,6 +112,20 @@ EOF
 }
 EOF
         exit 0
+    fi
+    if [[ "$INPUT_JSON" =~ (>>?|[[:space:]]tee)[[:space:]].*(\.ai/deps-approved\.txt|AGENTS\.md|\.ai/rules/|\.githooks/|scripts/) ]]; then
+        if [ "${AI_OS_ALLOW_GOVERNANCE_EDIT:-0}" != "1" ]; then
+            cat << 'EOF'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Shell write redirection to governance or dependency approvals file detected (heuristic). Direct modification blocked."
+  }
+}
+EOF
+            exit 0
+        fi
     fi
 fi
 

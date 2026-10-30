@@ -675,14 +675,19 @@ if (-not (Test-Path $depsFile)) {
     Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
 } else {
     $coHasOwner = $false
+    $coHasUnownedPattern = $false
     foreach ($cand in @(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")) {
         $coPath = Join-Path $target $cand
         if (Test-Path $coPath) {
             $coLines = Get-Content $coPath -ErrorAction SilentlyContinue
             foreach ($line in $coLines) {
+                $cleanLine = ($line -replace '#.*$', '').Trim()
+                if ([string]::IsNullOrWhiteSpace($cleanLine)) { continue }
+                if ($cleanLine -notmatch '@[a-zA-Z0-9_\-]+') {
+                    $coHasUnownedPattern = $true
+                }
                 if ($line -match '^\s*\.ai/deps-approved\.txt\s+@[a-zA-Z0-9_\-]+') {
                     $coHasOwner = $true
-                    break
                 }
             }
             if ($coHasOwner) { break }
@@ -699,13 +704,21 @@ if (-not (Test-Path $depsFile)) {
         $null = $_
     }
 
-    if ($coHasOwner) {
+    if ($coHasOwner -and (-not $coHasUnownedPattern)) {
         Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "PASS"
     } else {
         if ($isRootRepo) {
-            Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+            if ($coHasUnownedPattern) {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "CODEOWNERS contains unowned pattern line without an owner handle"
+            } else {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+            }
         } else {
-            Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+            if ($coHasUnownedPattern) {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS contains unowned pattern line; add '@your-handle' to each pattern line"
+            } else {
+                Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+            }
         }
     }
 }
