@@ -1,5 +1,6 @@
 param (
     [Parameter(Mandatory=$false)]
+    [Alias("TargetPath")]
     [string]$ProjectPath = (Get-Location).Path,
     [switch]$Ci = $false,
     [switch]$Json = $false
@@ -670,13 +671,41 @@ if ($pyAvail) {
 
 # 26. Dependency approval list and CODEOWNERS coverage
 $depsFile = Join-Path $target ".ai/deps-approved.txt"
-$coFile = Join-Path $target ".github/CODEOWNERS"
 if (-not (Test-Path $depsFile)) {
     Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
-} elseif ((-not (Test-Path $coFile)) -or (-not (Get-Content $coFile | Select-String -Pattern ".ai/deps-approved.txt" -SimpleMatch))) {
-    Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt"
 } else {
-    Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "PASS"
+    $coHasOwner = $false
+    foreach ($cand in @(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")) {
+        $coPath = Join-Path $target $cand
+        if (Test-Path $coPath) {
+            $coLines = Get-Content $coPath -ErrorAction SilentlyContinue
+            foreach ($line in $coLines) {
+                if ($line -match '^\s*\.ai/deps-approved\.txt\s+@[a-zA-Z0-9_\-]+') {
+                    $coHasOwner = $true
+                    break
+                }
+            }
+            if ($coHasOwner) { break }
+        }
+    }
+
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    $isRootRepo = $false
+    try {
+        if ((Resolve-Path $target).Path -eq (Resolve-Path $repoRoot).Path) {
+            $isRootRepo = $true
+        }
+    } catch {}
+
+    if ($coHasOwner) {
+        Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "PASS"
+    } else {
+        if ($isRootRepo) {
+            Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+        } else {
+            Register-CheckRecord 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+        }
+    }
 }
 
 # 27. Pre-commit verification configuration
@@ -699,6 +728,8 @@ if (-not (Test-Path $vconfFile)) {
                 $vconfErr = "Invalid verify.conf setting for imports: '$v'"
             } elseif ($k -eq "on_missing_python" -and $v -notmatch '^(warn|block)$') {
                 $vconfErr = "Invalid verify.conf setting for on_missing_python: '$v'"
+            } elseif ($k -eq "approvals_changed" -and $v -notmatch '^(warn|block)$') {
+                $vconfErr = "Invalid verify.conf setting for approvals_changed: '$v'"
             }
         }
     }

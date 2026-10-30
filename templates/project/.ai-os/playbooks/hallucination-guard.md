@@ -74,7 +74,7 @@ Autonomous agents must **never** add dependencies without human authorization.
 2. Checks performed:
    - Confirms that approved packages exist in public registries (PyPI, npm).
    - Identifies packages published within the last 14 days (cooldown / new release warning).
-   - Measures Levenshtein edit distance against popular packages and existing dependencies to flag typosquatting or slopsquatting risks.
+   - Measures Levenshtein edit distance against popular packages and existing dependencies as a heuristic to flag potential typosquatting or slopsquatting risks (heuristic alert).
 
 ---
 

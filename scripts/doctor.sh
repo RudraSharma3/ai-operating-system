@@ -5,6 +5,7 @@
 set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 CI_MODE=false
 JSON_MODE=false
@@ -684,13 +685,35 @@ fi
 
 # 26. Dependency approval list and CODEOWNERS coverage
 DEPS_FILE="$PROJECT_PATH/.ai/deps-approved.txt"
-CO_FILE="$PROJECT_PATH/.github/CODEOWNERS"
 if [ ! -f "$DEPS_FILE" ]; then
     record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" "Missing required .ai/deps-approved.txt file"
-elif [ ! -f "$CO_FILE" ] || ! grep -q "\.ai/deps-approved\.txt" "$CO_FILE"; then
-    record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt"
 else
-    record_check 26 "Dependency approval list and CODEOWNERS coverage" "PASS" ""
+    CO_FOUND=""
+    CO_HAS_OWNER=false
+    for co in ".github/CODEOWNERS" "CODEOWNERS" "docs/CODEOWNERS"; do
+        if [ -f "$PROJECT_PATH/$co" ]; then
+            CO_FOUND="$co"
+            if grep -E '^\s*\.ai/deps-approved\.txt\s+@[a-zA-Z0-9_\-]+' "$PROJECT_PATH/$co" >/dev/null 2>&1; then
+                CO_HAS_OWNER=true
+                break
+            fi
+        fi
+    done
+
+    IS_ROOT_REPO=false
+    if [ "$PROJECT_PATH" = "$REPO_ROOT" ]; then
+        IS_ROOT_REPO=true
+    fi
+
+    if [ "$CO_HAS_OWNER" = true ]; then
+        record_check 26 "Dependency approval list and CODEOWNERS coverage" "PASS" ""
+    else
+        if [ "$IS_ROOT_REPO" = true ]; then
+            record_check 26 "Dependency approval list and CODEOWNERS coverage" "FAIL" ".github/CODEOWNERS must cover .ai/deps-approved.txt with a valid owner handle"
+        else
+            record_check 26 "Dependency approval list and CODEOWNERS coverage" "WARN" "CODEOWNERS lacks owner coverage for .ai/deps-approved.txt; fix: echo '.ai/deps-approved.txt @your-handle' >> .github/CODEOWNERS"
+        fi
+    fi
 fi
 
 # 27. Pre-commit verification configuration
@@ -713,6 +736,9 @@ else
                 ;;
             on_missing_python)
                 [[ "$v" =~ ^(warn|block)$ ]] || VCONF_ERR="Invalid verify.conf setting for on_missing_python: '$v'"
+                ;;
+            approvals_changed)
+                [[ "$v" =~ ^(warn|block)$ ]] || VCONF_ERR="Invalid verify.conf setting for approvals_changed: '$v'"
                 ;;
         esac
     done < "$VCONF_FILE"

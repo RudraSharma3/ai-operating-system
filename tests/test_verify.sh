@@ -338,6 +338,203 @@ test_bash_and_powershell_wrappers() {
     return 0
 }
 
+test_imports_namespace_package() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    mkdir -p .ai
+    echo "google-genai==0.1.0" > requirements.txt
+    cat << 'EOF' > app.py
+from google import genai
+import google
+EOF
+    git add requirements.txt app.py
+    git commit -q -m "namespace pkg setup"
+
+    local status=0
+    python3 "$VERIFIER_PY" imports --target "$sandbox" || status=$?
+    cleanup_sandbox "$sandbox"
+    assert_eq "0" "$status" "Namespace package (google from google-genai) must resolve without undeclared import error"
+}
+
+test_imports_src_layout() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    mkdir -p src/my_pkg tests
+    touch src/my_pkg/__init__.py
+    echo "def get_data(): return 123" > src/my_pkg/core.py
+    cat << 'EOF' > tests/test_core.py
+from my_pkg import core
+assert core.get_data() == 123
+EOF
+    git add src tests
+    git commit -q -m "src layout setup"
+
+    local status=0
+    python3 "$VERIFIER_PY" imports --target "$sandbox" || status=$?
+    cleanup_sandbox "$sandbox"
+    assert_eq "0" "$status" "Src-layout internal modules (src/my_pkg) must resolve as internal packages"
+}
+
+test_imports_tsconfig_paths() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    cat << 'EOF' > package.json
+{
+  "name": "my-app"
+}
+EOF
+    cat << 'EOF' > tsconfig.json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["components/*"]
+    }
+  }
+}
+EOF
+    mkdir -p components
+    echo "export const Button = () => null;" > components/Button.tsx
+    cat << 'EOF' > App.tsx
+import { Button } from '@components/Button';
+export function App() { return null; }
+EOF
+    git add package.json tsconfig.json components App.tsx
+    git commit -q -m "tsconfig paths setup"
+
+    local status=0
+    python3 "$VERIFIER_PY" imports --target "$sandbox" || status=$?
+    cleanup_sandbox "$sandbox"
+    assert_eq "0" "$status" "tsconfig path alias imports (@components/*) must not be flagged as external npm packages"
+}
+
+test_imports_optional_conditional() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    touch requirements.txt
+    cat << 'EOF' > app.py
+try:
+    import optional_accelerator
+except ImportError:
+    optional_accelerator = None
+EOF
+    git add requirements.txt app.py
+    git commit -q -m "optional conditional import setup"
+
+    local status=0
+    python3 "$VERIFIER_PY" imports --target "$sandbox" || status=$?
+    cleanup_sandbox "$sandbox"
+    assert_eq "0" "$status" "Imports guarded by try/except ImportError must be treated as optional"
+}
+
+test_registry_check_offline_fixture_flags() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    mkdir -p .ai
+    # Define packages:
+    # 1. requests (real package, but mock says published yesterday -> must trigger age-under-14-days)
+    # 2. definitely-nonexistent-xyz-987 (mock says 404 -> nonexistent package error)
+    # 3. reqeusts (close edit distance to requests -> typosquat heuristic alert)
+    cat << 'EOF' > .ai/deps-approved.txt
+python|requests|HTTP library|2026-10-29|@tester
+python|definitely-nonexistent-xyz-987|Missing library|2026-10-29|@tester
+python|reqeusts|Typo library|2026-10-29|@tester
+EOF
+    cat << 'EOF' > "$sandbox/mock_registry.json"
+{
+  "python:requests": {
+    "publish_date": "2026-10-28",
+    "exists": true
+  },
+  "python:definitely-nonexistent-xyz-987": {
+    "exists": false,
+    "error": "HTTP 404: package not found"
+  },
+  "python:reqeusts": {
+    "publish_date": "2020-01-01",
+    "exists": true
+  }
+}
+EOF
+    git add .ai/deps-approved.txt
+    git commit -q -m "deps setup for registry check"
+
+    local output
+    local status=0
+    output=$(AI_OS_REGISTRY_MOCK_FILE="$sandbox/mock_registry.json" python3 "$VERIFIER_PY" registry-check --online --target "$sandbox" 2>&1) || status=$?
+    cleanup_sandbox "$sandbox"
+
+    # Nonexistent package must cause exit code 1
+    if [ "$status" -eq 0 ]; then
+        echo "ASSERTION FAILED: registry-check with nonexistent package must exit non-zero" >&2
+        return 1
+    fi
+    assert_contains "$output" "requests: age" "Must inspect requests" || return 1
+    assert_contains "$output" "Package is younger than 14-day threshold" "Must flag requests as younger than 14 days from mock fixture" || return 1
+    assert_contains "$output" "HTTP 404" "Must flag nonexistent package error from mock fixture" || return 1
+    assert_contains "$output" "Heuristic: Potential typosquat" "Must flag edit-distance typosquat heuristic" || return 1
+    assert_contains "$output" "requests" "Must identify close popular package requests" || return 1
+}
+
+test_deps_approvals_changed_warn_notice() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    mkdir -p .ai
+    echo "flask==3.0.0" > requirements.txt
+    echo "python|flask|web-framework|2026-10-30|@owner" > .ai/deps-approved.txt
+    git add requirements.txt .ai/deps-approved.txt
+    git commit -q -m "initial commit"
+
+    # Modify approvals file and add matching dep in working tree
+    echo "requests==2.31.0" >> requirements.txt
+    echo "python|requests|http-client|2026-10-30|@owner" >> .ai/deps-approved.txt
+
+    local output
+    local status=0
+    output=$(python3 "$VERIFIER_PY" deps --target "$sandbox" 2>&1) || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "0" "$status" "deps with approvals_changed=warn should pass when dependencies are approved" || return 1
+    assert_contains "$output" "approval file changed in this commit; require a human code-owner review" "Must print distinct notice when approvals file is changed" || return 1
+}
+
+test_deps_approvals_changed_block() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    mkdir -p .ai
+    echo "flask==3.0.0" > requirements.txt
+    echo "python|flask|web-framework|2026-10-30|@owner" > .ai/deps-approved.txt
+    cat << 'EOF' > .ai/verify.conf
+deps=block
+imports=warn
+on_missing_python=warn
+approvals_changed=block
+EOF
+    git add requirements.txt .ai/deps-approved.txt .ai/verify.conf
+    git commit -q -m "initial commit"
+
+    # Modify approvals file and add matching dep in working tree
+    echo "requests==2.31.0" >> requirements.txt
+    echo "python|requests|http-client|2026-10-30|@owner" >> .ai/deps-approved.txt
+
+    local output
+    local status=0
+    output=$(python3 "$VERIFIER_PY" deps --target "$sandbox" 2>&1) || status=$?
+    cleanup_sandbox "$sandbox"
+
+    assert_eq "1" "$status" "deps with approvals_changed=block must exit non-zero when approvals file is changed" || return 1
+    assert_contains "$output" "approval file changed in this commit; require a human code-owner review" "Must print notice when approvals file changed in block mode" || return 1
+}
+
 run_test "Verifier: Approved dependency passes" test_approved_dep_passes
 run_test "Verifier: Unapproved dependency fails with instructions" test_unapproved_dep_fails
 run_test "Verifier: Removal of dependency passes" test_removal_of_dep_passes
@@ -349,6 +546,13 @@ run_test "Verifier: Malformed manifest handled gracefully without traceback" tes
 run_test "Verifier: Registry check strictly requires --online flag" test_offline_policy_refuses_network_in_default_paths
 run_test "Verifier: Evidence run records metadata and evidence --require validates clean HEAD" test_evidence_run_and_require
 run_test "Verifier: Bash and PowerShell wrappers exist and are executable" test_bash_and_powershell_wrappers
+run_test "Verifier: Namespace package resolves to declared manifest dependency" test_imports_namespace_package
+run_test "Verifier: Src layout package resolves as internal workspace package" test_imports_src_layout
+run_test "Verifier: tsconfig path alias is recognized as internal module" test_imports_tsconfig_paths
+run_test "Verifier: Optional conditional import in try/except is ignored" test_imports_optional_conditional
+run_test "Verifier: Registry check offline fixture tests age, nonexistent, and edit-distance flags" test_registry_check_offline_fixture_flags
+run_test "Verifier: Notice printed when approvals file is changed (warn)" test_deps_approvals_changed_warn_notice
+run_test "Verifier: Commit blocked when approvals file changed and policy is block" test_deps_approvals_changed_block
 
 echo ""
 echo "Verifier Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"

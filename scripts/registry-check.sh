@@ -236,6 +236,12 @@ check_action_pin "actions/setup-node" "v4.4.0" "49933ea5288caeca8642d1e84afbd3f7
 check_action_pin "astral-sh/setup-uv" "v5.4.2" "d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86"
 
 echo ""
+echo "============================================================"
+echo " 🌐 Approved Dependency Online Registry Verification"
+echo "============================================================"
+python3 "$REPO_ROOT/scripts/ai_os_verify.py" registry-check --online --target "$REPO_ROOT" || FAILURES=$((FAILURES + 1))
+
+echo ""
 if [ "$FAILURES" -eq 0 ]; then
     echo "✅ All MCP pins and workflow action pins verified against upstream registries."
     exit 0

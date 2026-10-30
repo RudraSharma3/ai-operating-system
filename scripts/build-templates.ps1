@@ -78,7 +78,9 @@ Copy-Item -Path (Join-Path $root ".cursor/rules/agents.mdc") -Destination (Join-
 $githubDir = Join-Path $targetDir ".github"
 if (-not (Test-Path $githubDir)) { New-Item -ItemType Directory -Path $githubDir -Force | Out-Null }
 Copy-Item -Path (Join-Path $root ".github/copilot-instructions.md") -Destination (Join-Path $githubDir "copilot-instructions.md") -Force
-Copy-Item -Path (Join-Path $root ".github/CODEOWNERS") -Destination (Join-Path $githubDir "CODEOWNERS") -Force
+$rawCo = Get-Content (Join-Path $root ".github/CODEOWNERS") -Raw
+$cleanCo = $rawCo -replace ' @[a-zA-Z0-9_\-]+', ''
+Set-Content -Path (Join-Path $githubDir "CODEOWNERS") -Value $cleanCo -NoNewline
 
 foreach ($ad in @("CLAUDE.md", "GEMINI.md", "CODEX.md")) {
     Copy-Item -Path (Join-Path $root $ad) -Destination (Join-Path $targetDir $ad) -Force

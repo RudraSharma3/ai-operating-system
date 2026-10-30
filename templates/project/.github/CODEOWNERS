@@ -2,9 +2,9 @@
 # Core AI-OS security boundary: requires human CODEOWNER review for rule promotion, hook modification, or harness changes.
 # Any pull request modifying these critical infrastructure paths requires an approving review from a human CODEOWNER.
 
-AGENTS.md @RudraSharma3
-.ai/rules/ @RudraSharma3
-.githooks/ @RudraSharma3
-scripts/ @RudraSharma3
-.github/workflows/ @RudraSharma3
-.ai/deps-approved.txt @RudraSharma3
+AGENTS.md
+.ai/rules/
+.githooks/
+scripts/
+.github/workflows/
+.ai/deps-approved.txt

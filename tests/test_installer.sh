@@ -814,6 +814,133 @@ test_demo_script_execution() {
     assert_contains "$demo_out" "Clean change committed successfully" "demo output must show clean change allowed" || return 1
 }
 
+test_installer_codeowners_no_codeowners_with_owner() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # 1. Bash install with --owner @customlead
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" --owner "@customlead" >/dev/null 2>&1
+    local co_file="$sandbox/.github/CODEOWNERS"
+    [ -f "$co_file" ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: .github/CODEOWNERS not created" >&2; return 1; }
+    local co_content
+    co_content=$(cat "$co_file")
+    assert_contains "$co_content" ".ai/deps-approved.txt @customlead" "CODEOWNERS must set provided owner" || return 1
+    assert_not_contains "$co_content" "@RudraSharma3" "Installed CODEOWNERS must not contain hardcoded template handle" || return 1
+
+    # Doctor check 26 should PASS with valid owner
+    local doc_out doc_status=0
+    doc_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status=$?
+    assert_eq "0" "$doc_status" "doctor.sh must pass when CODEOWNERS covers deps-approved.txt" || return 1
+
+    # 2. PowerShell install with -Owner @custompwsh
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local sb2
+        sb2=$(create_sandbox_repo)
+        local win_sb2 win_script
+        win_sb2=$(cygpath -w "$sb2" 2>/dev/null || echo "$sb2")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+        powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb2" -Owner "@custompwsh" >/dev/null 2>&1
+        local co_content2
+        co_content2=$(cat "$sb2/.github/CODEOWNERS" 2>/dev/null || true)
+        cleanup_sandbox "$sb2"
+        assert_contains "$co_content2" ".ai/deps-approved.txt @custompwsh" "install.ps1 must set provided -Owner" || return 1
+        assert_not_contains "$co_content2" "@RudraSharma3" "install.ps1 must not contain hardcoded template handle" || return 1
+    fi
+    cleanup_sandbox "$sandbox"
+}
+
+test_installer_codeowners_existing_preserved_and_appended() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+
+    # Create existing docs/CODEOWNERS with custom rules
+    mkdir -p "$sandbox/docs"
+    cat << 'EOF' > "$sandbox/docs/CODEOWNERS"
+* @existinglead
+docs/ @docsteam
+EOF
+    git add docs/CODEOWNERS
+    git commit -q -m "initial repo with docs/CODEOWNERS"
+
+    # Run install.sh with --owner @newowner
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" --owner "@newowner" >/dev/null 2>&1
+
+    # Verify docs/CODEOWNERS preserved and appended
+    local co_content
+    co_content=$(cat "$sandbox/docs/CODEOWNERS")
+    assert_contains "$co_content" "* @existinglead" "Existing CODEOWNERS rules must be preserved" || return 1
+    assert_contains "$co_content" "docs/ @docsteam" "Existing CODEOWNERS rules must be preserved" || return 1
+    assert_contains "$co_content" ".ai/deps-approved.txt @newowner" "Appended line must cover .ai/deps-approved.txt" || return 1
+
+    # Verify .github/CODEOWNERS was NOT created
+    [ ! -f "$sandbox/.github/CODEOWNERS" ] || { cleanup_sandbox "$sandbox"; echo "ASSERTION FAILED: .github/CODEOWNERS was created despite existing docs/CODEOWNERS" >&2; return 1; }
+
+    # Test PowerShell existing CODEOWNERS
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local sb2
+        sb2=$(create_sandbox_repo)
+        mkdir -p "$sb2/docs"
+        cat << 'EOF' > "$sb2/docs/CODEOWNERS"
+* @existinglead
+docs/ @docsteam
+EOF
+        git -C "$sb2" add docs/CODEOWNERS
+        git -C "$sb2" commit -q -m "initial docs/CODEOWNERS"
+        local win_sb2 win_script
+        win_sb2=$(cygpath -w "$sb2" 2>/dev/null || echo "$sb2")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+        powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb2" -Owner "@pwshowner" >/dev/null 2>&1
+        local co2
+        co2=$(cat "$sb2/docs/CODEOWNERS" 2>/dev/null || true)
+        cleanup_sandbox "$sb2"
+        assert_contains "$co2" "* @existinglead" "install.ps1 must preserve existing CODEOWNERS" || return 1
+        assert_contains "$co2" ".ai/deps-approved.txt @pwshowner" "install.ps1 must append deps-approved.txt line" || return 1
+    fi
+    cleanup_sandbox "$sandbox"
+}
+
+test_installer_codeowners_no_owner_derivable_gives_warn() {
+    local sandbox
+    sandbox=$(create_sandbox_repo)
+    cd "$sandbox" || return 1
+    # Ensure no git remote origin
+    git remote remove origin 2>/dev/null || true
+
+    # Run install without --owner
+    "$REPO_ROOT/scripts/install.sh" "$sandbox" >/dev/null 2>&1
+
+    # CODEOWNERS should not have @RudraSharma3 or any personal handle
+    local co_content
+    co_content=$(cat "$sandbox/.github/CODEOWNERS" 2>/dev/null || true)
+    assert_not_contains "$co_content" "@RudraSharma3" "Template CODEOWNERS must not contain hardcoded handle" || return 1
+
+    # Doctor check 26 should produce a WARN (not FAIL) in downstream repo when owner is missing
+    local doc_out doc_status=0
+    doc_out=$("$REPO_ROOT/scripts/doctor.sh" --ci "$sandbox" 2>&1) || doc_status=$?
+    assert_contains "$doc_out" "WARN] Dependency approval list and CODEOWNERS coverage" "doctor.sh must warn when CODEOWNERS has no owner coverage" || return 1
+    assert_contains "$doc_out" "fix:" "doctor.sh must print the one-line fix" || return 1
+
+    # PowerShell check
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local sb2
+        sb2=$(create_sandbox_repo)
+        git -C "$sb2" remote remove origin 2>/dev/null || true
+        local win_sb2 win_script win_doc
+        win_sb2=$(cygpath -w "$sb2" 2>/dev/null || echo "$sb2")
+        win_script=$(cygpath -w "$REPO_ROOT/scripts/install.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/install.ps1")
+        win_doc=$(cygpath -w "$REPO_ROOT/scripts/doctor.ps1" 2>/dev/null || echo "$REPO_ROOT/scripts/doctor.ps1")
+        powershell.exe -ExecutionPolicy Bypass -File "$win_script" -TargetPath "$win_sb2" >/dev/null 2>&1
+        local doc_ps1_out
+        doc_ps1_out=$(powershell.exe -ExecutionPolicy Bypass -File "$win_doc" -Ci -ProjectPath "$win_sb2" 2>&1) || true
+        cleanup_sandbox "$sb2"
+        assert_contains "$doc_ps1_out" "WARN] Dependency approval list and CODEOWNERS coverage" "doctor.ps1 must warn when CODEOWNERS has no owner coverage" || return 1
+        assert_contains "$doc_ps1_out" "fix:" "doctor.ps1 must print the one-line fix" || return 1
+    fi
+    cleanup_sandbox "$sandbox"
+}
+
 # Run installer tests
 run_test "install.sh: Preserves and chains existing core.hooksPath" test_sh_preserves_and_chains_hookspath
 run_test "install.sh: Merges .gitignore without overwriting" test_sh_merges_gitignore
@@ -839,6 +966,9 @@ run_test "doctor.sh: Warns if mcp-pins.json contains young pin or stale record" 
 run_test "doctor.sh: Warns if workflows lack permissions or use unpinned action SHAs" test_doctor_workflow_pinning_and_permissions
 run_test "offline: Default tests, doctor scripts, and evals do not invoke network tools" test_offline_test_and_doctor_scripts_no_network_invocations
 run_test "demo.sh: Executes demonstration blocking secrets and phantom deps" test_demo_script_execution
+run_test "install: No CODEOWNERS plus --owner creates CODEOWNERS with specified owner" test_installer_codeowners_no_codeowners_with_owner
+run_test "install: Existing CODEOWNERS preserved and appended without overwriting" test_installer_codeowners_existing_preserved_and_appended
+run_test "install: No owner derivable gives WARN with one-line fix in doctor" test_installer_codeowners_no_owner_derivable_gives_warn
 
 echo ""
 echo "Installer Test Summary: $PASSED_TESTS Passed | $FAILED_TESTS Failed"
