@@ -321,51 +321,49 @@ All commit SHAs proposed in Dependabot PRs were independently queried and verifi
 
 ## 9. Slopsquatting & Phantom Dependency Supply-Chain Research
 
-This section documents research on "slopsquatting" and package hallucination risks in autonomous AI coding agents, motivating the offline dependency approval gate (`.ai/deps-approved.txt`) and registry check cooldown policies.
+This section (numbered Section 8 before the duplicate section number was fixed) documents research on "slopsquatting" and package hallucination risks in autonomous AI coding agents, motivating the offline dependency approval gate (`.ai/deps-approved.txt`). Each quote below was fetched on the retrieval date and matched character-for-character against the fetched page text.
 
 ### 1. Endor Labs: Slopsquatting When AI Agents Hallucinate Malicious Packages
 - **URL**: `https://www.endorlabs.com/learn/slopsquatting-when-ai-agents-hallucinate-malicious-packages`
-- **Retrieval Date**: 2026-10-30
-- **Verification Status**: **VERIFIED**
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED** (HTML `<title>` and quote matched in fetched page)
 - **Title**: Slopsquatting: When AI Agents Hallucinate Malicious Packages | Endor Labs
-- **Author**: Endor Labs
-- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is a software supply chain attack that turns AI hallucinations into malware delivery."* (14 words)
-- **Core Finding**: Autonomous agents install hallucinated package names without human oversight, allowing attackers who pre-register those names on npm/PyPI to deliver payloads directly into disk and CI/CD pipelines.
+- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is a software supply chain attack that turns AI hallucinations into malware delivery."*
 
 ### 2. Tian Pan: The Package Your Agent Hallucinated Now Exists
 - **URL**: `https://tianpan.co/blog/2026/07/02/the-package-your-agent-hallucinated-now-exists`
-- **Retrieval Date**: 2026-10-30
-- **Verification Status**: **VERIFIED**
-- **Title**: The Package Your Agent Hallucinated Now Exists – and It's Malicious
-- **Author**: Tian Pan
-- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is worse, because the \"typo\" isn't random."* (8 words)
-- **Core Finding**: Hallucinated package names follow reproducible probabilistic patterns across model families, making it feasible for adversaries to mass-register predictive phantom names.
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED** (HTML `<title>` and quote matched in fetched page)
+- **Title**: The Package Your Agent Hallucinated Now Exists — and It's Malicious
+- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is worse, because the "typo" isn't random."*
 
 ### 3. Trend Micro: Technical Brief on Slopsquatting
 - **URL**: `https://documents.trendmicro.com/assets/white_papers/techbrief-slopsquatting.pdf`
-- **Retrieval Date**: 2026-10-30
-- **Verification Status**: **VERIFIED**
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED** (PDF text extracted with `pdftotext -layout`; quote found at extracted line 403)
 - **Title**: Slopsquatting: Hallucination in Coding Agents and Vibe Coding
-- **Author**: Trend Micro Research
-- **Verbatim Excerpt (<25 words)**: *"Verifying a package name against PyPI no longer guarantees security. Under the slopsquatting threat model, malicious actors can preemptively register AI-hallucinated names"* (22 words)
-- **Core Finding**: Recommends strict human-in-the-loop approval gates before package installation, isolated container execution, and cooldown periods for newly published packages in automated environments.
+- **Verbatim Excerpt (<25 words)**: *"Verifying a package name against PyPI no longer guarantees security."*
 
-### 4. Disclosed Erroneous Citations from Prior Rounds (Removed)
-- `https://arxiv.org/abs/2403.04132`: Page fetched returned title *"Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference"*; completely unrelated to package hallucination or slopsquatting. Removed from repository.
-- `https://www.endorlabs.com/blog/slopsquatting-how-attackers-can-weaponize-ai-hallucinations`: Server returned `HTTP Error 404: Not Found`. Removed from repository.
-- `https://www.trendmicro.com/en_us/research/24/d/ai-hallucinations-package-squatting.html`: Server returned `HTTP Error 404: Not Found`. Removed from repository.
+### 4. Erroneous Citations from Earlier Rounds (Removed)
+Re-checked on 2026-11-03. None of these pages contains the quote that was recorded for it, so none is cited anywhere in this repository.
+- `https://arxiv.org/abs/2403.04132`: HTTP 200; paper title *"Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference"*, which is unrelated to package hallucination.
+- `https://www.endorlabs.com/blog/slopsquatting-how-attackers-can-weaponize-ai-hallucinations`: HTTP 404.
+- `https://www.trendmicro.com/en_us/research/24/d/ai-hallucinations-package-squatting.html`: HTTP 404.
 
 ---
 
-## 10. GitHub CODEOWNERS Syntax & Unowned Pattern Specification
+## 10. GitHub CODEOWNERS: Patterns Without Owners & Review Rules
 
 - **Official Source**: `https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners`
-- **Retrieval Date**: 2026-10-30
+- **Retrieval Date**: 2026-11-03
 - **Verification Status**: **VERIFIED**
-- **Verbatim Excerpt 1 (<25 words)**: *"If any line in your CODEOWNERS file contains invalid syntax, that line will be skipped."* (14 words)
-- **Verbatim Excerpt 2 (<25 words)**: *"The pattern is followed by one or more GitHub usernames or team names using the standard @username or @org/team-name format."* (20 words)
-- **Syntax & Behavior Specification**:
-  - GitHub requires each pattern line to specify at least one owner handle (`@username` or `@org/team-name`) or a valid user email address.
-  - A bare pattern line without an owner handle violates CODEOWNERS syntax; per GitHub's specification, any line with invalid syntax is skipped silently without assigning reviewers.
-  - Earlier statements asserting "GitHub ignores or warns on unowned patterns" were inaccurate: GitHub does not emit standalone repository-level warnings; it silently skips the invalid pattern line.
+- **Verbatim Excerpt (pattern with no owner, <25 words)**: *"Without an owner, changes to `apps/github` can be made with the approval of any user who has write access to the repository."*
+- **Verbatim Excerpt (invalid lines, <25 words)**: *"If any line in your CODEOWNERS file contains invalid syntax, that line will be skipped."*
+- **Correction of earlier claims**: The claim "GitHub ignores or warns on unowned patterns" was wrong, and so was the Round 4 claim that an owner-less line is invalid syntax and skipped. Per GitHub's own example, a pattern with no owners is valid: it removes code ownership from the matching files, so any user with write access can approve changes to them. A CODEOWNERS file whose lines all lack owners therefore enforces no code-owner review at all. (Separately, lines with invalid syntax are skipped, and GitHub highlights those errors when viewing the file.)
 
+### Self-approval rule
+- **Official Source**: `https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews`
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED**
+- **Verbatim Excerpt (<25 words)**: *"Pull request authors cannot approve their own pull requests."*
+- **Consequence**: A solo maintainer cannot satisfy "Require review from Code Owners" on their own PR; they need a second account with write access or an admin bypass.

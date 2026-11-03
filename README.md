@@ -120,13 +120,15 @@ Whether you have an **existing repository** or are starting a **brand new projec
 
 | Dimension | GitHub Spec Kit | Native AGENTS.md in Tools | Gitleaks / Secret Scanners | Tool-Native Analytics | AI-OS |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Primary Scope** | Specification scaffolding | Provider rule discovery | Pre-commit credential detection | Usage tracking & telemetry | End-to-end agent operational guardrails |
-| **Gated Rule Learning** | ❌ No | ❌ No (static files) | ❌ No | ❌ No | ✅ 10-point mechanical gate + human approval (`sync-rules`) |
-| **Cross-Tool Portability** | ⚠️ Partial (spec docs) | ⚠️ Tool-dependent | N/A | ❌ Proprietary | ✅ Unified adapters (Claude, Cursor, Gemini, Copilot, Codex) |
-| **Cross-Tool Installer & Doctor** | ❌ No | ❌ No | ❌ Standalone tool | ❌ No | ✅ 27-check doctor & multi-repo installer/upgrader |
-| **Dependency Approval Gate** | ❌ No | ❌ No | ❌ No | ❌ No | ✅ Pre-commit manifest & AST audit (`deps-approved.txt`) |
-| **Evidence Ledger** | ❌ No | ❌ No | ❌ No | ⚠️ Proprietary telemetry | ✅ Local, offline run records (`.ai/evidence/`) |
-| **Overlaps & Boundaries** | Overlaps in PRD/spec structure; AI-OS adds runtime hooks. | Overlaps in root `AGENTS.md` file format; AI-OS adds compilation & token budgeting. | Overlaps in secret regex detection; AI-OS integrates gitleaks where present with POSIX fallback. | Overlaps in tracking tasks; AI-OS operates locally without external SaaS logging. | Designed to augment existing linters, git hooks, and CI workflows. |
+| **Primary Scope** | Specification scaffolding (unverified) | Provider rule discovery (unverified) | Pre-commit credential detection (unverified) | Usage tracking & telemetry (unverified) | Agent operational guardrails (design intent) |
+| **Gated Rule Learning** | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ✅ 10-point gate + human approval (source: [scripts/sync-rules.sh](scripts/sync-rules.sh)) |
+| **Cross-Tool Portability** | ⚠️ Partial (unverified) | ⚠️ Tool-dependent (unverified) | N/A | ❌ Proprietary (unverified) | ✅ Adapters for Claude, Cursor, Gemini, Copilot, Codex (source: adapter files in repo root) |
+| **Cross-Tool Installer & Doctor** | ❌ No (unverified) | ❌ No (unverified) | ❌ Standalone tool (unverified) | ❌ No (unverified) | ✅ 27-check doctor & installer (source: [scripts/doctor.sh](scripts/doctor.sh), [scripts/install.sh](scripts/install.sh)) |
+| **Dependency Approval Gate** | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ✅ Pre-commit manifest & import audit (source: [scripts/ai_os_verify.py](scripts/ai_os_verify.py)) |
+| **Evidence Ledger** | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ⚠️ Proprietary telemetry (unverified) | ✅ Local, agent-writable run records (source: `ai_os_verify.py run`) |
+| **Overlaps & Boundaries** | Overlaps in spec structure (unverified). | Overlaps in `AGENTS.md` format (unverified). | Overlaps in secret detection; AI-OS uses gitleaks when present (source: [.githooks/pre-commit](.githooks/pre-commit)). | Overlaps in task tracking (unverified). | Designed to augment linters, hooks, and CI (design intent). |
+
+> Cell legend: **(source: …)** = backed by a file in this repository; **(unverified)** = design intent or belief about another tool, not checked against that tool's documentation.
 
 ---
 
