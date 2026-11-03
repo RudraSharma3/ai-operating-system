@@ -1,6 +1,6 @@
 {
     "ai_os_version": "2.5.0",
-    "generated_at": "2026-10-30T13:51:47Z",
+    "generated_at": "2026-11-03T12:15:46Z",
     "file_count": 66,
     "files": {
         ".ai-os/optional/claude-hooks/README.md": "39f2e4e136d1f5acd665a3d9f97c269d799c7f8b7983f407708e124bed59c185",
@@ -15,7 +15,7 @@
         ".ai-os/playbooks/bug-fix.md": "36fd1ce223cad8ceabe2d591077cd5d37b15c84c6e53382d136f784e36137e4d",
         ".ai-os/playbooks/codebase-analysis.md": "f9fb0a005bd6e619a536cf16596558cea5ba4340e251fb5219c1dd293e6fe2bf",
         ".ai-os/playbooks/feature.md": "186c7a2cb020f698728e1786b91a112e9db7053abedf93c1189c7a0a6e60c08f",
-        ".ai-os/playbooks/hallucination-guard.md": "c7c70a233ebc85d5ffd3a9a48ff609e255bfe95ef6d39d9c33269e30f3bd1a1d",
+        ".ai-os/playbooks/hallucination-guard.md": "bd2f489cfd3579bf99ba59519cf24fff8984678a04e1d4a71c0b8412ce884f0a",
         ".ai-os/playbooks/interview.md": "378107da7dcf90d611c4f6e3b39faf561edf704d4e8fd63c9536bf3b96b15133",
         ".ai-os/playbooks/learning-loop.md": "44e719ad6d4ae47226bb5f8f0ddac5b2558628a520f413aa857a7f089a5edbac",
         ".ai-os/playbooks/multi-agent-orchestration.md": "6c3ed9a2347ac58f07ccec98dc073dbb392ad2390cf85f00836d4ed615f0ebd1",
