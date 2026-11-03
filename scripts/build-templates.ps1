@@ -96,7 +96,7 @@ if (Test-Path (Join-Path $root "mcp.json")) {
 # 5. Generate .ai-os/manifest.json
 $manifestPath = Join-Path $targetDir ".ai-os/manifest.json"
 $files = Get-ChildItem -Path $targetDir -Recurse -File | Where-Object {
-    $_.FullName -ne $manifestPath
+    $_.FullName -ne $manifestPath -and $_.Name -ne "private-names.txt" -and $_.Name -ne ".DS_Store"
 }
 
 $fileHashes = [ordered]@{}
