@@ -1084,10 +1084,23 @@ This document tracks the current development milestones and task state for the m
     * Executed full self-approval demo in scratch repo under warn and block modes.
   - **Section F (CHANGELOG & Wording Hygiene)**:
     * Updated CHANGELOG [2.5.0] with all required disclosures: live agent effectiveness unmeasured, hook overhead measured on Windows 11 only (+0.6491s), Linux/macOS hook overhead not measured, guarded-import/shell-write limitations, CODEOWNERS solo maintainer caveats, and CI runtime costs.
-    * Verified `git grep -n -i "immutable\|tamper-proof\|prevents hallucination"` is completely empty.
+    * Verified that the forbidden-marketing-wording grep (Section F) returns no matches.
     * Confirmed `claude --permission-mode default -p` appears in `evals/README.md:57` and noted no live agent run was executed.
 - **What Was Verified**:
   * Unit tests, installer tests, hook tests, verifier tests, doctor diagnostics, evaluation harness tests, and template parity.
 
 
 
+
+---
+
+## 2026-11-03 - Round 4 Re-verification on PR #14 (hallucination-guard)
+- **Why**: CI on 01cbe2a was red on all three OSes (template manifest hashed a gitignored local file), and several Round 4 claims did not hold when re-checked.
+- **Corrected**:
+  * Template manifest excludes `.ai/private-names.txt` and OS junk files.
+  * CODEOWNERS: an owner-less pattern is valid and removes ownership (GitHub docs, retrieved 2026-11-03); the "invalid syntax, skipped" claim was wrong.
+  * PreToolUse hooks: NotebookEdit's `notebook_path` was never checked; `./` and absolute paths bypassed the deps-approved shell heuristic; the POSIX fallback denied `cat AGENTS.md > /dev/null`. All fixed with a three-way (python, POSIX fallback, PowerShell) test matrix.
+  * Pre-commit: commits that stage only `.ai/deps-approved.txt` skipped the approvals check; fixed and tested.
+  * Hook overhead re-measured: +0.7350s median on 50 staged files, Windows 11.
+  * CI step timings in CHANGELOG corrected from the GitHub API.
+- **Not done**: Cross-repository import counts (comparison repositories are outside this session's readable folders). Live agent effectiveness remains unmeasured.
