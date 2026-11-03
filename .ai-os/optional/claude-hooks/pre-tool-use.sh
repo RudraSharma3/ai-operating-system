@@ -25,7 +25,7 @@ if not isinstance(tool_input, dict):
 # Check 1: Direct governance file edits (Write / Edit / NotebookEdit)
 write_tools = {"Write", "Edit", "NotebookEdit"}
 if tool_name in write_tools:
-    target_path = tool_input.get("file_path") or tool_input.get("path") or ""
+    target_path = tool_input.get("file_path") or tool_input.get("notebook_path") or tool_input.get("path") or ""
     # Normalize path
     target_path = str(target_path).replace("\\", "/").strip()
     
@@ -68,14 +68,16 @@ if tool_name in shell_tools:
 
     # Check 3: Best-effort heuristic deny for shell writes / appends to .ai/deps-approved.txt only
     # Intercepts: >, >>, tee (with or without -a), sed -i, cp, mv, dd of=
-    target = ".ai/deps-approved.txt"
+    # A target may carry a path prefix (./, /abs/path/) and quotes. No single quotes here:
+    # this Python source is wrapped in a single-quoted bash string.
+    target = r"[^\s;&|]*\.ai/deps-approved\.txt"
     shell_write_patterns = [
-        r"(>>?)\s*[\"]?\s*" + re.escape(target),
-        r"\btee(\s+-[a-zA-Z0-9]+)*\s+[\"]?\s*" + re.escape(target),
-        r"\bsed\s+-[a-zA-Z0-9]*i.*" + re.escape(target),
-        r"\bcp\s+.*[\s\"]" + re.escape(target),
-        r"\bmv\s+.*[\s\"]" + re.escape(target),
-        r"\bdd\s+.*of=[\"]?\s*" + re.escape(target)
+        r">>?\s*" + target,
+        r"\btee(\s+-[a-zA-Z0-9]+)*\s+" + target,
+        r"\bsed\s+-[a-zA-Z0-9]*i.*\.ai/deps-approved\.txt",
+        r"\bcp\s+.*\s" + target + r"\S*\s*($|[;&|])",
+        r"\bmv\s+.*\.ai/deps-approved\.txt",
+        r"\bdd\s+.*of=" + target
     ]
     shell_write_deps = any(re.search(p, cmd) for p in shell_write_patterns)
     if shell_write_deps:
@@ -95,46 +97,36 @@ if tool_name in shell_tools:
 sys.exit(0)
 '
 else
-    # Fallback POSIX Shell when Python is unavailable
-    INPUT_JSON=$(cat)
-    if [[ "$INPUT_JSON" =~ (AGENTS\.md|\.ai/rules/|\.githooks/|scripts/) ]]; then
-        if [ "${AI_OS_ALLOW_GOVERNANCE_EDIT:-0}" != "1" ]; then
-            cat << 'EOF'
-{
+    # Fallback when Python is unavailable: bash builtins only (no cat/grep/sed on PATH required).
+    INPUT_JSON=$(</dev/stdin)
+    deny() {
+        printf '{
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "Direct edits to AI-OS governance files (AGENTS.md, .ai/rules/, .githooks/, scripts/) are blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
+    "permissionDecisionReason": "%s"
   }
 }
-EOF
-            exit 0
-        fi
-    fi
-    if [[ "$INPUT_JSON" =~ git[[:space:]]+commit.*--no-verify ]] || [[ "$INPUT_JSON" =~ git[[:space:]]+push.*--force ]]; then
-        cat << 'EOF'
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "Subversive git commands (--no-verify, --force) are blocked by AI-OS governance."
-  }
-}
-EOF
+' "$1"
         exit 0
+    }
+    TOOL_RE='"tool_name"[[:space:]]*:[[:space:]]*"([A-Za-z]+)"'
+    TOOL=""
+    [[ "$INPUT_JSON" =~ $TOOL_RE ]] && TOOL="${BASH_REMATCH[1]}"
+    GOV_PATH_RE='"(file_path|notebook_path|path)"[[:space:]]*:[[:space:]]*"([^"]*/)?(AGENTS\.md|\.ai/rules/[^"]*|\.githooks/[^"]*|scripts/[^"]*|\.ai/deps-approved\.txt)"'
+    if [[ "$TOOL" =~ ^(Write|Edit|NotebookEdit)$ ]] && [[ "$INPUT_JSON" =~ $GOV_PATH_RE ]]; then
+        [ "${AI_OS_ALLOW_GOVERNANCE_EDIT:-0}" = "1" ] || deny "Direct edits to AI-OS governance files (AGENTS.md, .ai/rules/, .githooks/, scripts/, .ai/deps-approved.txt) are blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
     fi
-    if [[ "$INPUT_JSON" =~ (>>?|[[:space:]]tee)[[:space:]].*(\.ai/deps-approved\.txt|AGENTS\.md|\.ai/rules/|\.githooks/|scripts/) ]]; then
-        if [ "${AI_OS_ALLOW_GOVERNANCE_EDIT:-0}" != "1" ]; then
-            cat << 'EOF'
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "Shell write redirection to governance or dependency approvals file detected (heuristic). Direct modification blocked."
-  }
-}
-EOF
-            exit 0
+    if [[ "$TOOL" =~ ^(Bash|PowerShell)$ ]]; then
+        NO_VERIFY_RE='git[[:space:]]+commit.*--no-verify'
+        FORCE_RE='git[[:space:]]+push.*(--force|[[:space:]]-f([[:space:]"]|$))'
+        if [[ "$INPUT_JSON" =~ $NO_VERIFY_RE ]] || [[ "$INPUT_JSON" =~ $FORCE_RE ]]; then
+            deny "Subversive git commands (--no-verify, --force) are blocked by AI-OS governance."
+        fi
+        T='[^[:space:];&|]*\.ai/deps-approved\.txt'
+        WRITE_RE=">>?[[:space:]]*['\\\"]*$T|tee([[:space:]]+-[[:alnum:]]+)*[[:space:]]+['\\\"]*$T|sed[[:space:]]+-[[:alnum:]]*i.*\.ai/deps-approved\.txt|cp[[:space:]].*[[:space:]]['\\\"]*$T['\\\"]*[[:space:]]*(\"|$|[;&|])|mv[[:space:]].*\.ai/deps-approved\.txt|dd[[:space:]].*of=['\\\"]*$T"
+        if [[ "$INPUT_JSON" =~ $WRITE_RE ]]; then
+            [ "${AI_OS_ALLOW_GOVERNANCE_EDIT:-0}" = "1" ] || deny "Shell write redirection to .ai/deps-approved.txt detected (heuristic). Direct modification blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
         fi
     fi
 fi

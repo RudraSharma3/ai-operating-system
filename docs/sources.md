@@ -39,15 +39,15 @@ This document records the official documentation URLs, retrieval dates, and veri
 ## 4. Claude Code Lifecycle Hooks Specification
 
 - **Official Source**: `https://code.claude.com/docs/en/hooks` (Markdown version: `https://code.claude.com/docs/en/hooks.md`)
-- **Retrieval Date**: 2026-10-30
-- **Verification Status**: **VERIFIED**
-- **Verified Tool Names**:
-  - File-edit tools: `Write`, `Edit`, `NotebookEdit`.
-  - Shell execution tools: `Bash`, `PowerShell`.
-- **Bash Tool Input Payload Schema**:
-  - Tool payload delivered via stdin contains `"tool_input": { "command": "..." }` with shell command string in the `command` field.
-- **Deny Output Decision Format**:
-  - Hook denies execution by outputting JSON on stdout: `{"permissionDecision": "deny", "permissionDecisionReason": "..."}` or `{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "..."}}`.
+- **Retrieval Date**: 2026-11-03 (hooks page and `https://code.claude.com/docs/en/tools-reference.md`, both HTTP 200)
+- **Verification Status**: **VERIFIED** except where marked
+- **File-edit tool names** (verbatim):
+  - hooks page: *"built-in tools such as `Bash`, `PowerShell`, `Edit`, `Write`, `Read`"*
+  - hooks page: *"`Edit.*` matches both `Edit` and `NotebookEdit`"*
+  - tools reference: *"`NotebookEdit` | Modifies Jupyter notebook cells."* (the tool is `NotebookEdit`; `NotebookEditCell` does not appear in either page)
+- **Bash tool input field** (verbatim, hooks page Bash input table): *"`command` | string | `"npm test"` | The shell command to execute"*
+- **NotebookEdit input field**: `notebook_path`. **NOT VERIFIED** against the fetched docs (neither page names its fields); observed in the NotebookEdit tool's own input schema in a Claude Code session on 2026-11-03. The hooks read `notebook_path` in addition to `file_path`, which can only add denials, never remove one.
+- **Deny output format** (verbatim, hooks page): *"Use `hookSpecificOutput.permissionDecision` and `hookSpecificOutput.permissionDecisionReason` instead."* The same note says top-level `decision`/`reason` are deprecated for PreToolUse. The earlier claim that a top-level `{"permissionDecision": "deny"}` object is accepted was not supported by the docs and is withdrawn; both AI-OS hooks emit only the `hookSpecificOutput` form.
 - **Lifecycle Events Utilized**:
   - `SessionStart`: Fires when a session begins or resumes. Passes session context on stdin. Used in AI-OS to print task state summary and token budget metrics.
   - `PreCompact`: Fires before context window compaction. Passes conversation metrics on stdin. Used in AI-OS to record a state checkpoint into `docs/task-state.md`.
