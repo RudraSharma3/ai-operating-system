@@ -19,6 +19,7 @@ $toolInput = $data.tool_input
 $writeTools = @("Write", "Edit", "NotebookEdit")
 if ($toolName -in $writeTools) {
     $targetPath = if ($toolInput.file_path) { $toolInput.file_path } `
+                  elseif ($toolInput.notebook_path) { $toolInput.notebook_path } `
                   elseif ($toolInput.path) { $toolInput.path } `
                   else { "" }
     $targetPath = $targetPath.ToString().Replace("\", "/").Trim()
@@ -60,12 +61,14 @@ if ($toolName -in $shellTools) {
 
     # Check 3: Best-effort heuristic deny for shell writes / appends to .ai/deps-approved.txt only
     # Intercepts: >, >>, tee (with or without -a), sed -i, cp, mv, dd of=
-    $shellWriteDeps = ($cmd -match "(>>?)\s*['""]?.*\.ai/deps-approved\.txt") -or `
-                      ($cmd -match "\btee(\s+-[a-zA-Z0-9]+)*\s+['""]?.*\.ai/deps-approved\.txt") -or `
+    # A target may carry a path prefix (./, C:/abs/path/) and quotes.
+    $t = "[^\s;&|]*\.ai/deps-approved\.txt"
+    $shellWriteDeps = ($cmd -match ">>?\s*$t") -or `
+                      ($cmd -match "\btee(\s+-[a-zA-Z0-9]+)*\s+$t") -or `
                       ($cmd -match "\bsed\s+-[a-zA-Z0-9]*i.*\.ai/deps-approved\.txt") -or `
-                      ($cmd -match "\bcp\s+.*[\s'""]\.ai/deps-approved\.txt") -or `
-                      ($cmd -match "\bmv\s+.*[\s'""]\.ai/deps-approved\.txt") -or `
-                      ($cmd -match "\bdd\s+.*of=['""]?.*\.ai/deps-approved\.txt")
+                      ($cmd -match "\bcp\s+.*\s$t\S*\s*($|[;&|])") -or `
+                      ($cmd -match "\bmv\s+.*\.ai/deps-approved\.txt") -or `
+                      ($cmd -match "\bdd\s+.*of=$t")
 
     if ($shellWriteDeps) {
         if ($env:AI_OS_ALLOW_GOVERNANCE_EDIT -ne "1") {

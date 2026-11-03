@@ -284,6 +284,10 @@ if [ -f "$VERIFIER_SCRIPT" ] && { [ "$CONF_DEPS" != "off" ] || [ "$CONF_IMPORTS"
             if [[ "$bname" =~ ^(package\.json|pyproject\.toml)$ ]] || [[ "$bname" =~ ^requirements.*\.txt$ ]]; then
                 STAGED_MANIFESTS="1"
             fi
+            # A staged approvals file must run the audit too, so approvals_changed applies to self-approval commits.
+            if [ "$sfile" = ".ai/deps-approved.txt" ]; then
+                STAGED_MANIFESTS="1"
+            fi
             if [[ "$sfile" =~ \.(py|js|jsx|ts|tsx|mjs|cjs)$ ]]; then
                 STAGED_SOURCES="${STAGED_SOURCES} $sfile"
             fi
