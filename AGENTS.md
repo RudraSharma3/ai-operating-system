@@ -27,6 +27,14 @@ Never claim that something works merely because code was written. After making c
 2. Check for errors and review diff.
 3. Explicitly report what was verified and any remaining unverified areas.
 
+## Evidence & Verification
+- Never claim tests pass, a build works, or a package/API exists without evidence from this session; label anything unverified as unverified.
+- New dependencies need a human-approved line in .ai/deps-approved.txt; never edit that file yourself.
+- Cite file:line for claims about existing code.
+- For unfamiliar APIs, read installed source or docs; never guess signatures.
+- Run tests via scripts/ai-os-run; mark a task done only with a matching evidence record.
+Details: .ai-os/playbooks/hallucination-guard.md
+
 ### 1.4 Reverse Prompting & Prompt Contracts
 When user requests are ambiguous, brief, or open-ended:
 1. **Reverse Prompting**: Ask 3–5 sharp clarifying questions with recommended defaults before guessing. In non-interactive or batch environments, proceed using explicitly stated safe defaults without stalling.

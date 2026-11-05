@@ -2,7 +2,9 @@ param (
     [Parameter(Mandatory=$false)]
     [string]$TargetPath = (Get-Location).Path,
     [Parameter(Mandatory=$false)]
-    [switch]$WithClaudeHooks
+    [switch]$WithClaudeHooks,
+    [Parameter(Mandatory=$false)]
+    [string]$Owner
 )
 
 # Detect Git User and Project Name
@@ -15,6 +17,36 @@ $projectName = (Split-Path -Leaf $TargetPath)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Split-Path -Parent $ScriptDir
 $TemplateDir = Join-Path $RepoRoot "templates\project"
+
+function Test-ValidOwner([string]$h) {
+    if ($h -match '^@[a-zA-Z0-9]([a-zA-Z0-9._-]*)(/[a-zA-Z0-9._-]+)?$') { return $true }
+    if ($h -match '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$') { return $true }
+    return $false
+}
+
+# Derive owner handle if not passed
+$derivedFromRemote = $false
+if ($Owner) {
+    if (-not (Test-ValidOwner $Owner)) {
+        Write-Error "Invalid CODEOWNERS handle '$Owner'. Must be a GitHub username (@user), team (@org/team), or valid email address."
+        exit 1
+    }
+} else {
+    try {
+        $remoteUrl = git -C $TargetPath remote get-url origin 2>$null
+        if ($remoteUrl -and ($remoteUrl -match '(?:https?://[^/]+/|git@[^:]+:|ssh://git@[^/]+/)([^/]+)/')) {
+            $cand = $Matches[1]
+            if ($cand -notmatch '^@') { $cand = "@$cand" }
+            if (Test-ValidOwner $cand) {
+                $Owner = $cand
+                $derivedFromRemote = $true
+                Write-Host "`n  [AI-OS Installer Notice]: Owner handle derived from origin remote: $Owner. For organization repositories, replace with @org/team. Verify with: gh api repos/OWNER/REPO/codeowners/errors" -ForegroundColor Yellow
+            }
+        }
+    } catch {
+        $null = $_
+    }
+}
 
 # ASCII Logo Header
 Write-Host ""
@@ -44,6 +76,10 @@ Write-Host "`n[1/3] Copying AI-OS architecture, rule files, and playbooks..." -F
 $templateFiles = Get-ChildItem -Path $TemplateDir -Recurse -File
 foreach ($file in $templateFiles) {
     $relative = $file.FullName.Substring($TemplateDir.Length).TrimStart("\", "/")
+    $normalizedRel = $relative.Replace("\", "/")
+    if ($normalizedRel -eq ".github/CODEOWNERS") {
+        continue
+    }
     $destFile = Join-Path $TargetPath $relative
     $destDir = Split-Path -Parent $destFile
     if (-not (Test-Path $destDir)) {
@@ -63,7 +99,7 @@ $srcGitignore = Join-Path $TemplateDir ".gitignore"
 if (Test-Path $destGitignore) {
     $currentContent = Get-Content $destGitignore -Raw -ErrorAction SilentlyContinue
     if ($currentContent -notmatch "# --- AI-OS START ---") {
-        $aiosBlock = "`n# --- AI-OS START ---`n.env`n.env.*`n!.env.example`n!.env.sample`n!.env.template`n!.env.dist`n.ai/private-names.txt`n# --- AI-OS END ---`n"
+        $aiosBlock = "`n# --- AI-OS START ---`n.env`n.env.*`n!.env.example`n!.env.sample`n!.env.template`n!.env.dist`n.ai/private-names.txt`n.ai/evidence/`n# --- AI-OS END ---`n"
         Add-Content -Path $destGitignore -Value $aiosBlock
         Write-Host "  + Merged AI-OS secret rules into existing .gitignore" -ForegroundColor Gray
     } else {
@@ -72,6 +108,68 @@ if (Test-Path $destGitignore) {
 } else {
     Copy-Item -Path $srcGitignore -Destination $destGitignore -Force
     Write-Host "  + Created .gitignore with AI-OS rules" -ForegroundColor Gray
+}
+
+# Non-destructive CODEOWNERS configuration
+$existingCo = $null
+foreach ($cand in @(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")) {
+    $candPath = Join-Path $TargetPath $cand
+    if (Test-Path $candPath) {
+        $existingCo = $candPath
+        break
+    }
+}
+
+if ($existingCo) {
+    $coContent = Get-Content $existingCo -Raw -ErrorAction SilentlyContinue
+    if ($coContent -notmatch "\.ai/deps-approved\.txt") {
+        if ($Owner) {
+            $line = "`n.ai/deps-approved.txt $Owner`n"
+            Add-Content -Path $existingCo -Value $line
+            Write-Host "  + Appended .ai/deps-approved.txt to existing $(Split-Path -Leaf $existingCo)" -ForegroundColor Gray
+        } else {
+            Write-Host "  = Preserved existing $(Split-Path -Leaf $existingCo) without unowned pattern (no owner derived)" -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Host "  = Existing $(Split-Path -Leaf $existingCo) already covers .ai/deps-approved.txt" -ForegroundColor DarkGray
+    }
+} else {
+    $destGithub = Join-Path $TargetPath ".github"
+    if (-not (Test-Path $destGithub)) { New-Item -ItemType Directory -Path $destGithub -Force | Out-Null }
+    $destCo = Join-Path $destGithub "CODEOWNERS"
+    $srcCo = Join-Path $TemplateDir ".github\CODEOWNERS"
+    if ($Owner) {
+        $lines = Get-Content $srcCo
+        $outLines = [System.Collections.Generic.List[string]]::new()
+        if ($derivedFromRemote) {
+            $outLines.Add("# owner derived from origin remote; for organization repositories replace with @org/team; verify with: gh api repos/OWNER/REPO/codeowners/errors")
+        }
+        foreach ($line in $lines) {
+            if ($line -match '^\s*#' -or [string]::IsNullOrWhiteSpace($line)) {
+                $outLines.Add($line)
+            } else {
+                $outLines.Add("$line $Owner")
+            }
+        }
+        $outLines | Set-Content -Path $destCo -Encoding utf8
+        Write-Host "  + Created .github/CODEOWNERS assigned to $Owner" -ForegroundColor Gray
+    } else {
+        $commentLines = @(
+            "# AI Operating System Code Owners",
+            "# Core AI-OS security boundary: requires human CODEOWNER review for rule promotion, hook modification, or harness changes.",
+            "# Any pull request modifying these critical infrastructure paths requires an approving review from a human CODEOWNER.",
+            "#",
+            "# To activate CODEOWNERS protection, add '@your-handle' to each path below:",
+            "# AGENTS.md @your-handle",
+            "# .ai/rules/ @your-handle",
+            "# .githooks/ @your-handle",
+            "# scripts/ @your-handle",
+            "# .github/workflows/ @your-handle",
+            "# .ai/deps-approved.txt @your-handle"
+        )
+        $commentLines | Set-Content -Path $destCo -Encoding utf8
+        Write-Host "  + Created .github/CODEOWNERS with comments only (no owner derived)" -ForegroundColor Gray
+    }
 }
 
 $destAiDir = Join-Path $TargetPath ".ai"

@@ -39,12 +39,19 @@ This document records the official documentation URLs, retrieval dates, and veri
 ## 4. Claude Code Lifecycle Hooks Specification
 
 - **Official Source**: `https://code.claude.com/docs/en/hooks` (Markdown version: `https://code.claude.com/docs/en/hooks.md`)
-- **Retrieval Date**: 2026-10-27
-- **Verification Status**: **VERIFIED**
+- **Retrieval Date**: 2026-11-03 (hooks page and `https://code.claude.com/docs/en/tools-reference.md`, both HTTP 200)
+- **Verification Status**: **VERIFIED** except where marked
+- **File-edit tool names** (verbatim):
+  - hooks page: *"built-in tools such as `Bash`, `PowerShell`, `Edit`, `Write`, `Read`"*
+  - hooks page: *"`Edit.*` matches both `Edit` and `NotebookEdit`"*
+  - tools reference: *"`NotebookEdit` | Modifies Jupyter notebook cells."* (the tool is `NotebookEdit`; `NotebookEditCell` does not appear in either page)
+- **Bash tool input field** (verbatim, hooks page Bash input table): *"`command` | string | `"npm test"` | The shell command to execute"*
+- **NotebookEdit input field**: `notebook_path`. **NOT VERIFIED** against the fetched docs (neither page names its fields); observed in the NotebookEdit tool's own input schema in a Claude Code session on 2026-11-03. The hooks read `notebook_path` in addition to `file_path`, which can only add denials, never remove one.
+- **Deny output format** (verbatim, hooks page): *"Use `hookSpecificOutput.permissionDecision` and `hookSpecificOutput.permissionDecisionReason` instead."* The same note says top-level `decision`/`reason` are deprecated for PreToolUse. The earlier claim that a top-level `{"permissionDecision": "deny"}` object is accepted was not supported by the docs and is withdrawn; both AI-OS hooks emit only the `hookSpecificOutput` form.
 - **Lifecycle Events Utilized**:
   - `SessionStart`: Fires when a session begins or resumes. Passes session context on stdin. Used in AI-OS to print task state summary and token budget metrics.
   - `PreCompact`: Fires before context window compaction. Passes conversation metrics on stdin. Used in AI-OS to record a state checkpoint into `docs/task-state.md`.
-  - `PreToolUse`: Fires before tool call execution (Write, Edit, Bash, PowerShell). Input arrives on stdin containing `{"tool_name": "...", "tool_input": { ... }}`. Hook outputs JSON with `permissionDecision: "allow" | "deny"` and `permissionDecisionReason: "..."` to enforce governance boundaries.
+  - `PreToolUse`: Fires before tool call execution (Write, Edit, NotebookEdit, Bash, PowerShell). Input arrives on stdin containing `{"tool_name": "...", "tool_input": { ... }}`. Hook outputs JSON with `permissionDecision: "allow" | "deny"` and `permissionDecisionReason: "..."` to enforce governance boundaries.
   - `Stop`: Fires when Claude finishes responding on a turn.
 - **Configuration Schema (`.claude/settings.json`)**:
   ```json
@@ -74,7 +81,7 @@ This document records the official documentation URLs, retrieval dates, and veri
       ],
       "PreToolUse": [
         {
-          "matcher": "Write|Edit|Bash|PowerShell",
+          "matcher": "Write|Edit|NotebookEdit|Bash|PowerShell",
           "hooks": [
             {
               "type": "command",
@@ -135,7 +142,7 @@ This document records the official documentation URLs, retrieval dates, and veri
 - **Retrieval Date**: 2026-10-28
 - **Verification Status**: **VERIFIED**
 - **14-Day Maturity Policy**:
-  All MCP servers declared in `mcp.json` must be pinned to immutable, exact package versions that were published at least 14 days prior to pinning. This mitigates supply-chain risks and ensures upstream releases are stable.
+  All MCP servers declared in `mcp.json` must be pinned to exact package versions that were published at least 14 days prior to pinning. This mitigates supply-chain risks and ensures upstream releases are stable.
 - **Tracked MCP Packages & Upstream Sources**:
   - `@modelcontextprotocol/server-filesystem`: npm registry (`https://registry.npmjs.org/@modelcontextprotocol/server-filesystem`). Pinned to `1.0.0` (published `2026-10-11T02:44:10Z`, 17 days old).
   - `@modelcontextprotocol/server-memory`: npm registry (`https://registry.npmjs.org/@modelcontextprotocol/server-memory`). Pinned to `1.0.0` (published `2026-10-11T02:42:27Z`, 17 days old).
@@ -262,7 +269,7 @@ This document records the official documentation URLs, retrieval dates, and veri
   - **Changed Inputs & Breaking Changes**:
     - v6.0.0: Removed deprecated `pyproject-file` and `uv-file` inputs; added explicit `activate-environment` boolean input (defaults to false, replacing automatic root venv creation); added `working-directory` input; changed default `cache-dependency-glob`.
     - v7.0.0: Removed deprecated `server-url` input; changed default binary download source to Astral mirror (`releases.astral.sh`).
-    - v8.0.0: Removed deprecated custom `manifest-file` format; stopped publishing mutable major/minor tags (`@v8`, `@v8.0`), enforcing immutable exact tags (`v8.0.0`).
+    - v8.0.0: Removed deprecated custom `manifest-file` format; stopped publishing mutable major/minor tags (`@v8`, `@v8.0`), enforcing exact version tags (`v8.0.0`).
     - v9.0.0: Disabled default cache pruning (`prune-cache: false`), increasing cache hit rates at the expense of higher cache storage consumption.
     - v10.0.0: Default `enable-cache: auto` automatically disables cache for `pull_request_target`, `workflow_run`, and `release` events to prevent cache poisoning attacks; added `version: latest-known`.
     - v10.3.2: Added `python-arch` input for selecting target architecture independently of Python version.
@@ -309,3 +316,54 @@ All commit SHAs proposed in Dependabot PRs were independently queried and verifi
   3. Update `tests/test_installer.sh` check-runner test expectations.
 - **Automated Verification**: Run full multi-platform matrix CI (Ubuntu, macOS, Windows) and ensure 0 warnings across ShellCheck and PSScriptAnalyzer.
 - **Supercede & Close**: Merge the atomic PR and close PRs #3, #4, #5, #6 with reference to the atomic modernization commit.
+
+---
+
+## 9. Slopsquatting & Phantom Dependency Supply-Chain Research
+
+This section (numbered Section 8 before the duplicate section number was fixed) documents research on "slopsquatting" and package hallucination risks in autonomous AI coding agents, motivating the offline dependency approval gate (`.ai/deps-approved.txt`). Each quote below was fetched on the retrieval date and matched character-for-character against the fetched page text.
+
+### 1. Endor Labs: Slopsquatting When AI Agents Hallucinate Malicious Packages
+- **URL**: `https://www.endorlabs.com/learn/slopsquatting-when-ai-agents-hallucinate-malicious-packages`
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED** (HTML `<title>` and quote matched in fetched page)
+- **Title**: Slopsquatting: When AI Agents Hallucinate Malicious Packages | Endor Labs
+- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is a software supply chain attack that turns AI hallucinations into malware delivery."*
+
+### 2. Tian Pan: The Package Your Agent Hallucinated Now Exists
+- **URL**: `https://tianpan.co/blog/2026/07/02/the-package-your-agent-hallucinated-now-exists`
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED** (HTML `<title>` and quote matched in fetched page)
+- **Title**: The Package Your Agent Hallucinated Now Exists — and It's Malicious
+- **Verbatim Excerpt (<25 words)**: *"Slopsquatting is worse, because the "typo" isn't random."*
+
+### 3. Trend Micro: Technical Brief on Slopsquatting
+- **URL**: `https://documents.trendmicro.com/assets/white_papers/techbrief-slopsquatting.pdf`
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED** (PDF text extracted with `pdftotext -layout`; quote found at extracted line 403)
+- **Title**: Slopsquatting: Hallucination in Coding Agents and Vibe Coding
+- **Verbatim Excerpt (<25 words)**: *"Verifying a package name against PyPI no longer guarantees security."*
+
+### 4. Erroneous Citations from Earlier Rounds (Removed)
+Re-checked on 2026-11-03. None of these pages contains the quote that was recorded for it, so none is cited anywhere in this repository.
+- `https://arxiv.org/abs/2403.04132`: HTTP 200; paper title *"Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference"*, which is unrelated to package hallucination.
+- `https://www.endorlabs.com/blog/slopsquatting-how-attackers-can-weaponize-ai-hallucinations`: HTTP 404.
+- `https://www.trendmicro.com/en_us/research/24/d/ai-hallucinations-package-squatting.html`: HTTP 404.
+
+---
+
+## 10. GitHub CODEOWNERS: Patterns Without Owners & Review Rules
+
+- **Official Source**: `https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners`
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED**
+- **Verbatim Excerpt (pattern with no owner, <25 words)**: *"Without an owner, changes to `apps/github` can be made with the approval of any user who has write access to the repository."*
+- **Verbatim Excerpt (invalid lines, <25 words)**: *"If any line in your CODEOWNERS file contains invalid syntax, that line will be skipped."*
+- **Correction of earlier claims**: The claim "GitHub ignores or warns on unowned patterns" was wrong, and so was the Round 4 claim that an owner-less line is invalid syntax and skipped. Per GitHub's own example, a pattern with no owners is valid: it removes code ownership from the matching files, so any user with write access can approve changes to them. A CODEOWNERS file whose lines all lack owners therefore enforces no code-owner review at all. (Separately, lines with invalid syntax are skipped, and GitHub highlights those errors when viewing the file.)
+
+### Self-approval rule
+- **Official Source**: `https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/approving-a-pull-request-with-required-reviews`
+- **Retrieval Date**: 2026-11-03
+- **Verification Status**: **VERIFIED**
+- **Verbatim Excerpt (<25 words)**: *"Pull request authors cannot approve their own pull requests."*
+- **Consequence**: A solo maintainer cannot satisfy "Require review from Code Owners" on their own PR; they need a second account with write access or an admin bypass.

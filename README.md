@@ -9,6 +9,44 @@ A reusable, versioned operating system for running reliable, context-aware, and 
 
 ---
 
+## ⚡ Quickstart: Install in 3 Commands
+
+Install AI-OS into any existing or new project repository:
+
+```bash
+# 1. Clone AI-OS
+git clone https://github.com/RudraSharma3/ai-operating-system.git
+cd ai-operating-system
+
+# 2. Install into your target project repository
+bash scripts/install.sh /path/to/your/project
+# (On Windows PowerShell: .\scripts\install.ps1 -TargetPath C:\path\to\your\project)
+
+# 3. Verify health and armed protections
+bash scripts/doctor.sh --ci /path/to/your/project
+# (On Windows PowerShell: .\scripts\doctor.ps1 -Ci -TargetPath C:\path\to\your\project)
+```
+
+### What You Will See
+- **`[ARMED]` Secret Guard**: Real-time pre-commit hook scanning added lines for multi-vendor API credentials (`sk-`, `sk-ant-`, `AKIA`, `ghp_`, `AIza`, `sk_live_`, DB URLs), private keys, and unencrypted `.env` files.
+- **`[ARMED]` Dependency & Import Verifier**: Pre-commit validation ensuring every newly added dependency in manifests (`package.json`, `requirements*.txt`, `pyproject.toml`) is pre-approved in `.ai/deps-approved.txt`, and validating that static imports resolve without phantom packages.
+- **`[ARMED]` 27-Point Doctor Diagnostic**: Automated health engine verifying hook paths, executable bits, CODEOWNERS coverage, pinned action SHAs, and rule budgets.
+- **Evidence Runner**: Structured, tamper-evident execution proofs generated in `.ai/evidence/` via `scripts/ai-os-run` to substantiate task completion.
+
+### What AI-OS Does and Does NOT Do
+- ✅ **DOES Target Specific Coding-Agent Failure Modes**:
+  - **Phantom Dependencies**: Reduces supply-chain risks (including slopsquatting) by blocking unvetted or hallucinated package additions.
+  - **Undeclared Imports**: Flags code that imports libraries not declared in project manifests.
+  - **Stale or Guessed APIs**: Discourages signature guessing from stale LLM weights by requiring local source inspection and runtime test verification.
+  - **False Completion Claims**: Rejects unverified "all tests pass" assertions unless corroborated by an execution evidence record.
+  - **Secret Leaks**: Intercepts credential exposure deterministically before commit.
+- ❌ **Does NOT Do**:
+  - Does **not** eliminate general conversational factual inaccuracies or reasoning errors in general chat answers.
+  - Does **not** replace server-side CI/CD security boundaries or human CODEOWNER reviews.
+  - Does **not** depend on external networks (core verification and diagnostic tools run 100% offline).
+
+---
+
 ## ⚡ Quick Links & Documentation
 
 - 📘 **[AI-OS Complete User Guide & Integration Manual (docs/AI-OS-USER-GUIDE.md)](docs/AI-OS-USER-GUIDE.md)**: **Start Here!** The official handbook for integrating AI-OS into your projects, GitHub baseline safety, personalized confirmation greeting, and the kickoff prompt.
@@ -78,6 +116,22 @@ Whether you have an **existing repository** or are starting a **brand new projec
 
 ---
 
+## ⚖️ How AI-OS Differs from Related Tools
+
+| Dimension | GitHub Spec Kit | Native AGENTS.md in Tools | Gitleaks / Secret Scanners | Tool-Native Analytics | AI-OS |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Primary Scope** | Specification scaffolding (unverified) | Provider rule discovery (unverified) | Pre-commit credential detection (unverified) | Usage tracking & telemetry (unverified) | Agent operational guardrails (design intent) |
+| **Gated Rule Learning** | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ✅ 10-point gate + human approval (source: [scripts/sync-rules.sh](scripts/sync-rules.sh)) |
+| **Cross-Tool Portability** | ⚠️ Partial (unverified) | ⚠️ Tool-dependent (unverified) | N/A | ❌ Proprietary (unverified) | ✅ Adapters for Claude, Cursor, Gemini, Copilot, Codex (source: adapter files in repo root) |
+| **Cross-Tool Installer & Doctor** | ❌ No (unverified) | ❌ No (unverified) | ❌ Standalone tool (unverified) | ❌ No (unverified) | ✅ 27-check doctor & installer (source: [scripts/doctor.sh](scripts/doctor.sh), [scripts/install.sh](scripts/install.sh)) |
+| **Dependency Approval Gate** | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ✅ Pre-commit manifest & import audit (source: [scripts/ai_os_verify.py](scripts/ai_os_verify.py)) |
+| **Evidence Ledger** | ❌ No (unverified) | ❌ No (unverified) | ❌ No (unverified) | ⚠️ Proprietary telemetry (unverified) | ✅ Local, agent-writable run records (source: `ai_os_verify.py run`) |
+| **Overlaps & Boundaries** | Overlaps in spec structure (unverified). | Overlaps in `AGENTS.md` format (unverified). | Overlaps in secret detection; AI-OS uses gitleaks when present (source: [.githooks/pre-commit](.githooks/pre-commit)). | Overlaps in task tracking (unverified). | Designed to augment linters, hooks, and CI (design intent). |
+
+> Cell legend: **(source: …)** = backed by a file in this repository; **(unverified)** = design intent or belief about another tool, not checked against that tool's documentation.
+
+---
+
 ## 🗺️ Repository Structure
 
 ```
@@ -99,11 +153,12 @@ ai-operating-system/
 │   ├── task-state.md                   # Active task progress tracker
 │   └── decisions/
 │       └── 001-ai-operating-system-architecture.md # Formal ADR 001
-├── playbooks/ (14 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
+├── playbooks/ (15 Playbooks)  # new-project, feature, bug-fix, codebase-analysis,
 │                              # testing, review, architecture-decisions,
 │                              # learning-loop, prompt-refinement,
 │                              # multi-agent-orchestration, stochastic-consensus,
-│                              # token-optimization, interview, release-and-learn
+│                              # token-optimization, interview, release-and-learn,
+│                              # hallucination-guard
 ├── prompts/ (7 Roles)         # architect, implementer, reviewer, tester,
 │                              # researcher, security-reviewer, data-ai-specialist
 ├── scripts/
