@@ -1,13 +1,13 @@
 {
     "ai_os_version": "2.5.0",
-    "generated_at": "2026-11-03T12:24:14Z",
+    "generated_at": "2026-11-05T21:14:12Z",
     "file_count": 66,
     "files": {
         ".ai-os/optional/claude-hooks/README.md": "39f2e4e136d1f5acd665a3d9f97c269d799c7f8b7983f407708e124bed59c185",
         ".ai-os/optional/claude-hooks/pre-compact.ps1": "5a737576bd4db83ddbe845bbd67cb0b6bed125c9f7c1946568f64153828dbfb5",
         ".ai-os/optional/claude-hooks/pre-compact.sh": "b2cc974335fc044de7bbc3009bbf9d42952627573b5050649a2e258462eff982",
         ".ai-os/optional/claude-hooks/pre-tool-use.ps1": "60b7bf3dbb32eeafcacd345594d9c2d5a568a5b7e3901d8475f3d3b40d75288b",
-        ".ai-os/optional/claude-hooks/pre-tool-use.sh": "81d8c957a0be9e670ccebdaa65ca297b2d4be8bd9c70b1e1206038dae704afa1",
+        ".ai-os/optional/claude-hooks/pre-tool-use.sh": "79806d7ecef94f261dc7eb5434c905470c98f07c06a551a417fa0239785a6933",
         ".ai-os/optional/claude-hooks/session-start.ps1": "83fcfd858af947750c8b925873e225545857794ce257037eb4efeb2351c3b5a1",
         ".ai-os/optional/claude-hooks/session-start.sh": "1a57ae41bc697a2ecaf2d817060dc78e3c9fe9ccb8ffacb59d408a442555b24c",
         ".ai-os/optional/claude-hooks/settings.json": "2fe3c58aa42c2da218dbb51ab9a75e99568529c8fdcd1a31f2620abfc2b75365",

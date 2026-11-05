@@ -124,7 +124,7 @@ else
             deny "Subversive git commands (--no-verify, --force) are blocked by AI-OS governance."
         fi
         T='[^[:space:];&|]*\.ai/deps-approved\.txt'
-        WRITE_RE=">>?[[:space:]]*['\\\"]*$T|tee([[:space:]]+-[[:alnum:]]+)*[[:space:]]+['\\\"]*$T|sed[[:space:]]+-[[:alnum:]]*i.*\.ai/deps-approved\.txt|cp[[:space:]].*[[:space:]]['\\\"]*$T['\\\"]*[[:space:]]*(\"|$|[;&|])|mv[[:space:]].*\.ai/deps-approved\.txt|dd[[:space:]].*of=['\\\"]*$T"
+        WRITE_RE=">>?[[:space:]]*['\\\"]*${T}|tee([[:space:]]+-[[:alnum:]]+)*[[:space:]]+['\\\"]*${T}|sed[[:space:]]+-[[:alnum:]]*i.*\.ai/deps-approved\.txt|cp[[:space:]].*[[:space:]]['\\\"]*${T}['\\\"]*[[:space:]]*(\"|$|[;&|])|mv[[:space:]].*\.ai/deps-approved\.txt|dd[[:space:]].*of=['\\\"]*${T}"
         if [[ "$INPUT_JSON" =~ $WRITE_RE ]]; then
             [ "${AI_OS_ALLOW_GOVERNANCE_EDIT:-0}" = "1" ] || deny "Shell write redirection to .ai/deps-approved.txt detected (heuristic). Direct modification blocked. Set AI_OS_ALLOW_GOVERNANCE_EDIT=1 to allow."
         fi
