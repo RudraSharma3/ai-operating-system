@@ -79,6 +79,10 @@ json_scripts='{"tool_name":"Edit","tool_input":{"file_path":"scripts/install.sh"
 out_block_scripts=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_scripts" | bash "$HOOKS_DIR/pre-tool-use.sh")
 assert_contains '"permissionDecision": "deny"' "$out_block_scripts" "PreToolUse blocks scripts/ edit"
 
+json_deps='{"tool_name":"Write","tool_input":{"file_path":".ai/deps-approved.txt","content":"tamper"}}'
+out_block_deps=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_deps" | bash "$HOOKS_DIR/pre-tool-use.sh")
+assert_contains '"permissionDecision": "deny"' "$out_block_deps" "PreToolUse blocks .ai/deps-approved.txt edit"
+
 # Test 6: pre-tool-use.sh allows normal app file edits
 json_app='{"tool_name":"Write","tool_input":{"file_path":"src/index.js","content":"console.log(1);"}}'
 out_app=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_app" | bash "$HOOKS_DIR/pre-tool-use.sh")
@@ -94,10 +98,98 @@ json_force='{"tool_name":"Bash","tool_input":{"command":"git push origin main --
 out_force=$(echo "$json_force" | bash "$HOOKS_DIR/pre-tool-use.sh")
 assert_contains '"permissionDecision": "deny"' "$out_force" "PreToolUse blocks git push --force"
 
+# Test 8b: pre-tool-use.sh blocks NotebookEdit on governance files
+json_notebook='{"tool_name":"NotebookEdit","tool_input":{"file_path":".ai/deps-approved.txt","content":"tamper"}}'
+out_block_nb=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_notebook" | bash "$HOOKS_DIR/pre-tool-use.sh")
+assert_contains '"permissionDecision": "deny"' "$out_block_nb" "PreToolUse blocks NotebookEdit on .ai/deps-approved.txt"
+
 # Test 9: pre-tool-use.sh allows legitimate git commands
 json_legit_git='{"tool_name":"Bash","tool_input":{"command":"git push origin hardening"}}'
 out_legit_git=$(echo "$json_legit_git" | bash "$HOOKS_DIR/pre-tool-use.sh")
 assert_eq "" "$out_legit_git" "PreToolUse allows legitimate git push"
+
+# Test 9b: Shell heuristic deny cases for .ai/deps-approved.txt: >, >>, tee, sed -i, cp, mv, dd of=
+for deny_cmd in \
+    "echo x > .ai/deps-approved.txt" \
+    "echo x >> .ai/deps-approved.txt" \
+    "echo x | tee .ai/deps-approved.txt" \
+    "echo x | tee -a .ai/deps-approved.txt" \
+    "sed -i 's/a/b/' .ai/deps-approved.txt" \
+    "cp /tmp/evil .ai/deps-approved.txt" \
+    "mv /tmp/evil .ai/deps-approved.txt" \
+    "dd if=/dev/zero of=.ai/deps-approved.txt"; do
+    json_deny=$(printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$deny_cmd")
+    out_deny=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_deny" | bash "$HOOKS_DIR/pre-tool-use.sh")
+    assert_contains '"permissionDecision": "deny"' "$out_deny" "PreToolUse blocks shell write: $deny_cmd"
+done
+
+# Test 9c: Shell heuristic allow cases: cat, grep, cat AGENTS.md > /dev/null
+for allow_cmd in \
+    "cat .ai/deps-approved.txt" \
+    "grep x .ai/deps-approved.txt" \
+    "cat AGENTS.md > /dev/null"; do
+    json_allow=$(printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$allow_cmd")
+    out_allow=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; echo "$json_allow" | bash "$HOOKS_DIR/pre-tool-use.sh")
+    assert_eq "" "$out_allow" "PreToolUse allows benign shell command: $allow_cmd"
+done
+
+# Test 9d: Same decision matrix for bash (python), bash (POSIX fallback, no python3), and PowerShell hooks.
+# Sample NotebookEdit payload uses the real NotebookEdit input fields (notebook_path, cell_id, new_source, edit_mode).
+FAKE_BIN="$TMP_DIR/fakebin"
+mkdir -p "$FAKE_BIN"
+PS_HOOK=""
+if command -v powershell.exe >/dev/null 2>&1; then
+    PS_HOOK=$(cygpath -w "$HOOKS_DIR/pre-tool-use.ps1" 2>/dev/null || echo "$HOOKS_DIR/pre-tool-use.ps1")
+fi
+
+decision_of() {
+    if printf '%s' "$1" | grep -Eq '"permissionDecision": *"deny"'; then echo deny; else echo allow; fi
+}
+
+check_all_hooks() {
+    local expected="$1" json="$2" label="$3" out
+    out=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; printf '%s' "$json" | bash "$HOOKS_DIR/pre-tool-use.sh")
+    assert_eq "$expected" "$(decision_of "$out")" "pre-tool-use.sh ($expected): $label"
+    out=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; printf '%s' "$json" | env PATH="$FAKE_BIN" "$BASH" "$HOOKS_DIR/pre-tool-use.sh")
+    assert_eq "$expected" "$(decision_of "$out")" "pre-tool-use.sh POSIX fallback ($expected): $label"
+    if [ -n "$PS_HOOK" ]; then
+        out=$(unset AI_OS_ALLOW_GOVERNANCE_EDIT; printf '%s' "$json" | powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PS_HOOK")
+        assert_eq "$expected" "$(decision_of "$out")" "pre-tool-use.ps1 ($expected): $label"
+    fi
+}
+
+bash_json() {
+    printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$1"
+}
+
+check_all_hooks deny '{"tool_name":"NotebookEdit","tool_input":{"notebook_path":"/repo/scripts/analysis.ipynb","cell_id":"c1","new_source":"print(1)","edit_mode":"replace"}}' "NotebookEdit notebook_path under scripts/"
+check_all_hooks allow '{"tool_name":"NotebookEdit","tool_input":{"notebook_path":"/repo/notebooks/analysis.ipynb","cell_id":"c1","new_source":"print(1)","edit_mode":"replace"}}' "NotebookEdit notebook_path outside governance paths"
+check_all_hooks deny '{"tool_name":"Write","tool_input":{"file_path":"/repo/.ai/deps-approved.txt","content":"x"}}' "Write absolute .ai/deps-approved.txt"
+check_all_hooks allow '{"tool_name":"Edit","tool_input":{"file_path":"/repo/src/app.py","old_string":"a","new_string":"b"}}' "Edit non-governance file"
+
+for deny_cmd in \
+    "echo x > .ai/deps-approved.txt" \
+    "echo x >> .ai/deps-approved.txt" \
+    "echo x > ./.ai/deps-approved.txt" \
+    "echo x >> /repo/.ai/deps-approved.txt" \
+    "echo x | tee .ai/deps-approved.txt" \
+    "echo x | tee -a ./.ai/deps-approved.txt" \
+    "sed -i 's/a/b/' .ai/deps-approved.txt" \
+    "cp /tmp/evil .ai/deps-approved.txt" \
+    "cp /tmp/evil /repo/.ai/deps-approved.txt" \
+    "mv /tmp/evil .ai/deps-approved.txt" \
+    "dd if=/dev/zero of=.ai/deps-approved.txt"; do
+    check_all_hooks deny "$(bash_json "$deny_cmd")" "$deny_cmd"
+done
+
+for allow_cmd in \
+    "cat .ai/deps-approved.txt" \
+    "grep x .ai/deps-approved.txt" \
+    "cat AGENTS.md > /dev/null" \
+    "cat scripts/doctor.sh" \
+    "cp .ai/deps-approved.txt /tmp/backup.txt"; do
+    check_all_hooks allow "$(bash_json "$allow_cmd")" "$allow_cmd"
+done
 
 # Test 10: pre-tool-use.sh never executes tool input (injection defense)
 MARKER_FILE="$TMP_DIR/injected_execution.txt"

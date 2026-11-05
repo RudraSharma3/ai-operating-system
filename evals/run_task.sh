@@ -58,6 +58,10 @@ while [[ $# -gt 0 ]]; do
             TARGET_DIR="$2"
             shift 2
             ;;
+        --help|-h)
+            echo "Usage: run_task.sh [--task <name|all>] [--mode with|without] [--agent-cmd <command>] [--reference] [--negative] [--expect-fail] [--check-only] [--target <dir>]"
+            exit 0
+            ;;
         *)
             echo "Unknown argument: $1" >&2
             echo "Usage: run_task.sh [--task <name|all>] [--mode with|without] [--agent-cmd <command>] [--reference] [--negative] [--expect-fail] [--check-only] [--target <dir>]" >&2
