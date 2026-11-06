@@ -21,6 +21,7 @@ run_suite() {
 run_suite "$SCRIPT_DIR/test_hook.sh"
 run_suite "$SCRIPT_DIR/test_installer.sh"
 run_suite "$SCRIPT_DIR/test_owner.sh"
+run_suite "$SCRIPT_DIR/test_dependabot_cooldown.sh"
 run_suite "$SCRIPT_DIR/test_sync.sh"
 run_suite "$SCRIPT_DIR/test_agents_contract.sh"
 run_suite "$SCRIPT_DIR/test_claude_hooks.sh"
