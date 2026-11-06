@@ -32,7 +32,8 @@ Threat model: `docs/threat-model.md`. Sources: `docs/sources.md`. Local hooks ca
 - **Release**: v2.5.0, published 2026-11-05 at merge commit `f3a99fcbd8e5cb48cb3d7ae90c1f115c0c052926`.
 - **PR #14**: merged with an owner-authorized admin bypass. It had no code-owner review, because no second code owner exists.
 - **CI**: run `42120032947` passed on Linux, macOS, and Windows at that commit.
-- **Last full local suite**: commit `06669cd`, Windows 11, all 13 commands exit 0. The only later change is one CHANGELOG line.
+- **PR #17**: merged to `main` after the release as `4503d7cd17a7a5d230ee08ff79eac9b3df512f8f`, also with an owner-authorized admin bypass. It aligns `docs/dependabot-cooldown-keys.json` with GitHub's 34 documented ecosystem values. It is listed under `[Unreleased]` in the CHANGELOG and is not in v2.5.0.
+- **Last full local suite**: commit `b8d88b0`, Windows 11, all 13 commands exit 0.
 - **Branch protection on main**: strict; required checks are Linux, macOS, and Windows Verification; 1 code-owner review; stale reviews dismissed; `enforce_admins` false; no force pushes or deletions.
 - **Hook overhead**: +0.7350s median with 50 staged files, Windows 11. Linux and macOS are not measured.
 
@@ -55,13 +56,12 @@ Threat model: `docs/threat-model.md`. Sources: `docs/sources.md`. Local hooks ca
 
 ### Needs a decision
 
-- **Second code owner**: `main`'s CODEOWNERS names one owner, so every PR touching owned paths needs an admin bypass. A PR author cannot approve their own PR.
+- **Second reviewer**: branch protection requires one approval on every PR, and a PR author cannot approve their own PR. `main`'s CODEOWNERS names one owner, so PRs touching owned paths also need that owner's review. With one person, every merge needs an admin bypass.
 - **Merge control**: a fine-grained token with Contents write can still merge, per GitHub's REST docs: *"\"Contents\" repository permissions (write)"* (retrieved 2026-11-06). Removing Administration alone does not stop over-merging; required reviews and the rule in `AGENTS.md` do. Whether such a token can use admin bypass is NOT VERIFIED.
 - **Repository access**: one other collaborator has write access. Confirm that this is still intended (`gh api repos/RudraSharma3/ai-operating-system/collaborators`).
 
 ### Known defects
 
-- `docs/dependabot-cooldown-keys.json` has drifted from GitHub's Dependabot options reference (retrieved 2026-11-06). It lacks `apm` (default and SemVer days supported), and uses `hex` and `nix-flakes` where the documented YAML values are `mix` and `nix`. Doctor check 24 would warn on those valid values. The other 31 entries and the recorded quote match.
 - CHANGELOG `[2.5.0]` is dated 2026-10-29; the release was published 2026-11-05.
 - On Windows, the test suite can leave line-ending-only changes in generated files.
 
