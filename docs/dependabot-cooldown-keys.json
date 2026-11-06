@@ -1,8 +1,16 @@
 {
   "url": "https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference",
-  "retrieval_date": "2026-10-29",
+  "retrieval_date": "2026-11-06",
   "verbatim_excerpt": "The default-days option is supported for all package managers listed, while semver-major-days, semver-minor-days, and semver-patch-days are supported only where indicated.",
   "ecosystems": {
+    "apm": [
+      "default-days",
+      "exclude",
+      "include",
+      "semver-major-days",
+      "semver-minor-days",
+      "semver-patch-days"
+    ],
     "bazel": [
       "default-days",
       "exclude",
@@ -118,7 +126,7 @@
       "exclude",
       "include"
     ],
-    "hex": [
+    "mix": [
       "default-days",
       "exclude",
       "include",
@@ -142,7 +150,7 @@
       "semver-minor-days",
       "semver-patch-days"
     ],
-    "nix-flakes": [
+    "nix": [
       "default-days",
       "exclude",
       "include"
