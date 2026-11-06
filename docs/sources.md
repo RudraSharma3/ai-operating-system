@@ -166,10 +166,10 @@ This document records the official documentation URLs, retrieval dates, and veri
 ## 7. Dependabot Version Updates Cooldown Configuration
 
 - **Official Source**: `https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference`
-- **Retrieval Date**: 2026-10-29
+- **Retrieval Date**: 2026-11-06
 - **Verification Status**: **VERIFIED**
 - **Verbatim Excerpt**: *"The default-days option is supported for all package managers listed, while semver-major-days, semver-minor-days, and semver-patch-days are supported only where indicated."* (20 words)
-- **Data File**: `docs/dependabot-cooldown-keys.json` contains the offline table-driven schema mapping 33 ecosystems to their accepted cooldown keys.
+- **Data File**: `docs/dependabot-cooldown-keys.json` contains the offline table-driven schema mapping 34 ecosystems to their accepted cooldown keys. Entries are keyed by the documented `package-ecosystem` YAML value, so the Hex row is `mix` and the Nix flakes row is `nix`. Compared with the page on 2026-11-06: every SemVer support flag matched; `apm` was added, and `hex` and `nix-flakes` were corrected because they are not valid YAML values.
 - **Parameters Documented by GitHub**:
   - `default-days`: Default cooldown period for dependencies without specific rules (optional). If not specified, Dependabot applies a default cooldown of 3 days. Supported across all package managers.
   - `semver-major-days`: Cooldown period for major version updates (optional; restricted strictly to package managers supporting SemVer).

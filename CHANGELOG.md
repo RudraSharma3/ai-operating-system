@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Dependabot Cooldown Table (Doctor Check 24)**: `docs/dependabot-cooldown-keys.json` now lists all 34 documented `package-ecosystem` values. Added `apm`; replaced `hex` with `mix` and `nix-flakes` with `nix`. Previously the check warned on those valid values and passed `hex` and `nix-flakes`, which are not valid YAML values.
+
 ## [2.5.0] - 2026-10-29
 
 ### Added
