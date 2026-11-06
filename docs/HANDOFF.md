@@ -29,17 +29,19 @@ Threat model: `docs/threat-model.md`. Sources: `docs/sources.md`. Local hooks ca
 
 ## 3. Current State
 
-- **Release**: v2.5.0, published 2026-11-05 at merge commit `f3a99fcbd8e5cb48cb3d7ae90c1f115c0c052926`.
+- **Release**: v2.5.0, published 2026-11-05 at merge commit `b80cbe1840e1be88031ecbe49a07a34ecf31c0b1`.
 - **PR #14**: merged with an owner-authorized admin bypass. It had no code-owner review, because no second code owner exists.
-- **CI**: run `42120032947` passed on Linux, macOS, and Windows at that commit.
-- **PR #17**: merged to `main` after the release as `4503d7cd17a7a5d230ee08ff79eac9b3df512f8f`, also with an owner-authorized admin bypass. It aligns `docs/dependabot-cooldown-keys.json` with GitHub's 34 documented ecosystem values. It is listed under `[Unreleased]` in the CHANGELOG and is not in v2.5.0.
-- **Last full local suite**: commit `b8d88b0`, Windows 11, all 13 commands exit 0.
+- **CI**: run `42120032947` passed on Linux, macOS, and Windows on the same file tree, before the history rewrite below.
+- **PR #17**: merged to `main` after the release as `23fa9c9a07e63819c9b098e2c6105a293cb6d467`, also with an owner-authorized admin bypass. It aligns `docs/dependabot-cooldown-keys.json` with GitHub's 34 documented ecosystem values. It is listed under `[Unreleased]` in the CHANGELOG and is not in v2.5.0.
+- **Last full local suite**: commit `91b0125`, Windows 11, all 13 commands exit 0.
+- **History**: on 2026-11-06 the owner rewrote every branch and tag so that all commits are authored and committed by `RudraSharma3`. File contents did not change. SHAs in `docs/task-state.md` and other older records predate this rewrite, and old PR pages still show the earlier commits.
+- **Access**: `RudraSharma3` is the only collaborator, by the owner's decision. There are no deploy keys or webhooks.
 - **Branch protection on main**: strict; required checks are Linux, macOS, and Windows Verification; 1 code-owner review; stale reviews dismissed; `enforce_admins` false; no force pushes or deletions.
 - **Hook overhead**: +0.7350s median with 50 staged files, Windows 11. Linux and macOS are not measured.
 
 ## 4. Rules For Agents Working Here
 
-1. Commit as `RudraSharma3` with repo-local git config only. Never use `--global`.
+1. Commit as `RudraSharma3 <naganoobiea@gmail.com>` with repo-local git config only. Never use `--global`. Never add AI attribution to commits or PR descriptions.
 2. Never merge, push to main, tag, release, close PRs, or change repository settings without explicit instruction in the active task text. A vague "continue" is not permission.
 3. Never force-push, rewrite pushed history, or use `--no-verify`.
 4. Measure, never state: every size, count, or duration comes from a command whose output you show.
@@ -56,13 +58,11 @@ Threat model: `docs/threat-model.md`. Sources: `docs/sources.md`. Local hooks ca
 
 ### Needs a decision
 
-- **Second reviewer**: branch protection requires one approval on every PR, and a PR author cannot approve their own PR. `main`'s CODEOWNERS names one owner, so PRs touching owned paths also need that owner's review. With one person, every merge needs an admin bypass.
+- **Sole maintainer**: branch protection requires one approval on every PR, and a PR author cannot approve their own PR. The owner has decided to keep the repository single-person, so every merge needs an admin bypass, which the owner must authorize explicitly each time. No second person reviews these changes.
 - **Merge control**: a fine-grained token with Contents write can still merge, per GitHub's REST docs: *"\"Contents\" repository permissions (write)"* (retrieved 2026-11-06). Removing Administration alone does not stop over-merging; required reviews and the rule in `AGENTS.md` do. Whether such a token can use admin bypass is NOT VERIFIED.
-- **Repository access**: one other collaborator has write access. Confirm that this is still intended (`gh api repos/RudraSharma3/ai-operating-system/collaborators`).
 
 ### Known defects
 
-- CHANGELOG `[2.5.0]` is dated 2026-10-29; the release was published 2026-11-05.
 - On Windows, the test suite can leave line-ending-only changes in generated files.
 
 ### Unfinished measurement
@@ -72,16 +72,16 @@ Threat model: `docs/threat-model.md`. Sources: `docs/sources.md`. Local hooks ca
 
 ### Open Dependabot PRs (none merged)
 
-Every pinned SHA matches its upstream tag. Each release was at least 14 days old on 2026-11-05. All show `BEHIND` and need updating against v2.5.0.
+Every pinned SHA matches its upstream tag. Each release was at least 14 days old on 2026-11-05. All show `BEHIND` and need updating from `main`. On 2026-11-06, `registry-check.yml` passed when run manually on all four branches.
 
 | PR | Change | Files | Risk |
 |---|---|---|---|
 | #5 | `actions/checkout` 4.2.2 to 7.0.1 | `ci.yml`, `registry-check.yml` | Lower: required CI exercises it and passed before v2.5.0 |
-| #6 | `actions/setup-node` 4.4.0 to 7.1.0 | `registry-check.yml` | Medium: Node 24 runtime; required CI does not run it |
-| #11 | `actions/setup-python` 5.6.0 to 7.0.0 | `registry-check.yml` | Medium: required CI does not run it; the removed `pip-install` input is not used here |
-| #15 | `astral-sh/setup-uv` 5.4.2 to 10.3.1 (replaces #12) | `registry-check.yml` | Medium to high: five major versions with breaking changes, including cache defaults; required CI does not run it |
+| #6 | `actions/setup-node` 4.4.0 to 7.1.0 | `registry-check.yml` | Medium: Node 24 runtime; required CI does not run it, but the manual run passed |
+| #11 | `actions/setup-python` 5.6.0 to 7.0.0 | `registry-check.yml` | Lower to medium: the removed `pip-install` input is not used here, and the manual run passed |
+| #15 | `astral-sh/setup-uv` 5.4.2 to 10.3.1 (replaces #12) | `registry-check.yml` | Medium: five major versions with breaking changes, including cache defaults; the manual run passed |
 
-`registry-check.yml` runs only on a weekly schedule or manual dispatch, so green checks on #6, #11, and #15 say nothing about the actions they change.
+`registry-check.yml` runs only on a weekly schedule or manual dispatch, so the required checks on #6, #11, and #15 say nothing about the actions they change. Use the manual runs above as the evidence, and repeat them after updating a branch.
 
 ## 6. Check The State
 
